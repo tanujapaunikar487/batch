@@ -37,7 +37,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["app", "dmg"],
+    "targets": [
+      "app"
+    ],
     "category": "Productivity",
     "shortDescription": "A tiny menu-bar checklist.",
     "icon": [

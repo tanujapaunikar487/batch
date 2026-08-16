@@ -8,6 +8,11 @@ section at the bottom.
 
 Built with **Tauri v2** (Rust shell) + **React** + **Tailwind v4** + **shadcn/ui**.
 
+<p>
+  <img src="docs/screenshots/ui-light.png" width="300" alt="Batch, light">
+  <img src="docs/screenshots/ui-dark.png" width="300" alt="Batch, dark">
+</p>
+
 ## Run it
 
 ```sh
@@ -18,8 +23,12 @@ bun run app:dev        # = tauri dev; opens the popover automatically in dev bui
 Build a signed-for-local-use `.app` + `.dmg`:
 
 ```sh
-bun run app:build      # → src-tauri/target/release/bundle/macos/Batch.app
+bun run app:build                    # → src-tauri/target/release/bundle/macos/Batch.app
+bun run tauri build --bundles dmg    # also make a .dmg (uses Finder scripting)
 ```
+
+Then drag `Batch.app` into `/Applications` and open it — the ✓ appears in the
+menu bar (there's no Dock icon by design).
 
 > `app:dev` / `app:build` prepend `~/.cargo/bin` to `PATH`, so they work even
 > if you haven't added Rust to your shell profile. Plain `bun run tauri …` does

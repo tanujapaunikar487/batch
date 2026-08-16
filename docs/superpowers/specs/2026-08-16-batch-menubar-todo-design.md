@@ -1,7 +1,7 @@
 # Batch — menu bar checklist for macOS
 
 **Date:** 2026-08-16
-**Status:** v1 design (built autonomously from the initial brief; assumptions listed at the bottom)
+**Status:** v1 built 2026-08-16 (autonomously from the initial brief; assumptions listed at the bottom)
 
 ## What it is
 
@@ -35,7 +35,7 @@ idea (WidgetKit) is out of reach for both Tauri and Electron and is deferred.
 │  └───────────┘                     │ 360×520, no   │ │
 │        ▲                           │ titlebar,     │ │
 │        │ tauri (Rust)              │ vibrancy      │ │
-│        │  • tray + positioner      │  ┌──────────┐ │ │
+│        │  • tray + placement       │  ┌──────────┐ │ │
 │        │  • global shortcut        │  │ React UI │ │ │
 │        │  • hide on blur (unless   │  │ shadcn + │ │ │
 │        │    pinned)                │  │ Tailwind │ │ │
@@ -50,8 +50,9 @@ idea (WidgetKit) is out of reach for both Tauri and Electron and is deferred.
 
 ### Rust side (`src-tauri/`)
 
-- `tauri-plugin-positioner` (tray-icon feature) — places the window centred
-  under the tray icon.
+- Window placement: `TrayIcon::rect()` → centre the window under the icon,
+  clamped to the monitor (no positioner plugin needed; it can't position from a
+  hotkey before the tray has been hovered).
 - `tauri-plugin-global-shortcut` — `⌥⇧Space` toggles the window. Constant in
   one place so it's trivial to change.
 - `tauri-plugin-store` — JSON persistence.
@@ -106,7 +107,7 @@ Priority colours: High = red-ish, Medium = amber, Low = slate/blue. Use shadcn
 tokens for everything else so light/dark follow the system.
 
 Keyboard: `Enter` add · `⌘1/2/3` set priority for the next item · `Esc` clear
-input, second `Esc` hides window · `⌘⌫` in input clears done · `⌘Q` quits.
+input, second `Esc` hides window · `⌘W` hides · `⌘⇧⌫` clears done · `⌘Q` quits.
 
 ## Data
 
