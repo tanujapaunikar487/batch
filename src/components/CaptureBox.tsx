@@ -104,7 +104,7 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
   const canSubmit = !busy && (value.trim().length > 0 || atts.length > 0);
 
   return (
-    <div className="border-t border-border/60 px-5 pb-3 pt-3" data-dropzone="capture">
+    <div className="px-5 pb-3 pt-1" data-dropzone="capture">
       <div
         className={cn(
           "rounded-lg border border-input bg-background/60 transition-colors dark:bg-input/40",
