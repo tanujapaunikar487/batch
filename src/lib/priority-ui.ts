@@ -1,4 +1,4 @@
-import { type Priority } from "@/lib/todos";
+import { type Priority } from "@/lib/notes";
 
 /** Visual treatment per priority. Kept out of todos.ts so the domain stays UI-free. */
 export const PRIORITY_UI: Record<

@@ -22,6 +22,20 @@ export const native = {
   quit: () => call("quit_app"),
   /** Pinned = stays open when it loses focus. */
   setPinned: (pinned: boolean) => call("set_pinned", { pinned }),
+  /** Re-register the system-wide toggle hotkey. Returns false if it couldn't be registered. */
+  setToggleShortcut: (shortcut: string) => call<boolean>("set_toggle_shortcut", { shortcut }),
+  /** Turn the double-Shift event tap on/off. */
+  setDoubleShift: (enabled: boolean) => call("set_double_shift", { enabled }),
+  /** Is the app trusted for Accessibility (needed by the double-Shift tap)? */
+  accessibilityStatus: () => call<boolean>("accessibility_status"),
+  /** Show the system prompt / open the Accessibility pane. */
+  requestAccessibility: () => call<boolean>("request_accessibility"),
+  /** Open http(s)/mailto links in the default browser. */
+  openUrl: (url: string) => call("open_url", { url }),
+  /** Reveal notes.json in Finder. */
+  revealNotesFile: () => call("reveal_notes_file"),
+  /** Absolute path of the notes file (for display). */
+  notesFilePath: () => call<string>("notes_file_path"),
   /** Dev builds only: echo to the `tauri dev` terminal. No-op in production. */
   devLog: (msg: string) => (import.meta.env.DEV ? call("dev_log", { msg }) : Promise.resolve()),
 };
