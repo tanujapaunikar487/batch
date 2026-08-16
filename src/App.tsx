@@ -27,7 +27,7 @@ import {
 } from "@/lib/notes";
 import { type Filter, EMPTY_FILTER, activeFilterCount, applyFilters } from "@/lib/filters";
 import { asList, asNumberedList, asPlainText } from "@/lib/format";
-import { attachmentsDir as loadAttachmentsDir, dragHasImages, dragOut, imagesFromDrop, saveImages } from "@/store/attachments";
+import { attachmentsDir as loadAttachmentsDir, dragHasImages, dragOut, imagesFromDrop } from "@/store/attachments";
 import { allAttachmentIds, type Attachment } from "@/lib/notes";
 import { type ActionId, matchesEvent } from "@/lib/shortcuts";
 
@@ -60,7 +60,7 @@ export default function App() {
   const [renameRequest, setRenameRequest] = useState(0);
   const [dsStatus, setDsStatus] = useState<{ active: boolean; granted: boolean } | null>(null);
   const [attDir, setAttDir] = useState("");
-  const [dropping, setDropping] = useState<false | "list" | "capture">(false);
+  const [dropping, setDropping] = useState(false);
   const dragDepth = useRef(0);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
@@ -297,22 +297,18 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notes.loadOk]);
   // Drag & drop (HTML5; Tauri's native interception is off so this also catches
-  // images dragged from browsers/apps). Zone: capture box → attach to draft;
-  // anywhere else → new note with the images.
-  const dropZoneFor = (target: EventTarget | null): "list" | "capture" =>
-    target instanceof Element && target.closest('[data-dropzone="capture"]') ? "capture" : "list";
+  // images dragged from browsers/apps). Anything dropped anywhere on the window
+  // attaches to the capture box, so you can add a prompt and press ↩.
   const onDragEnter = (e: React.DragEvent) => {
     if (!dragHasImages(e.dataTransfer)) return;
     e.preventDefault();
     dragDepth.current += 1;
-    setDropping(dropZoneFor(e.target));
+    setDropping(true);
   };
   const onDragOver = (e: React.DragEvent) => {
     if (!dragHasImages(e.dataTransfer)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "copy";
-    const zone = dropZoneFor(e.target);
-    setDropping((z) => (z === zone ? z : zone));
   };
   const onDragLeave = (e: React.DragEvent) => {
     if (!dragHasImages(e.dataTransfer)) return;
@@ -323,26 +319,14 @@ export default function App() {
     if (!dragHasImages(e.dataTransfer)) return;
     e.preventDefault();
     dragDepth.current = 0;
-    const zone = dropZoneFor(e.target);
     setDropping(false);
     const files = await imagesFromDrop(e.dataTransfer);
     if (files.length === 0) return showToast("Only images can be dropped here");
     setView("list");
+    if (searchOpen) closeSearch();
     void native.focus(); // the source app is frontmost after a cross-app drag
-    if (zone === "capture" && !searchOpen) {
-      await captureRef.current?.addFiles(files);
-      return;
-    }
-    const { saved, skipped } = await saveImages(files, 0);
-    if (saved.length === 0) return showToast("Couldn't save the image");
-    const id = notes.add(activeSection.id, "", undefined, saved);
-    nav.clear();
-    showToast(
-      `Added ${saved.length === 1 ? "1 image" : `${saved.length} images`} as a note${skipped ? ` · ${skipped} skipped (max 10)` : ""}`,
-    );
-    requestAnimationFrame(() =>
-      listRef.current?.querySelector(`[data-note-id="${id}"]`)?.scrollIntoView({ block: "nearest" }),
-    );
+    await captureRef.current?.addFiles(files);
+    focusCapture();
   };
 
   const openAttachment = useCallback((a: Attachment) => {
@@ -568,12 +552,9 @@ export default function App() {
           onQuit={quit}
         />
 
-        {dropping === "list" && (
+        {dropping && (
           <div className="pointer-events-none absolute inset-0 z-50 grid place-items-center rounded-xl border-2 border-dashed border-ring/60 bg-background/70 text-sm text-foreground">
-            <div className="text-center">
-              <div>Drop images to add a note</div>
-              <div className="mt-1 text-xs text-muted-foreground">…or drop on the capture box to attach to your draft</div>
-            </div>
+            Drop images to attach
           </div>
         )}
         {view === "settings" ? (
@@ -720,7 +701,7 @@ export default function App() {
                 attachmentsDir={attDir}
                 onNewFolder={() => setAddSectionRequest((n) => n + 1)}
                 onNotice={showToast}
-                dropTarget={dropping === "capture"}
+                dropTarget={dropping}
                 onSubmit={(text, attachments) => {
                   if (!text.trim() && attachments.length === 0) return false;
                   const id = notes.add(activeSection.id, text, undefined, attachments);
