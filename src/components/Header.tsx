@@ -1,4 +1,5 @@
-import { Check, ListChecks, ListFilter, Maximize2, Minimize2, Monitor, Moon, MoreHorizontal, Pin, Search, Sun } from "lucide-react";
+import { Check, ListFilter, Maximize2, Minimize2, Monitor, Moon, MoreHorizontal, Pin, Search, Sun } from "lucide-react";
+import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -82,7 +83,7 @@ export function Header(p: Props) {
       }}
       className="flex shrink-0 items-center gap-2 px-5 pb-3 pt-3 select-none"
     >
-      <ListChecks className="size-4 text-muted-foreground" aria-hidden data-tauri-drag-region />
+      <Logo className="size-4 text-foreground" data-tauri-drag-region />
       <span className="text-sm font-semibold tracking-tight" data-tauri-drag-region>
         Batch
       </span>
