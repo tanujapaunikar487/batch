@@ -16,7 +16,7 @@ export function AccessibilityBanner({
 }) {
   const needsRelaunch = state === "needs-relaunch";
   return (
-    <div className="mx-3 mb-2 flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-foreground">
+    <div className="mx-5 mb-2 flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-foreground">
       {needsRelaunch ? (
         <RefreshCw className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
       ) : (

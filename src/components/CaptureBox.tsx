@@ -104,7 +104,7 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
   const canSubmit = !busy && (value.trim().length > 0 || atts.length > 0);
 
   return (
-    <div className="border-t border-border/60 px-3 pb-2 pt-2" data-dropzone="capture">
+    <div className="border-t border-border/60 px-5 pb-3 pt-3" data-dropzone="capture">
       <div
         className={cn(
           "rounded-lg border border-input bg-background/60 transition-colors dark:bg-input/40",
@@ -191,7 +191,7 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
             aria-label="Capture"
             autoComplete="off"
             spellCheck
-            className="block min-w-0 flex-1 resize-none bg-transparent py-2 pr-8 text-[15px] leading-5 outline-none placeholder:text-muted-foreground"
+            className="block min-w-0 flex-1 resize-none bg-transparent py-2 pr-8 text-sm leading-5 outline-none placeholder:text-muted-foreground"
           />
           <button
             type="button"

@@ -10,7 +10,7 @@ interface Props {
 
 export function Footer({ selectedCount, toast, mergeBinding, totalOpen }: Props) {
   return (
-    <footer className="flex h-7 shrink-0 items-center gap-2 border-t border-border/60 px-3 text-[11px] text-muted-foreground select-none">
+    <footer className="flex h-7 shrink-0 items-center gap-2 border-t border-border/60 px-5 text-[11px] text-muted-foreground select-none">
       {toast ? (
         <span className="text-foreground">{toast}</span>
       ) : selectedCount > 0 ? (

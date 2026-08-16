@@ -28,14 +28,14 @@ export function HelpSheet({ keymap, toggleShortcut, doubleShift, onBack }: Props
   ];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center gap-1 px-3 pb-1">
+      <div className="flex items-center gap-1 px-4 pb-1">
         <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back">
           <ArrowLeft className="size-4" />
         </Button>
         <h2 className="text-sm font-semibold">Keyboard shortcuts</h2>
         <span className="ml-auto text-[11px] text-muted-foreground">Esc to close</span>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-3">
         <ul className="flex flex-col">
           {rows.map(([label, keys]) => (
             <li key={label} className="flex items-center gap-3 py-1 text-xs">

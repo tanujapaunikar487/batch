@@ -120,7 +120,7 @@ export function NoteRow({
             if (!note.done) onStartEdit(note.id);
           }}
           className={cn(
-            "group relative flex items-start gap-2.5 rounded-lg px-2 py-1.5 -mx-0.5 outline-none",
+            "group relative flex items-start gap-2.5 rounded-lg px-2 py-1.5 outline-none",
             "hover:bg-foreground/[0.04] dark:hover:bg-foreground/[0.06]",
             (isSelected || menuOpen) && "bg-foreground/[0.07] dark:bg-foreground/[0.1] hover:bg-foreground/[0.08]",
             isCursor && "ring-1 ring-ring/40",
