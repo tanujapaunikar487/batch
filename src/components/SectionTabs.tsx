@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Pencil, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -118,20 +118,29 @@ export function SectionTabs({
                 ref={s.id === activeId ? activeRef : undefined}
                 role="tab"
                 aria-selected={s.id === activeId}
-                title={i < 9 ? `⌘${i + 1} · right-click for options` : "right-click for options"}
-                // Left click selects, double-click renames, right-click opens the menu.
+                title={
+                  s.id === activeId
+                    ? "Click to rename · right-click for options"
+                    : i < 9
+                      ? `⌘${i + 1} · right-click for options`
+                      : "right-click for options"
+                }
+                // Click selects; clicking the active folder's name renames it; right-click opens the menu.
                 onPointerDown={(e) => e.preventDefault()}
-                onClick={() => onSelect(s.id)}
-                onDoubleClick={() => {
-                  setRenaming(s.id);
-                  setDraft(s.name);
+                onClick={() => {
+                  if (s.id === activeId) {
+                    setRenaming(s.id);
+                    setDraft(s.name);
+                  } else {
+                    onSelect(s.id);
+                  }
                 }}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   setMenuFor(s.id);
                 }}
                 className={cn(
-                  "group/tab flex h-6 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs transition-colors select-none",
+                  "flex h-6 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs transition-colors select-none",
                   s.id === activeId
                     ? "bg-foreground/[0.08] text-foreground dark:bg-foreground/[0.12]"
                     : "text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground",
@@ -140,12 +149,6 @@ export function SectionTabs({
                 {s.name}
                 {counts[s.id] > 0 && (
                   <span className="text-[10px] tabular-nums text-muted-foreground/70">{counts[s.id]}</span>
-                )}
-                {s.id === activeId && (
-                  <Pencil
-                    className="size-2.5 text-muted-foreground/0 transition-colors group-hover/tab:text-muted-foreground"
-                    aria-hidden
-                  />
                 )}
               </button>
             </DropdownMenuTrigger>
