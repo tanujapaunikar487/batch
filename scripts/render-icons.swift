@@ -1,7 +1,7 @@
 // Renders the app icon (1024×1024, macOS-style rounded tile with the Batch mark)
 // and the menu-bar template icon (44×44 @2x, black + alpha) using CoreGraphics.
-// The mark is src-tauri/icons/src/logo.svg (332×332 viewBox): one tall bar +
-// three stacked bars. Usage: swift scripts/render-icons.swift <outDir>
+// The mark is src-tauri/icons/src/logo.svg (300×300 viewBox): one tall bar +
+// two stacked blocks. Usage: swift scripts/render-icons.swift <outDir>
 import AppKit
 
 let outDir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "."
@@ -23,13 +23,12 @@ func writePNG(_ ctx: CGContext, _ path: String) {
 /// The Batch mark, scaled into `box` (square). Vertically symmetric so CG's
 /// bottom-left origin needs no flip.
 func drawMark(_ ctx: CGContext, in box: CGRect, color: CGColor) {
-    let s = box.width / 332.0
+    let s = box.width / 300.0
     let r = 12.0 * s
     let rects = [
-        CGRect(x: 0,   y: 0,   width: 100, height: 332),
-        CGRect(x: 111, y: 0,   width: 221, height: 100),
-        CGRect(x: 111, y: 116, width: 221, height: 100),
-        CGRect(x: 111, y: 232, width: 221, height: 100),
+        CGRect(x: 0,   y: 0,   width: 100, height: 300),
+        CGRect(x: 116, y: 0,   width: 184, height: 142),
+        CGRect(x: 116, y: 158, width: 184, height: 142),
     ]
     ctx.setFillColor(color)
     for rr in rects {
