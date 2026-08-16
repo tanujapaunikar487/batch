@@ -1,6 +1,7 @@
-import { type Note } from "./notes";
+import { type Note, sortKey } from "./notes";
 
-const chrono = (notes: Note[]) => [...notes].sort((a, b) => a.createdAt - b.createdAt);
+/** Display order (manual position, else chronological). */
+const chrono = (notes: Note[]) => [...notes].sort((a, b) => sortKey(a) - sortKey(b));
 
 /** Markdown list; multi-line notes keep their extra lines indented under the bullet. */
 export function asList(notes: Note[], style: "bullet" | "numbered" = "bullet"): string {

@@ -80,7 +80,8 @@ after rebuilding if the banner comes back.
 | Done | Space (or the checkbox); done notes sink below a hairline · ⇧⌘⌫ clears done in the section |
 | Edit | ↩ or double-click · ↩ saves · `Esc` cancels |
 | Priority | 1 / 2 / 3 on the selected notes · hover → ⋯ → Priority · shown as a coloured dot |
-| Move to another section | ⇧⌘] / ⇧⌘[ · or hover → ⋯ → Move to |
+| Move to another folder | ⇧⌘] / ⇧⌘[ · or ⋯ / right-click → Move to |
+| Reorder | drag a note up or down within its folder (open notes; a line shows where it lands) · ⌘Z undoes |
 | Search | ⌘F — searches all sections; results show their section |
 | Filters | ⇧⌘F — Status (All / Open / Done) · Priority · Type (Links / Code / Text) · When (Today / 7 days) |
 | Undo / redo | ⌘Z / ⇧⌘Z (every note change, 50 steps) |

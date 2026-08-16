@@ -1,13 +1,28 @@
-import { forwardRef } from "react";
+import { forwardRef, useState } from "react";
 import { type Note, type Section } from "@/lib/notes";
 import { NoteRow, type NoteRowProps } from "./NoteRow";
 
 type RowHandlers = Omit<
   NoteRowProps,
-  "note" | "sections" | "showSection" | "isCursor" | "isSelected" | "isEditing"
+  | "note"
+  | "sections"
+  | "showSection"
+  | "isCursor"
+  | "isSelected"
+  | "isEditing"
+  | "reorderable"
+  | "dropEdge"
+  | "onRowDragStart"
+  | "onRowDragOver"
+  | "onRowDrop"
+  | "onRowDragEnd"
 >;
 
 interface Props extends RowHandlers {
+  /** Enable drag-to-reorder of open notes (off in search results). */
+  reorderable?: boolean;
+  /** Called with the dragged id and the id it should follow (null = top). */
+  onReorder?: (id: string, afterId: string | null) => void;
   open: Note[];
   done: Note[];
   sections: Section[];
@@ -21,10 +36,39 @@ interface Props extends RowHandlers {
 
 /** Flat list: open notes, a hairline, then done notes. */
 export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
-  { open, done, sections, showSection, cursorId, selected, editingId, emptyMessage, onKeyDown, ...handlers },
+ {
+    open,
+    done,
+    sections,
+    showSection,
+    cursorId,
+    selected,
+    editingId,
+    emptyMessage,
+    onKeyDown,
+    reorderable,
+    onReorder,
+    ...handlers
+  },
   ref,
 ) {
-  const row = (n: Note) => (
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [over, setOver] = useState<{ id: string; edge: "top" | "bottom" } | null>(null);
+
+  const finishDrop = (targetId: string, edge: "top" | "bottom") => {
+    const from = dragId;
+    setDragId(null);
+    setOver(null);
+    if (!from || from === targetId || !onReorder) return;
+    // Position in the list without the dragged note; "after" = the note that precedes the slot.
+    const ids = open.map((n) => n.id).filter((id) => id !== from);
+    const ti = ids.indexOf(targetId);
+    if (ti === -1) return;
+    const insertAt = edge === "top" ? ti : ti + 1;
+    onReorder(from, insertAt === 0 ? null : ids[insertAt - 1]);
+  };
+
+  const row = (n: Note, canDrag: boolean) => (
     <NoteRow
       key={n.id}
       note={n}
@@ -33,6 +77,15 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
       isCursor={cursorId === n.id}
       isSelected={selected.has(n.id)}
       isEditing={editingId === n.id}
+      reorderable={canDrag}
+      dropEdge={dragId && over?.id === n.id && dragId !== n.id ? over.edge : null}
+      onRowDragStart={(id) => setDragId(id)}
+      onRowDragOver={(id, edge) => setOver((o) => (o?.id === id && o.edge === edge ? o : { id, edge }))}
+      onRowDrop={finishDrop}
+      onRowDragEnd={() => {
+        setDragId(null);
+        setOver(null);
+      }}
       {...handlers}
     />
   );
@@ -51,9 +104,9 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
         <div className="px-2 pt-12 text-center text-sm text-muted-foreground select-none">{emptyMessage}</div>
       ) : (
         <>
-          {open.length > 0 && <ul className="flex flex-col">{open.map(row)}</ul>}
+          {open.length > 0 && <ul className="flex flex-col">{open.map((n) => row(n, !!reorderable))}</ul>}
           {open.length > 0 && done.length > 0 && <div className="my-1.5 border-t border-border/60" />}
-          {done.length > 0 && <ul className="flex flex-col">{done.map(row)}</ul>}
+          {done.length > 0 && <ul className="flex flex-col">{done.map((n) => row(n, false))}</ul>}
         </>
       )}
     </div>

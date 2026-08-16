@@ -109,6 +109,21 @@ describe("notes reducer", () => {
     expect(allAttachmentIds(s1)).toEqual(["1.png", "2.png", "3.png"]);
   });
 
+  it("reorder: moves among open notes of the folder; new notes still append", () => {
+    const s0 = state([note({ id: "a", createdAt: 1 }), note({ id: "b", createdAt: 2 }), note({ id: "c", createdAt: 3 })]);
+    const s1 = reduce(s0, { type: "reorder", id: "c", afterId: null, now: 10 }); // c to top
+    expect(notesInSection(s1, INBOX_ID).map((n) => n.id)).toEqual(["c", "a", "b"]);
+    const s2 = reduce(s1, { type: "reorder", id: "a", afterId: "b", now: 10 }); // a to bottom
+    expect(notesInSection(s2, INBOX_ID).map((n) => n.id)).toEqual(["c", "b", "a"]);
+    const s3 = reduce(s2, { type: "add", id: "d", sectionId: INBOX_ID, text: "new", now: 11 });
+    expect(notesInSection(s3, INBOX_ID).map((n) => n.id)).toEqual(["c", "b", "a", "d"]);
+    const s4 = reduce(s3, { type: "reorder", id: "d", afterId: "c", now: 12 }); // between c and b
+    expect(notesInSection(s4, INBOX_ID).map((n) => n.id)).toEqual(["c", "d", "b", "a"]);
+    // no-ops
+    expect(reduce(s4, { type: "reorder", id: "zzz", afterId: null, now: 13 })).toBe(s4);
+    expect(reduce(s4, { type: "reorder", id: "a", afterId: "a", now: 13 })).toBe(s4);
+  });
+
   it("toggle sets/clears completedAt", () => {
     const s0 = state([note({ id: "a" })]);
     const s1 = reduce(s0, { type: "toggle", id: "a", now: 5 });

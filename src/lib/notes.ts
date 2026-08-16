@@ -48,7 +48,12 @@ export interface Note {
   createdAt: number;
   completedAt?: number;
   attachments?: Attachment[];
+  /** Manual position within the folder; defaults to createdAt (chronological). */
+  order?: number;
 }
+
+/** Sort key for open notes: manual order if set, else creation time. */
+export const sortKey = (n: Pick<Note, "order" | "createdAt">) => n.order ?? n.createdAt;
 
 export const hasAttachments = (n: Pick<Note, "attachments">) => (n.attachments?.length ?? 0) > 0;
 
@@ -96,6 +101,8 @@ export type Action =
   | { type: "move"; ids: string[]; sectionId: string }
   | { type: "merge"; ids: string[]; now: number }
   | { type: "clearDone"; sectionId?: string }
+  /** Move `id` right after `afterId` among the open notes of its folder (null = to the top). */
+  | { type: "reorder"; id: string; afterId: string | null; now: number }
   | { type: "addSection"; id: string; name: string; now: number }
   | { type: "renameSection"; id: string; name: string }
   | { type: "removeSection"; id: string }
@@ -184,7 +191,7 @@ export function reduce(state: NotesState, action: Action): NotesState {
       const set = new Set(action.ids);
       const picked = state.notes.filter((n) => set.has(n.id));
       if (picked.length < 2) return state;
-      const ordered = [...picked].sort((a, b) => a.createdAt - b.createdAt);
+      const ordered = [...picked].sort((a, b) => sortKey(a) - sortKey(b));
       const first = ordered[0];
       const attachments = ordered.flatMap((n) => n.attachments ?? []).slice(0, MAX_ATTACHMENTS);
       const merged: Note = {
@@ -201,6 +208,7 @@ export function reduce(state: NotesState, action: Action): NotesState {
         done: false,
         createdAt: first.createdAt,
       };
+      if (first.order !== undefined) merged.order = first.order;
       if (attachments.length) merged.attachments = attachments;
       const notes: Note[] = [];
       for (const n of state.notes) {
@@ -208,6 +216,27 @@ export function reduce(state: NotesState, action: Action): NotesState {
         else if (!set.has(n.id)) notes.push(n);
       }
       return { ...state, notes };
+    }
+    case "reorder": {
+      const moving = state.notes.find((n) => n.id === action.id);
+      if (!moving || moving.done || action.afterId === action.id) return state;
+      const siblings = state.notes
+        .filter((n) => n.sectionId === moving.sectionId && !n.done && n.id !== action.id)
+        .sort((a, b) => sortKey(a) - sortKey(b));
+      let key: number;
+      if (action.afterId === null) {
+        if (siblings.length === 0) return state;
+        key = sortKey(siblings[0]) - 1000;
+      } else {
+        const i = siblings.findIndex((n) => n.id === action.afterId);
+        if (i === -1) return state;
+        const prev = sortKey(siblings[i]);
+        const next = i + 1 < siblings.length ? sortKey(siblings[i + 1]) : null;
+        // Bottom: use "now" so notes added later still append below it.
+        key = next === null ? Math.max(prev + 1, action.now) : (prev + next) / 2;
+      }
+      if (key === sortKey(moving)) return state;
+      return mapNotes(state, [action.id], (n) => ({ ...n, order: key }));
     }
     case "clearDone": {
       const notes = state.notes.filter(
@@ -249,7 +278,7 @@ export function reduce(state: NotesState, action: Action): NotesState {
 
 // ───────────────────────── selectors ─────────────────────────
 
-const byCreated = (a: Note, b: Note) => a.createdAt - b.createdAt;
+const byCreated = (a: Note, b: Note) => sortKey(a) - sortKey(b);
 const byCompletedDesc = (a: Note, b: Note) => (b.completedAt ?? 0) - (a.completedAt ?? 0);
 
 /** Open notes in a section, oldest first. */
@@ -333,6 +362,7 @@ export function normalizeState(raw: unknown): NotesState {
     };
     if (done) note.completedAt = typeof n.completedAt === "number" ? n.completedAt : createdAt;
     if (attachments.length) note.attachments = attachments;
+    if (typeof n.order === "number" && Number.isFinite(n.order)) note.order = n.order;
     notes.push(note);
   }
   return { version: 2, sections, notes };

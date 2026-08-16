@@ -728,6 +728,11 @@ export default function App() {
               onContextSelect={(id) => {
                 if (!nav.selected.has(id)) nav.focus(id);
               }}
+              reorderable={!searching}
+              onReorder={(id, afterId) => {
+                notes.reorder(id, afterId);
+                nav.clear();
+              }}
               attachmentsDir={attDir}
               onOpenAttachment={openAttachment}
               onDragAttachments={dragAttachments}

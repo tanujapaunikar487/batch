@@ -86,6 +86,7 @@ export function useNotes(store?: KeyValueStore) {
       move: (ids: string[], sectionId: string) => dispatch({ type: "move", ids, sectionId }),
       merge: (ids: string[]) => dispatch({ type: "merge", ids, now: Date.now() }),
       clearDone: (sectionId?: string) => dispatch({ type: "clearDone", sectionId }),
+      reorder: (id: string, afterId: string | null) => dispatch({ type: "reorder", id, afterId, now: Date.now() }),
       addSection: (name: string) => {
         const id = newId();
         dispatch({ type: "addSection", id, name, now: Date.now() });

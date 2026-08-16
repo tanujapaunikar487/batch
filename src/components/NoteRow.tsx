@@ -49,6 +49,13 @@ export interface NoteRowProps {
   onMerge: (ids: string[]) => void;
   onOpenAttachment: (a: Attachment) => void;
   onDragAttachments: (e: React.DragEvent, note: Note, a: Attachment) => void;
+  /** Manual reordering (disabled in search results). */
+  reorderable?: boolean;
+  dropEdge?: "top" | "bottom" | null;
+  onRowDragStart?: (id: string) => void;
+  onRowDragOver?: (id: string, edge: "top" | "bottom") => void;
+  onRowDrop?: (id: string, edge: "top" | "bottom") => void;
+  onRowDragEnd?: () => void;
 }
 
 export function NoteRow({
@@ -77,6 +84,12 @@ export function NoteRow({
   onMerge,
   onOpenAttachment,
   onDragAttachments,
+  reorderable,
+  dropEdge,
+  onRowDragStart,
+  onRowDragOver,
+  onRowDrop,
+  onRowDragEnd,
 }: NoteRowProps) {
   const ui = PRIORITY_UI[note.priority];
   const sectionName = sections.find((s) => s.id === note.sectionId)?.name;
@@ -110,6 +123,32 @@ export function NoteRow({
         <li
           ref={rowRef}
           data-note-id={note.id}
+          draggable={!!reorderable && !note.done && !isEditing}
+          onDragStart={(e) => {
+            if (!reorderable) return;
+            if ((e.target as HTMLElement).closest("button,input,textarea,a,img")) {
+              e.preventDefault();
+              return;
+            }
+            e.dataTransfer.setData("application/x-batch-note", note.id);
+            e.dataTransfer.effectAllowed = "move";
+            onRowDragStart?.(note.id);
+          }}
+          onDragOver={(e) => {
+            if (!reorderable || !e.dataTransfer.types.includes("application/x-batch-note")) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            const r = e.currentTarget.getBoundingClientRect();
+            onRowDragOver?.(note.id, e.clientY < r.top + r.height / 2 ? "top" : "bottom");
+          }}
+          onDrop={(e) => {
+            if (!reorderable || !e.dataTransfer.types.includes("application/x-batch-note")) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const r = e.currentTarget.getBoundingClientRect();
+            onRowDrop?.(note.id, e.clientY < r.top + r.height / 2 ? "top" : "bottom");
+          }}
+          onDragEnd={() => onRowDragEnd?.()}
           onMouseDown={(e) => {
             if (e.button !== 0) return;
             if ((e.target as HTMLElement).closest("button,input,textarea,a,[role=menuitem]")) return;
@@ -125,6 +164,9 @@ export function NoteRow({
             (isSelected || menuOpen) && "bg-foreground/[0.07] dark:bg-foreground/[0.1] hover:bg-foreground/[0.08]",
             isCursor && "ring-1 ring-ring/40",
             note.done && !isSelected && "opacity-60",
+            // Drop indicator line while reordering.
+            dropEdge === "top" && "before:absolute before:inset-x-2 before:-top-0.5 before:h-0.5 before:rounded-full before:bg-ring",
+            dropEdge === "bottom" && "after:absolute after:inset-x-2 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-ring",
           )}
         >
           <Checkbox
@@ -179,15 +221,23 @@ export function NoteRow({
                 "size-1.5 rounded-full transition-opacity group-hover:opacity-0 group-focus-within:opacity-0",
                 ui.dot,
                 note.done && "opacity-40",
+                menuOpen && "opacity-0",
               )}
               aria-label={`${ui.label} priority`}
             />
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+            <div
+              className={cn(
+                "absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
+                menuOpen && "opacity-100",
+              )}
+            >
               <Button
                 variant="ghost"
                 size="icon-xs"
                 tabIndex={-1}
                 aria-label="Note actions"
+                aria-expanded={menuOpen}
+                className={cn(menuOpen && "bg-foreground/[0.08] text-foreground")}
                 onClick={(e) => {
                   const r = e.currentTarget.getBoundingClientRect();
                   openMenuAt(r.left, r.bottom);
