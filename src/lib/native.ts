@@ -26,10 +26,12 @@ export const native = {
   setToggleShortcut: (shortcut: string) => call<boolean>("set_toggle_shortcut", { shortcut }),
   /** Turn the double-Shift event tap on/off. */
   setDoubleShift: (enabled: boolean) => call("set_double_shift", { enabled }),
-  /** Is the app trusted for Accessibility (needed by the double-Shift tap)? */
-  accessibilityStatus: () => call<boolean>("accessibility_status"),
-  /** Show the system prompt / open the Accessibility pane. */
+  /** Ground truth for double-Shift: feature on, tap listening, permission granted. */
+  doubleShiftStatus: () => call<{ enabled: boolean; active: boolean; granted: boolean }>("double_shift_status"),
+  /** Show the Input Monitoring prompt / open that pane. */
   requestAccessibility: () => call<boolean>("request_accessibility"),
+  /** Restart the app (Input Monitoring grants only apply to a fresh process). */
+  relaunch: () => call("relaunch"),
   /** Force the native window appearance (vibrancy follows): "system" | "light" | "dark". */
   setTheme: (theme: "system" | "light" | "dark") => call("set_theme", { theme }),
   /** Open http(s)/mailto links in the default browser. */

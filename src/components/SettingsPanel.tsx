@@ -19,7 +19,7 @@ interface Props {
 
 export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Props) {
   const inTauri = isTauri();
-  const [trusted, setTrusted] = useState<boolean | null>(null);
+  const [ds, setDs] = useState<{ active: boolean; granted: boolean } | null>(null);
   const [autostart, setAutostart] = useState<boolean | null>(null);
   const [notesPath, setNotesPath] = useState<string>("");
 
@@ -27,8 +27,8 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
     if (!inTauri) return;
     let alive = true;
     const poll = async () => {
-      const t = await native.accessibilityStatus();
-      if (alive) setTrusted(t ?? false);
+      const st = await native.doubleShiftStatus();
+      if (alive && st) setDs({ active: st.active, granted: st.granted });
     };
     void poll();
     const id = window.setInterval(poll, 2000);
@@ -106,20 +106,29 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
             hint={
               !inTauri
                 ? "Available in the Mac app"
-                : trusted === false
-                  ? "Needs Accessibility access"
-                  : "Tap Shift twice from any app"
+                : !settings.settings.doubleShift
+                  ? "Tap Shift twice from any app"
+                  : ds?.active
+                    ? "Listening — tap Shift twice from any app"
+                    : ds?.granted
+                      ? "Access granted — relaunch Batch to enable"
+                      : "Needs Input Monitoring access"
             }
           >
             <div className="flex items-center gap-2">
-              {inTauri && trusted === false && (
+              {inTauri && settings.settings.doubleShift && ds && !ds.active && !ds.granted && (
                 <Button size="xs" variant="outline" onClick={() => void native.requestAccessibility()}>
                   Grant access
                 </Button>
               )}
-              {inTauri && trusted && (
+              {inTauri && settings.settings.doubleShift && ds && !ds.active && ds.granted && (
+                <Button size="xs" variant="outline" onClick={() => void native.relaunch()}>
+                  Relaunch
+                </Button>
+              )}
+              {inTauri && ds?.active && (
                 <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] text-emerald-700 dark:text-emerald-400">
-                  Granted
+                  Active
                 </span>
               )}
               <Switch checked={settings.settings.doubleShift} disabled={!inTauri} onCheckedChange={settings.setDoubleShift} />

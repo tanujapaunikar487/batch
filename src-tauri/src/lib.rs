@@ -90,6 +90,8 @@ struct AppState {
     toggle_shortcut: Mutex<Option<Shortcut>>,
     /// Feature flag read by the double-shift thread.
     double_shift: Arc<AtomicBool>,
+    /// True while the event tap is installed and listening.
+    double_shift_active: Arc<AtomicBool>,
 }
 
 // ───────────────────────── commands (called from the UI) ─────────────────────────
@@ -169,11 +171,30 @@ fn set_double_shift(state: tauri::State<'_, AppState>, enabled: bool) {
     state.double_shift.store(enabled, Ordering::Relaxed);
 }
 
+#[derive(serde::Serialize)]
+struct DoubleShiftStatus {
+    /// The feature switch.
+    enabled: bool,
+    /// The event tap is installed and listening.
+    active: bool,
+    /// Input Monitoring (or Accessibility) is granted for this app.
+    granted: bool,
+}
+
+/// Ground truth for the UI banner / settings row.
 #[tauri::command]
-fn accessibility_status() -> bool {
+fn double_shift_status(state: tauri::State<'_, AppState>) -> DoubleShiftStatus {
+    DoubleShiftStatus {
+        enabled: state.double_shift.load(Ordering::Relaxed),
+        active: state.double_shift_active.load(Ordering::Relaxed),
+        granted: input_monitoring_granted(),
+    }
+}
+
+fn input_monitoring_granted() -> bool {
     #[cfg(target_os = "macos")]
     {
-        ax::trusted()
+        ax::listen_granted() || ax::trusted()
     }
     #[cfg(not(target_os = "macos"))]
     {
@@ -181,17 +202,22 @@ fn accessibility_status() -> bool {
     }
 }
 
-/// Shows the system prompt (first time) and opens the Accessibility pane.
+/// Kept for compatibility with older UI builds.
+#[tauri::command]
+fn accessibility_status() -> bool {
+    input_monitoring_granted()
+}
+
+/// Shows the system prompt (first time) and opens the Input Monitoring pane,
+/// which is where macOS lists apps that install listen-only event taps.
 #[tauri::command]
 fn request_accessibility() -> bool {
     #[cfg(target_os = "macos")]
     {
-        let ok = ax::request();
+        let ok = ax::request_listen();
         if !ok {
             let _ = std::process::Command::new("open")
-                .arg(
-                    "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
-                )
+                .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")
                 .spawn();
         }
         ok
@@ -200,6 +226,12 @@ fn request_accessibility() -> bool {
     {
         true
     }
+}
+
+/// Input Monitoring grants only apply to a fresh process.
+#[tauri::command]
+fn relaunch(app: AppHandle) {
+    app.restart();
 }
 
 /// Open http(s)/mailto links in the default browser (validated; no shell).
@@ -420,11 +452,28 @@ mod ax {
         static kAXTrustedCheckOptionPrompt: CFStringRef;
     }
 
+    #[link(name = "CoreGraphics", kind = "framework")]
+    extern "C" {
+        /// Input Monitoring: is this process allowed to install listen-only event taps?
+        fn CGPreflightListenEventAccess() -> bool;
+        /// Input Monitoring: prompt (once) and return the current status.
+        fn CGRequestListenEventAccess() -> bool;
+    }
+
     pub fn trusted() -> bool {
         unsafe { AXIsProcessTrusted() }
     }
 
-    /// Prompts the user (macOS shows the dialog once per app) and returns the current status.
+    pub fn listen_granted() -> bool {
+        unsafe { CGPreflightListenEventAccess() }
+    }
+
+    pub fn request_listen() -> bool {
+        unsafe { CGRequestListenEventAccess() }
+    }
+
+    /// Accessibility prompt (kept for a future "capture selection" feature that must post events).
+    #[allow(dead_code)]
     pub fn request() -> bool {
         unsafe {
             let key = CFString::wrap_under_get_rule(kAXTrustedCheckOptionPrompt);
@@ -467,6 +516,8 @@ pub fn run() {
             set_theme,
             accessibility_status,
             request_accessibility,
+            double_shift_status,
+            relaunch,
             open_url,
             notes_file_path,
             reveal_notes_file,
@@ -588,9 +639,10 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             {
                 let flag = app.state::<AppState>().double_shift.clone();
+                let active = app.state::<AppState>().double_shift_active.clone();
                 flag.store(double_shift_on, Ordering::Relaxed);
                 let handle = app.handle().clone();
-                double_shift::spawn(flag, move || {
+                double_shift::spawn(flag, active, move || {
                     let h = handle.clone();
                     let _ = handle.run_on_main_thread(move || {
                         dlog!("[batch] double-shift → toggle");

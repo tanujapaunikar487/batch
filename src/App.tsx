@@ -47,7 +47,7 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [addSectionRequest, setAddSectionRequest] = useState(0);
-  const [axTrusted, setAxTrusted] = useState<boolean | null>(null);
+  const [dsStatus, setDsStatus] = useState<{ active: boolean; granted: boolean } | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const captureRef = useRef<CaptureBoxHandle>(null);
@@ -212,11 +212,11 @@ export default function App() {
     if (!inTauri || !settings.settings.doubleShift) return;
     let alive = true;
     const poll = async () => {
-      const t = await native.accessibilityStatus();
-      if (alive) setAxTrusted(t ?? null);
+      const st = await native.doubleShiftStatus();
+      if (alive && st) setDsStatus({ active: st.active, granted: st.granted });
     };
     void poll();
-    const id = window.setInterval(poll, 5000);
+    const id = window.setInterval(poll, 3000);
     return () => {
       alive = false;
       window.clearInterval(id);
@@ -443,9 +443,11 @@ export default function App() {
           />
         ) : (
           <>
-            {inTauri && settings.settings.doubleShift && axTrusted === false && !bannerDismissed && (
+            {inTauri && settings.settings.doubleShift && dsStatus && !dsStatus.active && !bannerDismissed && (
               <AccessibilityBanner
+                state={dsStatus.granted ? "needs-relaunch" : "needs-permission"}
                 onGrant={() => void native.requestAccessibility()}
+                onRelaunch={() => void notes.flush().then(() => native.relaunch())}
                 onDismiss={() => setBannerDismissed(true)}
               />
             )}

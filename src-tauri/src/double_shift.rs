@@ -1,9 +1,10 @@
 //! Double-tap-Shift detection via a listen-only CGEventTap.
 //!
-//! Runs on its own thread with its own CFRunLoop. Requires Accessibility (or
-//! Input Monitoring) permission; without it `CGEventTap::new` fails and we
-//! retry every few seconds until the user grants access or the feature is
-//! turned off.
+//! Runs on its own thread with its own CFRunLoop. Requires **Input Monitoring**
+//! (or Accessibility) permission — macOS lists the app under Input Monitoring
+//! the first time we try. Without it `CGEventTap::new` fails and we retry every
+//! few seconds. Note: a fresh Input Monitoring grant only takes effect after the
+//! app is relaunched, so the UI offers a Relaunch button.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -36,7 +37,11 @@ struct TapState {
 
 /// Start the listener thread. `enabled` can be flipped at any time; when it goes
 /// false the tap is torn down and the thread idles (cheaply) until re-enabled.
-pub fn spawn(enabled: Arc<AtomicBool>, on_trigger: impl Fn() + Send + Sync + 'static) {
+pub fn spawn(
+    enabled: Arc<AtomicBool>,
+    active: Arc<AtomicBool>,
+    on_trigger: impl Fn() + Send + Sync + 'static,
+) {
     let on_trigger = Arc::new(on_trigger);
     std::thread::Builder::new()
         .name("batch-double-shift".into())
@@ -47,9 +52,10 @@ pub fn spawn(enabled: Arc<AtomicBool>, on_trigger: impl Fn() + Send + Sync + 'st
                     std::thread::sleep(Duration::from_millis(500));
                     continue;
                 }
-                match run_tap(&enabled, on_trigger.clone()) {
+                match run_tap(&enabled, &active, on_trigger.clone()) {
                     Ok(()) => warned = false, // disabled → loop back to idle
                     Err(()) => {
+                        active.store(false, Ordering::Relaxed);
                         if !warned {
                             crate::dlog!("[batch] double-shift: event tap unavailable (no Accessibility?) — will keep retrying");
                             warned = true;
@@ -63,7 +69,11 @@ pub fn spawn(enabled: Arc<AtomicBool>, on_trigger: impl Fn() + Send + Sync + 'st
 }
 
 /// Blocks while enabled. Err(()) if the tap couldn't be created.
-fn run_tap(enabled: &AtomicBool, on_trigger: Arc<dyn Fn() + Send + Sync>) -> Result<(), ()> {
+fn run_tap(
+    enabled: &AtomicBool,
+    active: &AtomicBool,
+    on_trigger: Arc<dyn Fn() + Send + Sync>,
+) -> Result<(), ()> {
     let state = Arc::new(Mutex::new(TapState::default()));
     let disabled_by_system = Arc::new(AtomicBool::new(false));
 
@@ -129,6 +139,7 @@ fn run_tap(enabled: &AtomicBool, on_trigger: Arc<dyn Fn() + Send + Sync>) -> Res
     let run_loop = CFRunLoop::get_current();
     unsafe { run_loop.add_source(&source, kCFRunLoopDefaultMode) };
     tap.enable();
+    active.store(true, Ordering::Relaxed);
     crate::dlog!("[batch] double-shift: event tap active");
 
     while enabled.load(Ordering::Relaxed) {
@@ -144,6 +155,7 @@ fn run_tap(enabled: &AtomicBool, on_trigger: Arc<dyn Fn() + Send + Sync>) -> Res
         }
     }
     unsafe { run_loop.remove_source(&source, kCFRunLoopDefaultMode) };
+    active.store(false, Ordering::Relaxed);
     crate::dlog!("[batch] double-shift: event tap stopped");
     Ok(())
 }

@@ -52,14 +52,16 @@ bun run dev            # http://localhost:1420/
 #   &view=settings|help           open a panel
 ```
 
-### Double-Shift needs Accessibility
+### Double-Shift needs Input Monitoring
 
-The double-tap-Shift listener is a macOS event tap, which needs **System
-Settings → Privacy & Security → Accessibility → Batch**. Batch shows a one-line
-banner with a **Grant** button until it's allowed; the ⌥⇧Space hotkey and the
-menu-bar icon work regardless. Because this personal build is ad-hoc signed,
-macOS treats each rebuild as a new app — re-tick Batch in that list after
-rebuilding.
+The double-tap-Shift listener is a listen-only macOS event tap, which needs
+**System Settings → Privacy & Security → Input Monitoring → Batch** (macOS adds
+Batch to that list the first time it starts). Batch shows a one-line banner with
+a **Grant** button until it's allowed, then a **Relaunch** button — macOS only
+applies a fresh Input Monitoring grant to a new process. The ⌥⇧Space hotkey and
+the menu-bar icon work regardless. Because this personal build is ad-hoc
+signed, macOS may treat a rebuild as a new app — re-tick Batch in that list
+after rebuilding if the banner comes back.
 
 ## Using it
 
