@@ -93,6 +93,8 @@ struct AppState {
     double_shift: Arc<AtomicBool>,
     /// True while the event tap is installed and listening.
     double_shift_active: Arc<AtomicBool>,
+    /// Bumped on every focus change; a deferred blur-hide only fires if it still matches.
+    blur_gen: std::sync::atomic::AtomicU64,
 }
 
 // ───────────────────────── commands (called from the UI) ─────────────────────────
@@ -105,6 +107,18 @@ fn hide_window(app: AppHandle) {
 #[tauri::command]
 fn quit_app(app: AppHandle) {
     app.exit(0);
+}
+
+/// Bring the (already visible) window to the front without repositioning — used after a drop.
+#[tauri::command]
+fn focus_window(app: AppHandle) {
+    if let Some(w) = main_window(&app) {
+        #[cfg(target_os = "macos")]
+        let _ = app.show();
+        let _ = w.show();
+        let _ = w.set_focus();
+        let _ = w.emit(SHOWN_EVENT, ());
+    }
 }
 
 #[tauri::command]
@@ -440,6 +454,31 @@ fn read_settings(app: &AppHandle) -> (String, bool) {
 }
 
 #[cfg(target_os = "macos")]
+mod mouse {
+    use core_graphics::event::CGEvent;
+    use core_graphics::event_source::{CGEventSource, CGEventSourceStateID};
+
+    #[link(name = "CoreGraphics", kind = "framework")]
+    extern "C" {
+        fn CGEventSourceButtonState(state_id: i32, button: u32) -> bool;
+    }
+
+    /// Is the left mouse button currently held anywhere on the system?
+    pub fn left_down() -> bool {
+        // 0 = kCGEventSourceStateCombinedSessionState, 0 = kCGMouseButtonLeft
+        unsafe { CGEventSourceButtonState(0, 0) }
+    }
+
+    /// Current pointer position in global points (top-left origin of the primary display).
+    pub fn location() -> Option<(f64, f64)> {
+        let src = CGEventSource::new(CGEventSourceStateID::CombinedSessionState).ok()?;
+        let e = CGEvent::new(src).ok()?;
+        let p = e.location();
+        Some((p.x, p.y))
+    }
+}
+
+#[cfg(target_os = "macos")]
 mod ax {
     use core_foundation::base::TCFType;
     use core_foundation::boolean::CFBoolean;
@@ -512,6 +551,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             hide_window,
             quit_app,
+            focus_window,
             set_pinned,
             set_toggle_shortcut,
             set_double_shift,
@@ -605,19 +645,89 @@ pub fn run() {
                 window.on_window_event(move |event| match event {
                     WindowEvent::Focused(true) => {
                         dlog!("[batch] focus");
+                        // Cancel any pending deferred hide.
+                        app_handle
+                            .state::<AppState>()
+                            .blur_gen
+                            .fetch_add(1, Ordering::Relaxed);
                     }
                     WindowEvent::Focused(false) => {
                         let state = app_handle.state::<AppState>();
-                        dlog!(
-                            "[batch] blur (pinned={})",
-                            state.pinned.load(Ordering::Relaxed)
-                        );
-                        if !state.pinned.load(Ordering::Relaxed) {
+                        let generation = state.blur_gen.fetch_add(1, Ordering::Relaxed) + 1;
+                        let pinned = state.pinned.load(Ordering::Relaxed);
+                        dlog!("[batch] blur (pinned={pinned})");
+                        if pinned {
+                            return;
+                        }
+                        #[cfg(target_os = "macos")]
+                        let button_down = mouse::left_down();
+                        #[cfg(not(target_os = "macos"))]
+                        let button_down = false;
+                        if !button_down {
+                            // Plain click-away / ⌘Tab / hotkey → hide now.
                             if let Ok(mut g) = state.last_auto_hide.lock() {
                                 *g = Some(Instant::now());
                             }
                             hide(&app_handle);
+                            return;
                         }
+                        // The mouse is held somewhere else: this may be the start of a
+                        // drag into Batch. Keep the window until the button is released;
+                        // hide only if it's released outside our window.
+                        dlog!("[batch] blur while mouse down — deferring hide until mouse-up");
+                        let h = app_handle.clone();
+                        std::thread::spawn(move || {
+                            #[cfg(target_os = "macos")]
+                            {
+                                let started = Instant::now();
+                                while mouse::left_down()
+                                    && started.elapsed() < Duration::from_secs(60)
+                                {
+                                    std::thread::sleep(Duration::from_millis(25));
+                                }
+                                let at = mouse::location();
+                                let h2 = h.clone();
+                                let _ = h.run_on_main_thread(move || {
+                                    let st = h2.state::<AppState>();
+                                    if st.blur_gen.load(Ordering::Relaxed) != generation {
+                                        return; // refocused or superseded meanwhile
+                                    }
+                                    let Some(w) = main_window(&h2) else { return };
+                                    if w.is_focused().unwrap_or(false)
+                                        || st.pinned.load(Ordering::Relaxed)
+                                    {
+                                        return;
+                                    }
+                                    let inside = (|| {
+                                        let (mx, my) = at?;
+                                        let scale = w.scale_factor().ok()?;
+                                        let pos = w.outer_position().ok()?.to_logical::<f64>(scale);
+                                        let size = w.outer_size().ok()?.to_logical::<f64>(scale);
+                                        Some(
+                                            mx >= pos.x
+                                                && mx <= pos.x + size.width
+                                                && my >= pos.y
+                                                && my <= pos.y + size.height,
+                                        )
+                                    })()
+                                    .unwrap_or(false);
+                                    dlog!(
+                                        "[batch] mouse-up {} the window",
+                                        if inside { "inside" } else { "outside" }
+                                    );
+                                    if !inside {
+                                        if let Ok(mut g) = st.last_auto_hide.lock() {
+                                            *g = Some(Instant::now());
+                                        }
+                                        hide(&h2);
+                                    }
+                                });
+                            }
+                            #[cfg(not(target_os = "macos"))]
+                            {
+                                let _ = (h, generation);
+                            }
+                        });
                     }
                     WindowEvent::CloseRequested { api, .. } => {
                         // No close button, but ⌘W / scripts: hide instead of destroying.

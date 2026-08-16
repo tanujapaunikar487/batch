@@ -20,6 +20,8 @@ export const native = {
   hide: () => call("hide_window"),
   /** Quit the app entirely. */
   quit: () => call("quit_app"),
+  /** Bring the window to the front (after a drop from another app). */
+  focus: () => call("focus_window"),
   /** Pinned = stays open when it loses focus. */
   setPinned: (pinned: boolean) => call("set_pinned", { pinned }),
   /** Re-register the system-wide toggle hotkey. Returns false if it couldn't be registered. */

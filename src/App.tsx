@@ -328,6 +328,7 @@ export default function App() {
     const files = await imagesFromDrop(e.dataTransfer);
     if (files.length === 0) return showToast("Only images can be dropped here");
     setView("list");
+    void native.focus(); // the source app is frontmost after a cross-app drag
     if (zone === "capture" && !searchOpen) {
       await captureRef.current?.addFiles(files);
       return;
