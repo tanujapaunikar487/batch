@@ -1,7 +1,14 @@
 import { forwardRef } from "react";
-import { Search, X } from "lucide-react";
+import { ChevronDown, Search, X } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { type Filter, EMPTY_FILTER } from "@/lib/filters";
+import { type Filter, EMPTY_FILTER, isFilterActive } from "@/lib/filters";
 import { PRIORITIES, type Priority } from "@/lib/notes";
 import { PRIORITY_UI } from "@/lib/priority-ui";
 
@@ -22,7 +29,7 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
 ) {
   if (!searchOpen && !filtersOpen) return null;
   return (
-    <div className="flex flex-col gap-1.5 px-5 pb-3">
+    <div className="flex flex-col gap-2 px-5 pb-3">
       {searchOpen && (
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -41,7 +48,7 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
                 onArrowDownOut();
               }
             }}
-            placeholder="Search all sections…"
+            placeholder="Search all folders…"
             aria-label="Search"
             autoComplete="off"
             className="h-7 w-full rounded-md border border-input bg-background/60 pl-8 pr-7 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring/60 dark:bg-input/40"
@@ -57,8 +64,8 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
         </div>
       )}
       {filtersOpen && (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <ChipGroup
+        <div className="flex flex-wrap items-center gap-1.5">
+          <FilterSelect
             label="Status"
             value={filter.status}
             options={[
@@ -68,14 +75,14 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
             ]}
             onChange={(v) => onFilter({ ...filter, status: v as Filter["status"] })}
           />
-          <ChipGroup
+          <FilterSelect
             label="Priority"
             value={filter.priority ?? "any"}
             options={[["any", "Any"], ...PRIORITIES.map((p) => [p, PRIORITY_UI[p].label] as [string, string])]}
             dots={Object.fromEntries(PRIORITIES.map((p) => [p, PRIORITY_UI[p].dot]))}
             onChange={(v) => onFilter({ ...filter, priority: v === "any" ? undefined : (v as Priority) })}
           />
-          <ChipGroup
+          <FilterSelect
             label="Type"
             value={filter.kind ?? "any"}
             options={[
@@ -87,7 +94,7 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
             ]}
             onChange={(v) => onFilter({ ...filter, kind: v === "any" ? undefined : (v as Filter["kind"]) })}
           />
-          <ChipGroup
+          <FilterSelect
             label="When"
             value={filter.when ?? "any"}
             options={[
@@ -97,7 +104,7 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
             ]}
             onChange={(v) => onFilter({ ...filter, when: v === "any" ? undefined : (v as Filter["when"]) })}
           />
-          {(filter.status !== "all" || filter.priority || filter.kind || filter.when) && (
+          {isFilterActive(filter) && (
             <button
               type="button"
               onClick={() => onFilter(EMPTY_FILTER)}
@@ -112,7 +119,7 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
   );
 });
 
-function ChipGroup({
+function FilterSelect({
   label,
   value,
   options,
@@ -125,27 +132,37 @@ function ChipGroup({
   dots?: Record<string, string>;
   onChange: (v: string) => void;
 }) {
+  const current = options.find(([v]) => v === value)?.[1] ?? value;
+  const active = value !== options[0][0];
   return (
-    <div className="flex items-center gap-1" role="radiogroup" aria-label={label}>
-      <span className="mr-0.5 text-[10px] uppercase tracking-wider text-muted-foreground/70">{label}</span>
-      {options.map(([v, text]) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <button
-          key={v}
           type="button"
-          role="radio"
-          aria-checked={value === v}
-          onClick={() => onChange(v)}
+          aria-label={`${label}: ${current}`}
           className={cn(
-            "flex h-5 items-center gap-1 rounded-full border px-1.5 text-[11px] transition-colors",
-            value === v
-              ? "border-foreground/20 bg-foreground/[0.08] text-foreground"
-              : "border-transparent text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground",
+            "flex h-7 items-center gap-1 rounded-md border px-2 text-xs transition-colors",
+            active
+              ? "border-foreground/25 bg-foreground/[0.06] text-foreground"
+              : "border-input bg-background/60 text-muted-foreground hover:text-foreground dark:bg-input/40",
           )}
         >
-          {dots?.[v] && <span className={cn("size-1.5 rounded-full", dots[v])} />}
-          {text}
+          <span className="text-[10px] uppercase tracking-wider opacity-70">{label}</span>
+          {dots?.[value] && <span className={cn("size-1.5 rounded-full", dots[value])} />}
+          <span className={cn(active && "font-medium")}>{current}</span>
+          <ChevronDown className="size-3 opacity-60" />
         </button>
-      ))}
-    </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-36">
+        <DropdownMenuRadioGroup value={value} onValueChange={onChange}>
+          {options.map(([v, text]) => (
+            <DropdownMenuRadioItem key={v} value={v}>
+              {dots?.[v] && <span className={cn("mr-1 size-1.5 rounded-full", dots[v])} />}
+              {text}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
