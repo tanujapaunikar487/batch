@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Check, Copy, CornerDownRight, Flag, MoreHorizontal, Trash2 } from "lucide-react";
+import { Check, Copy, CornerDownRight, Flag, FolderInput, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -136,7 +136,9 @@ export function NoteRow({
                 <Copy /> Copy
               </DropdownMenuItem>
               {!note.done && (
-                <DropdownMenuItem onSelect={() => onStartEdit(note.id)}>Edit</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => onStartEdit(note.id)}>
+                  <Pencil /> Edit
+                </DropdownMenuItem>
               )}
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
@@ -155,7 +157,9 @@ export function NoteRow({
               </DropdownMenuSub>
               {sections.length > 1 && (
                 <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>Move to</DropdownMenuSubTrigger>
+                  <DropdownMenuSubTrigger>
+                    <FolderInput className="size-3.5" /> Move to
+                  </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
                     {sections.map((s) => (
                       <DropdownMenuItem
