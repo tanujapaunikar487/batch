@@ -32,7 +32,7 @@ export function Footer({ selectedCount, toast, mergeBinding, totalOpen }: Props)
         <>
           <span className="tabular-nums">{totalOpen === 0 ? "All clear" : `${totalOpen} open`}</span>
           <span className="ml-auto flex items-center gap-1 opacity-70">
-            <Kbd>↓</Kbd> browse · <Kbd>⌘/</Kbd> shortcuts
+            <Kbd>↑</Kbd> browse · <Kbd>⌘/</Kbd> shortcuts
           </span>
         </>
       )}

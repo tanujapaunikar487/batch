@@ -66,9 +66,9 @@ rebuilding.
 | Action | How |
 | --- | --- |
 | Show / hide | ⇧⇧ (double-tap Shift) · ⌥⇧Space · click the menu-bar icon · `Esc` when the input is empty · ⌘W |
-| Add a note | type / paste (Markdown, multi-line), ↩ · ⇧↩ for a newline |
+| Add a note | capture box at the bottom: type / paste (Markdown, multi-line), ↩ · ⇧↩ for a newline |
 | Sections | tabs at the top · ⌘1…⌘9 switch · ⇧⌘N new · double-click to rename · right-click for Rename / Copy as list / Clear done / Delete |
-| Browse | ↓ from the input enters the list · ↑↓ move · ⇧↑↓ extend selection · ⌘A select all · click / ⌘-click / ⇧-click |
+| Browse | ↑ from the capture box enters the list (↓ past the last note returns) · ↑↓ move · ⇧↑↓ extend · ⌘A select all · click / ⌘-click / ⇧-click |
 | Copy | ⌘C — one note copies its text; several copy as a Markdown list · ⇧⌘C copies the whole section as a list |
 | Merge notes | select 2+ → ⌘M (texts joined, earliest note kept, ⌘Z to undo) |
 | Done | Space (or the checkbox); done notes sink below a hairline · ⇧⌘⌫ clears done in the section |
@@ -80,7 +80,8 @@ rebuilding.
 | Undo / redo | ⌘Z / ⇧⌘Z (every note change, 50 steps) |
 | Delete | ⌫ on selected notes · hover → × |
 | Pin (stay open when unfocused) | 📌 or ⌘P |
-| Settings | ⌘, — launch at login, double-Shift, hotkey, custom shortcuts, data location |
+| Appearance | ⋯ menu → Appearance, or Settings: System / Light / Dark (the vibrancy backdrop follows) |
+| Settings | ⌘, — appearance, launch at login, double-Shift, hotkey, custom shortcuts, data location |
 | Shortcut cheat-sheet | ⌘/ |
 | Quit | ⋯ menu → Quit, right-click menu-bar icon → Quit, or ⌘Q |
 

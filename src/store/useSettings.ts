@@ -3,11 +3,14 @@ import { type ActionId, DEFAULT_KEYMAP, DEFAULT_TOGGLE_SHORTCUT, normalizeBindin
 import { createStore, SETTINGS_FILE, type KeyValueStore } from "./persistence";
 import { native } from "@/lib/native";
 
+export type ThemePref = "system" | "light" | "dark";
+
 export interface Settings {
   version: 1;
   /** Binding string ("alt+shift+Space"); registered system-wide via Rust. */
   toggleShortcut: string;
   doubleShift: boolean;
+  theme: ThemePref;
   keymap: Partial<Record<ActionId, string>>;
 }
 
@@ -15,6 +18,7 @@ export const DEFAULT_SETTINGS: Settings = {
   version: 1,
   toggleShortcut: DEFAULT_TOGGLE_SHORTCUT,
   doubleShift: true,
+  theme: "system",
   keymap: {},
 };
 
@@ -26,6 +30,7 @@ function normalizeSettings(raw: unknown): Settings {
     s.toggleShortcut = normalizeBinding(r.toggleShortcut)!;
   }
   if (typeof r.doubleShift === "boolean") s.doubleShift = r.doubleShift;
+  if (r.theme === "light" || r.theme === "dark" || r.theme === "system") s.theme = r.theme;
   if (r.keymap && typeof r.keymap === "object") {
     for (const [k, v] of Object.entries(r.keymap as Record<string, unknown>)) {
       if (k in DEFAULT_KEYMAP && typeof v === "string" && normalizeBinding(v)) {
@@ -100,7 +105,9 @@ export function useSettings(store?: KeyValueStore) {
     [update],
   );
 
-  return { settings, keymap, loaded, setBinding, resetKeymap, setToggleShortcut, setDoubleShift };
+  const setTheme = useCallback((theme: ThemePref) => update({ theme }), [update]);
+
+  return { settings, keymap, loaded, setBinding, resetKeymap, setToggleShortcut, setDoubleShift, setTheme };
 }
 
 export type SettingsApi = ReturnType<typeof useSettings>;

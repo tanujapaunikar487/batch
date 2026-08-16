@@ -1,4 +1,4 @@
-import { ListChecks, ListFilter, MoreHorizontal, Pin, PinOff, Search } from "lucide-react";
+import { Check, ListChecks, ListFilter, Monitor, Moon, MoreHorizontal, Pin, PinOff, Search, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -6,8 +6,12 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { type ThemePref } from "@/store/useSettings";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { type ActionId, formatBinding } from "@/lib/shortcuts";
@@ -30,6 +34,8 @@ interface Props {
   onCopySectionAsList: () => void;
   onClearDone: () => void;
   onRevealFile: () => void;
+  theme: ThemePref;
+  onTheme: (t: ThemePref) => void;
   onOpenSettings: () => void;
   onOpenHelp: () => void;
   onQuit: () => void;
@@ -119,6 +125,23 @@ export function Header(p: Props) {
               <DropdownMenuShortcut>{formatBinding(p.keymap.clearDone)}</DropdownMenuShortcut>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>Appearance</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                {(
+                  [
+                    ["system", "System", <Monitor key="s" />],
+                    ["light", "Light", <Sun key="l" />],
+                    ["dark", "Dark", <Moon key="d" />],
+                  ] as [ThemePref, string, React.ReactNode][]
+                ).map(([v, label, icon]) => (
+                  <DropdownMenuItem key={v} onSelect={() => p.onTheme(v)}>
+                    {icon} {label}
+                    {p.theme === v && <Check className="ml-auto size-3.5" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
             {p.isTauri && <DropdownMenuItem onSelect={p.onRevealFile}>Reveal notes file in Finder</DropdownMenuItem>}
             <DropdownMenuItem onSelect={p.onOpenSettings}>
               Settings <DropdownMenuShortcut>{formatBinding(p.keymap.settings)}</DropdownMenuShortcut>

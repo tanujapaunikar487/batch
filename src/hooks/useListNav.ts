@@ -80,7 +80,9 @@ export function useListNav(ids: string[]) {
   }, [ids, liveCursor]);
 
   const first = () => ids[0] ?? null;
+  const last = () => ids[ids.length - 1] ?? null;
   const atFirst = liveCursor !== null && index.get(liveCursor) === 0;
+  const atLast = liveCursor !== null && index.get(liveCursor) === ids.length - 1;
 
   return {
     cursor: liveCursor,
@@ -93,6 +95,8 @@ export function useListNav(ids: string[]) {
     selectAll,
     clear,
     first,
+    last,
     atFirst,
+    atLast,
   };
 }

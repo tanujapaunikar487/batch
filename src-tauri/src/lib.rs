@@ -149,6 +149,21 @@ async fn set_toggle_shortcut(app: AppHandle, shortcut: String) -> bool {
     }
 }
 
+/// "system" | "light" | "dark" — sets NSAppearance on the window so the vibrancy
+/// backdrop matches the UI theme.
+#[tauri::command]
+fn set_theme(app: AppHandle, theme: String) {
+    let Some(w) = main_window(&app) else { return };
+    let t = match theme.as_str() {
+        "light" => Some(tauri::Theme::Light),
+        "dark" => Some(tauri::Theme::Dark),
+        _ => None,
+    };
+    if let Err(e) = w.set_theme(t) {
+        eprintln!("[batch] set_theme({theme}) failed: {e}");
+    }
+}
+
 #[tauri::command]
 fn set_double_shift(state: tauri::State<'_, AppState>, enabled: bool) {
     state.double_shift.store(enabled, Ordering::Relaxed);
@@ -449,6 +464,7 @@ pub fn run() {
             set_pinned,
             set_toggle_shortcut,
             set_double_shift,
+            set_theme,
             accessibility_status,
             request_accessibility,
             open_url,

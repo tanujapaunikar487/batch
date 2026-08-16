@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, Monitor, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { type ActionId, ACTIONS, CUSTOMIZABLE_ACTIONS, DEFAULT_KEYMAP, DEFAULT_TOGGLE_SHORTCUT } from "@/lib/shortcuts";
-import { type SettingsApi } from "@/store/useSettings";
+import { type SettingsApi, type ThemePref } from "@/store/useSettings";
 import { native } from "@/lib/native";
 import { isTauri } from "@/store/persistence";
 import { ShortcutRecorder } from "./ShortcutRecorder";
@@ -71,6 +71,33 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
         <Group title="General">
+          <Row label="Appearance" hint="System follows macOS">
+            <div className="flex items-center rounded-md border border-input bg-background/60 p-0.5 dark:bg-input/40" role="radiogroup" aria-label="Appearance">
+              {(
+                [
+                  ["system", "System", <Monitor key="s" className="size-3" />],
+                  ["light", "Light", <Sun key="l" className="size-3" />],
+                  ["dark", "Dark", <Moon key="d" className="size-3" />],
+                ] as [ThemePref, string, React.ReactNode][]
+              ).map(([v, label, icon]) => (
+                <button
+                  key={v}
+                  type="button"
+                  role="radio"
+                  aria-checked={settings.settings.theme === v}
+                  onClick={() => settings.setTheme(v)}
+                  className={cn(
+                    "flex h-5 items-center gap-1 rounded px-1.5 text-[11px] transition-colors",
+                    settings.settings.theme === v
+                      ? "bg-foreground/[0.08] text-foreground dark:bg-foreground/[0.12]"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {icon} {label}
+                </button>
+              ))}
+            </div>
+          </Row>
           <Row label="Launch at login" hint={inTauri ? undefined : "Available in the Mac app"}>
             <Switch checked={!!autostart} disabled={!inTauri || autostart === null} onCheckedChange={toggleAutostart} />
           </Row>

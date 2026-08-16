@@ -6,8 +6,8 @@ interface Props {
   placeholder: string;
   /** Return true when the text was accepted (clears the box). */
   onSubmit: (text: string) => boolean;
-  /** ↓ on the last line — hand focus to the list. */
-  onArrowDownOut: () => void;
+  /** ↑ on the first line — hand focus to the list (which sits above the box). */
+  onArrowUpOut: () => void;
 }
 
 export interface CaptureBoxHandle {
@@ -19,7 +19,7 @@ export interface CaptureBoxHandle {
 const MAX_ROWS = 6;
 
 export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBox(
-  { placeholder, onSubmit, onArrowDownOut },
+  { placeholder, onSubmit, onArrowUpOut },
   ref,
 ) {
   const [value, setValue] = useState("");
@@ -46,7 +46,7 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
   };
 
   return (
-    <div className="px-3 pb-2">
+    <div className="border-t border-border/60 px-3 pb-2 pt-2">
       <div className="relative">
         <textarea
           ref={ta}
@@ -63,12 +63,12 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
                 e.stopPropagation();
                 setValue("");
               }
-            } else if (e.key === "ArrowDown" && !e.metaKey && !e.altKey) {
+            } else if (e.key === "ArrowUp" && !e.metaKey && !e.altKey) {
               const el = e.currentTarget;
-              const afterCaret = el.value.slice(el.selectionEnd);
-              if (!afterCaret.includes("\n")) {
+              const beforeCaret = el.value.slice(0, el.selectionStart);
+              if (!beforeCaret.includes("\n")) {
                 e.preventDefault();
-                onArrowDownOut();
+                onArrowUpOut();
               }
             }
           }}

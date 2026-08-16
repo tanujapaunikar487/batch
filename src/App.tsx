@@ -13,7 +13,7 @@ import { useNotes } from "@/store/useNotes";
 import { useSettings } from "@/store/useSettings";
 import { isTauri } from "@/store/persistence";
 import { native, onShown } from "@/lib/native";
-import { useSystemTheme } from "@/hooks/useSystemTheme";
+import { useTheme } from "@/hooks/useSystemTheme";
 import { useListNav } from "@/hooks/useListNav";
 import { useCopy } from "@/hooks/useClipboard";
 import { type Priority, INBOX_ID, doneInSection, notesInSection, searchNotes, sectionById } from "@/lib/notes";
@@ -28,9 +28,9 @@ type View = "list" | "settings" | "help";
 const devParams = inTauri ? new URLSearchParams() : new URLSearchParams(location.search);
 
 export default function App() {
-  useSystemTheme();
   const notes = useNotes();
   const settings = useSettings();
+  useTheme(settings.settings.theme);
   const copy = useCopy();
   const { state } = notes;
 
@@ -97,11 +97,15 @@ export default function App() {
   const focusCapture = useCallback(() => {
     requestAnimationFrame(() => captureRef.current?.focus());
   }, []);
-  const focusList = useCallback(() => {
-    if (visibleIds.length === 0) return;
-    if (!nav.cursor) nav.focus(visibleIds[0]);
-    listRef.current?.focus();
-  }, [visibleIds, nav]);
+  /** Enter the list from an edge: "top" (from search, above) or "bottom" (from the capture box, below). */
+  const focusList = useCallback(
+    (from: "top" | "bottom" = "bottom") => {
+      if (visibleIds.length === 0) return;
+      if (!nav.cursor) nav.focus(from === "top" ? visibleIds[0] : visibleIds[visibleIds.length - 1]);
+      listRef.current?.focus();
+    },
+    [visibleIds, nav],
+  );
 
   const copyNotes = useCallback(
     async (ids: string[], asListAlways = false) => {
@@ -326,10 +330,19 @@ export default function App() {
       // List-mode keys.
       if (meta && e.code === "KeyA") return void (e.preventDefault(), nav.selectAll());
       if (meta && e.code === "KeyC" && nav.targets.length) return void (e.preventDefault(), copyNotes(nav.targets));
-      if (e.code === "ArrowDown") return void (e.preventDefault(), nav.move(1, e.shiftKey), listRef.current?.focus());
+      if (e.code === "ArrowDown") {
+        e.preventDefault();
+        // Past the last note → back into the capture box below the list.
+        if (nav.atLast && !e.shiftKey && !searchOpen) return void (nav.clear(), focusCapture());
+        return void (nav.move(1, e.shiftKey), listRef.current?.focus());
+      }
       if (e.code === "ArrowUp") {
         e.preventDefault();
-        if (nav.atFirst && !e.shiftKey) return void (nav.clear(), focusCapture());
+        if (nav.atFirst && !e.shiftKey && searchOpen) {
+          nav.clear();
+          searchRef.current?.focus();
+          return;
+        }
         return void (nav.move(-1, e.shiftKey), listRef.current?.focus());
       }
       if (!nav.cursor) return;
@@ -368,7 +381,7 @@ export default function App() {
     <>
       <p>Nothing yet.</p>
       <p className="mt-1 text-xs text-muted-foreground/70">
-        Type or paste something above and press ↩. Markdown works. Press <kbd className="font-sans">⌘/</kbd> for shortcuts.
+        Type or paste something below and press ↩. Markdown works. Press <kbd className="font-sans">⌘/</kbd> for shortcuts.
       </p>
     </>
   ) : (
@@ -401,6 +414,8 @@ export default function App() {
           onCopySectionAsList={() => copySectionAsList(activeSection.id)}
           onClearDone={() => runAction("clearDone")}
           onRevealFile={() => void native.revealNotesFile()}
+          theme={settings.settings.theme}
+          onTheme={settings.setTheme}
           onOpenSettings={() => setView("settings")}
           onOpenHelp={() => setView("help")}
           onQuit={quit}
@@ -474,7 +489,7 @@ export default function App() {
                 nav.clear();
               }}
               onCloseSearch={closeSearch}
-              onArrowDownOut={focusList}
+              onArrowDownOut={() => focusList("top")}
               filtersOpen={filtersOpen}
               filter={filter}
               onFilter={(f) => {
@@ -482,22 +497,6 @@ export default function App() {
                 nav.clear();
               }}
             />
-            {!searchOpen && (
-              <CaptureBox
-                ref={captureRef}
-                placeholder={`Capture to ${activeSection.name}…`}
-                onSubmit={(text) => {
-                  if (!text.trim()) return false;
-                  const id = notes.add(activeSection.id, text);
-                  nav.clear();
-                  requestAnimationFrame(() =>
-                    listRef.current?.querySelector(`[data-note-id="${id}"]`)?.scrollIntoView({ block: "nearest" }),
-                  );
-                  return true;
-                }}
-                onArrowDownOut={focusList}
-              />
-            )}
             <div className="border-t border-border/60" />
             <NoteList
               ref={listRef}
@@ -533,6 +532,24 @@ export default function App() {
               }}
               onCopy={(ids) => void copyNotes(ids)}
             />
+            {!searchOpen && (
+              // Composer-style: the capture box sits under the list.
+              <CaptureBox
+                ref={captureRef}
+                placeholder={`Capture to ${activeSection.name}…`}
+                onSubmit={(text) => {
+                  if (!text.trim()) return false;
+                  const id = notes.add(activeSection.id, text);
+                  nav.clear();
+                  // New note lands at the bottom of the open list, right above the box.
+                  requestAnimationFrame(() =>
+                    listRef.current?.querySelector(`[data-note-id="${id}"]`)?.scrollIntoView({ block: "nearest" }),
+                  );
+                  return true;
+                }}
+                onArrowUpOut={() => focusList("bottom")}
+              />
+            )}
             <Footer
               selectedCount={nav.selected.size}
               toast={toast}

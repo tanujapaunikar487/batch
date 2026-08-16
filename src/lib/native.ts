@@ -30,6 +30,8 @@ export const native = {
   accessibilityStatus: () => call<boolean>("accessibility_status"),
   /** Show the system prompt / open the Accessibility pane. */
   requestAccessibility: () => call<boolean>("request_accessibility"),
+  /** Force the native window appearance (vibrancy follows): "system" | "light" | "dark". */
+  setTheme: (theme: "system" | "light" | "dark") => call("set_theme", { theme }),
   /** Open http(s)/mailto links in the default browser. */
   openUrl: (url: string) => call("open_url", { url }),
   /** Reveal notes.json in Finder. */
