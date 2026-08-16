@@ -95,6 +95,52 @@ export async function importPaths(paths: string[], already: number): Promise<{ s
   return { saved, skipped: paths.length - take.length };
 }
 
+/** Does this drag carry something we could turn into images? (files, or an image/URL from another app) */
+export function dragHasImages(dt: DataTransfer | null): boolean {
+  if (!dt) return false;
+  const types = Array.from(dt.types ?? []);
+  return types.includes("Files") || types.includes("text/uri-list") || types.some((t) => t.startsWith("image/"));
+}
+
+/**
+ * Resolve a drop to image blobs. Prefers real files; falls back to image URLs
+ * (dragged from a browser) — http(s) URLs are fetched, data: URLs decoded.
+ */
+export async function imagesFromDrop(dt: DataTransfer | null): Promise<File[]> {
+  const files = imagesFromDataTransfer(dt);
+  if (files.length || !dt) return files;
+  const out: File[] = [];
+  const uris = (dt.getData("text/uri-list") || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith("#"));
+  // Some browsers only put the <img> in text/html.
+  if (uris.length === 0) {
+    const html = dt.getData("text/html");
+    const m = html && /<img[^>]+src=["']([^"']+)["']/i.exec(html);
+    if (m) uris.push(m[1]);
+  }
+  for (const u of uris.slice(0, MAX_ATTACHMENTS)) {
+    try {
+      if (u.startsWith("data:image/")) {
+        const res = await fetch(u);
+        const blob = await res.blob();
+        out.push(new File([blob], "image." + (blob.type.split("/")[1] ?? "png"), { type: blob.type }));
+      } else if (/^https?:\/\//i.test(u)) {
+        const res = await fetch(u, { mode: "cors" });
+        const blob = await res.blob();
+        if (blob.type.startsWith("image/")) {
+          const name = decodeURIComponent(new URL(u).pathname.split("/").pop() || "image");
+          out.push(new File([blob], name, { type: blob.type }));
+        }
+      }
+    } catch (e) {
+      console.warn("[batch] could not fetch dragged image", u, e);
+    }
+  }
+  return out;
+}
+
 /** Image blobs from a paste / HTML5 drop event. */
 export function imagesFromDataTransfer(dt: DataTransfer | null): File[] {
   if (!dt) return [];

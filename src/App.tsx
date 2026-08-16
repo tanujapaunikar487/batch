@@ -27,7 +27,7 @@ import {
 } from "@/lib/notes";
 import { type Filter, EMPTY_FILTER, activeFilterCount, applyFilters } from "@/lib/filters";
 import { asList, asNumberedList, asPlainText } from "@/lib/format";
-import { attachmentsDir as loadAttachmentsDir, dragOut, importPaths } from "@/store/attachments";
+import { attachmentsDir as loadAttachmentsDir, dragHasImages, dragOut, imagesFromDrop, saveImages } from "@/store/attachments";
 import { allAttachmentIds, type Attachment } from "@/lib/notes";
 import { type ActionId, matchesEvent } from "@/lib/shortcuts";
 
@@ -60,7 +60,8 @@ export default function App() {
   const [renameRequest, setRenameRequest] = useState(0);
   const [dsStatus, setDsStatus] = useState<{ active: boolean; granted: boolean } | null>(null);
   const [attDir, setAttDir] = useState("");
-  const [dropping, setDropping] = useState(false);
+  const [dropping, setDropping] = useState<false | "list" | "capture">(false);
+  const dragDepth = useRef(0);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const captureRef = useRef<CaptureBoxHandle>(null);
@@ -295,25 +296,53 @@ export default function App() {
     // Only once, right after the first successful load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notes.loadOk]);
-  useEffect(() => {
-    if (!inTauri) return;
-    let off: (() => void) | undefined;
-    import("@tauri-apps/api/webview").then(({ getCurrentWebview }) =>
-      getCurrentWebview().onDragDropEvent(async (e) => {
-        if (e.payload.type === "enter" || e.payload.type === "over") setDropping(true);
-        else if (e.payload.type === "leave") setDropping(false);
-        else if (e.payload.type === "drop") {
-          setDropping(false);
-          setView("list");
-          const { saved, skipped } = await importPaths(e.payload.paths, captureRef.current?.count() ?? 0);
-          if (saved.length === 0 && skipped === 0) showToast("Only images can be attached");
-          captureRef.current?.addAttachments(saved, skipped);
-          captureRef.current?.focus();
-        }
-      }),
-    ).then((fn) => (off = fn));
-    return () => off?.();
-  }, [showToast]);
+  // Drag & drop (HTML5; Tauri's native interception is off so this also catches
+  // images dragged from browsers/apps). Zone: capture box → attach to draft;
+  // anywhere else → new note with the images.
+  const dropZoneFor = (target: EventTarget | null): "list" | "capture" =>
+    target instanceof Element && target.closest('[data-dropzone="capture"]') ? "capture" : "list";
+  const onDragEnter = (e: React.DragEvent) => {
+    if (!dragHasImages(e.dataTransfer)) return;
+    e.preventDefault();
+    dragDepth.current += 1;
+    setDropping(dropZoneFor(e.target));
+  };
+  const onDragOver = (e: React.DragEvent) => {
+    if (!dragHasImages(e.dataTransfer)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    const zone = dropZoneFor(e.target);
+    setDropping((z) => (z === zone ? z : zone));
+  };
+  const onDragLeave = (e: React.DragEvent) => {
+    if (!dragHasImages(e.dataTransfer)) return;
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setDropping(false);
+  };
+  const onDrop = async (e: React.DragEvent) => {
+    if (!dragHasImages(e.dataTransfer)) return;
+    e.preventDefault();
+    dragDepth.current = 0;
+    const zone = dropZoneFor(e.target);
+    setDropping(false);
+    const files = await imagesFromDrop(e.dataTransfer);
+    if (files.length === 0) return showToast("Only images can be dropped here");
+    setView("list");
+    if (zone === "capture" && !searchOpen) {
+      await captureRef.current?.addFiles(files);
+      return;
+    }
+    const { saved, skipped } = await saveImages(files, 0);
+    if (saved.length === 0) return showToast("Couldn't save the image");
+    const id = notes.add(activeSection.id, "", undefined, saved);
+    nav.clear();
+    showToast(
+      `Added ${saved.length === 1 ? "1 image" : `${saved.length} images`} as a note${skipped ? ` · ${skipped} skipped (max 10)` : ""}`,
+    );
+    requestAnimationFrame(() =>
+      listRef.current?.querySelector(`[data-note-id="${id}"]`)?.scrollIntoView({ block: "nearest" }),
+    );
+  };
 
   const openAttachment = useCallback((a: Attachment) => {
     if (inTauri) void native.openAttachment(a.id);
@@ -498,6 +527,10 @@ export default function App() {
   return (
     <TooltipProvider delayDuration={400}>
       <div
+        onDragEnter={onDragEnter}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={(e) => void onDrop(e)}
         className={
           "relative flex h-dvh w-dvw flex-col overflow-hidden rounded-xl text-foreground " +
           // Light: near-opaque so the frosted backdrop can't grey the UI; dark: keep the glass.
@@ -534,9 +567,12 @@ export default function App() {
           onQuit={quit}
         />
 
-        {dropping && (
+        {dropping === "list" && (
           <div className="pointer-events-none absolute inset-0 z-50 grid place-items-center rounded-xl border-2 border-dashed border-ring/60 bg-background/70 text-sm text-foreground">
-            Drop images to attach
+            <div className="text-center">
+              <div>Drop images to add a note</div>
+              <div className="mt-1 text-xs text-muted-foreground">…or drop on the capture box to attach to your draft</div>
+            </div>
           </div>
         )}
         {view === "settings" ? (
@@ -683,6 +719,7 @@ export default function App() {
                 attachmentsDir={attDir}
                 onNewFolder={() => setAddSectionRequest((n) => n + 1)}
                 onNotice={showToast}
+                dropTarget={dropping === "capture"}
                 onSubmit={(text, attachments) => {
                   if (!text.trim() && attachments.length === 0) return false;
                   const id = notes.add(activeSection.id, text, undefined, attachments);

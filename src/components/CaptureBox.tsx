@@ -9,7 +9,6 @@ import {
 import { cn } from "@/lib/utils";
 import { type Attachment, MAX_ATTACHMENTS } from "@/lib/notes";
 import { imagesFromDataTransfer, saveImages } from "@/store/attachments";
-import { isTauri } from "@/store/persistence";
 import { AttachmentStrip } from "./AttachmentStrip";
 
 interface Props {
@@ -21,6 +20,8 @@ interface Props {
   onArrowUpOut: () => void;
   onNewFolder: () => void;
   onNotice: (msg: string) => void;
+  /** A drag is hovering over the box (App owns drop handling). */
+  dropTarget?: boolean;
 }
 
 export interface CaptureBoxHandle {
@@ -37,7 +38,7 @@ export interface CaptureBoxHandle {
 const MAX_ROWS = 6;
 
 export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBox(
-  { placeholder, attachmentsDir, onSubmit, onArrowUpOut, onNewFolder, onNotice },
+  { placeholder, attachmentsDir, onSubmit, onArrowUpOut, onNewFolder, onNotice, dropTarget },
   ref,
 ) {
   const [value, setValue] = useState("");
@@ -102,24 +103,12 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
   const canSubmit = !busy && (value.trim().length > 0 || atts.length > 0);
 
   return (
-    <div
-      className="border-t border-border/60 px-3 pb-2 pt-2"
-      onDragOver={(e) => {
-        if (!isTauri() && e.dataTransfer.types.includes("Files")) e.preventDefault();
-      }}
-      onDrop={(e) => {
-        if (isTauri()) return; // native drop is handled via Tauri events
-        const files = imagesFromDataTransfer(e.dataTransfer);
-        if (files.length) {
-          e.preventDefault();
-          void addFiles(files);
-        }
-      }}
-    >
+    <div className="border-t border-border/60 px-3 pb-2 pt-2" data-dropzone="capture">
       <div
         className={cn(
           "rounded-lg border border-input bg-background/60 transition-colors dark:bg-input/40",
           "focus-within:border-ring/50 focus-within:ring-[3px] focus-within:ring-ring/10",
+          dropTarget && "border-ring ring-[3px] ring-ring/25",
         )}
       >
         {atts.length > 0 && (
