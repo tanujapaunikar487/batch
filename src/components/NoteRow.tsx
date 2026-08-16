@@ -1,21 +1,22 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Check, Copy, CornerDownRight, Flag, FolderInput, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Check, CheckSquare, Copy, CornerDownRight, Flag, FolderInput, ListOrdered, Merge, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import { type Attachment, type Note, type Priority, type Section, PRIORITIES, hasAttachments } from "@/lib/notes";
 import { PRIORITY_UI } from "@/lib/priority-ui";
+import { formatBinding } from "@/lib/shortcuts";
 import { Markdown } from "./Markdown";
 import { AttachmentStrip } from "./AttachmentStrip";
 
@@ -23,15 +24,20 @@ export interface NoteRowProps {
   note: Note;
   sections: Section[];
   attachmentsDir: string;
-  onOpenAttachment: (a: Attachment) => void;
-  onDragAttachments: (e: React.DragEvent, note: Note, a: Attachment) => void;
   /** Section pill shown in search results. */
   showSection?: boolean;
   isCursor: boolean;
   isSelected: boolean;
   isEditing: boolean;
+  /** Ids the menu acts on: the selection if this note is part of it, else just this note. */
+  targetsFor: (id: string) => string[];
+  allDoneFor: (ids: string[]) => boolean;
+  bindings: { copyList: string; merge: string };
   onPointerSelect: (id: string, e: React.MouseEvent) => void;
+  /** Right-click: make sure the note is selected before the menu opens. */
+  onContextSelect: (id: string) => void;
   onToggle: (id: string) => void;
+  onToggleMany: (ids: string[]) => void;
   onEdit: (id: string, text: string) => void;
   onStartEdit: (id: string) => void;
   onStopEdit: () => void;
@@ -39,20 +45,27 @@ export interface NoteRowProps {
   onSetPriority: (ids: string[], p: Priority) => void;
   onMove: (ids: string[], sectionId: string) => void;
   onCopy: (ids: string[]) => void;
+  onCopyAsList: (ids: string[]) => void;
+  onMerge: (ids: string[]) => void;
+  onOpenAttachment: (a: Attachment) => void;
+  onDragAttachments: (e: React.DragEvent, note: Note, a: Attachment) => void;
 }
 
 export function NoteRow({
   note,
   sections,
   attachmentsDir,
-  onOpenAttachment,
-  onDragAttachments,
   showSection,
   isCursor,
   isSelected,
   isEditing,
+  targetsFor,
+  allDoneFor,
+  bindings,
   onPointerSelect,
+  onContextSelect,
   onToggle,
+  onToggleMany,
   onEdit,
   onStartEdit,
   onStopEdit,
@@ -60,150 +73,200 @@ export function NoteRow({
   onSetPriority,
   onMove,
   onCopy,
+  onCopyAsList,
+  onMerge,
+  onOpenAttachment,
+  onDragAttachments,
 }: NoteRowProps) {
   const ui = PRIORITY_UI[note.priority];
   const sectionName = sections.find((s) => s.id === note.sectionId)?.name;
   const rowRef = useRef<HTMLLIElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  // Snapshot of the targets when the menu opened (selection may change underneath).
+  const [targets, setTargets] = useState<string[]>([note.id]);
 
   useEffect(() => {
     if (isCursor) rowRef.current?.scrollIntoView({ block: "nearest" });
   }, [isCursor]);
 
+  const openMenuAt = (clientX: number, clientY: number) => {
+    // Reuse the right-click menu for the ⋯ button.
+    rowRef.current?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, clientX, clientY }));
+  };
+  const many = targets.length > 1;
+  const allDone = allDoneFor(targets);
+
   return (
-    <li
-      ref={rowRef}
-      data-note-id={note.id}
-      onMouseDown={(e) => {
-        // Let checkbox / buttons / editor handle their own clicks.
-        if ((e.target as HTMLElement).closest("button,input,textarea,a,[role=menuitem]")) return;
-        onPointerSelect(note.id, e);
+    <ContextMenu
+      onOpenChange={(o) => {
+        setMenuOpen(o);
+        if (o) {
+          onContextSelect(note.id);
+          setTargets(targetsFor(note.id));
+        }
       }}
-      onDoubleClick={(e) => {
-        if ((e.target as HTMLElement).closest("button,input,a")) return;
-        if (!note.done) onStartEdit(note.id);
-      }}
-      className={cn(
-        "group relative flex items-start gap-2.5 rounded-lg px-2 py-1.5 -mx-0.5 outline-none",
-        "hover:bg-foreground/[0.04] dark:hover:bg-foreground/[0.06]",
-        isSelected && "bg-foreground/[0.07] dark:bg-foreground/[0.1] hover:bg-foreground/[0.08]",
-        isCursor && "ring-1 ring-ring/40",
-        note.done && !isSelected && "opacity-60",
-      )}
     >
-      <Checkbox
-        checked={note.done}
-        onCheckedChange={() => onToggle(note.id)}
-        aria-label={note.done ? "Mark as not done" : "Mark as done"}
-        className="mt-1 shrink-0"
-        tabIndex={-1}
-      />
-
-      <div className="min-w-0 flex-1">
-        {hasAttachments(note) && (
-          <AttachmentStrip
-            attachments={note.attachments!}
-            dir={attachmentsDir}
-            size="sm"
-            onOpen={onOpenAttachment}
-            onDragStart={(e, a) => onDragAttachments(e, note, a)}
-            className={cn("mb-1", note.done && "opacity-70")}
-          />
-        )}
-        {isEditing ? (
-          <InlineEditor
-            initial={note.text}
-            onCommit={(t) => {
-              onStopEdit();
-              onEdit(note.id, t);
-            }}
-            onCancel={onStopEdit}
-          />
-        ) : note.text ? (
-          <Markdown
-            text={note.text}
-            className={cn("text-sm leading-5", note.done && "line-through text-muted-foreground")}
-          />
-        ) : (
-          <span className="text-xs text-muted-foreground/70 select-none">
-            {note.attachments?.length === 1 ? "1 image" : `${note.attachments?.length ?? 0} images`}
-          </span>
-        )}
-        {showSection && sectionName && (
-          <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">
-            <CornerDownRight className="size-2.5" /> {sectionName}
-          </span>
-        )}
-      </div>
-
-      {/* Reserved 24px column: priority dot at rest, ⋯ menu on hover — text never runs under it. */}
-      <div className="relative mt-0.5 flex h-5 w-6 shrink-0 items-center justify-center">
-        <span
+      <ContextMenuTrigger asChild>
+        <li
+          ref={rowRef}
+          data-note-id={note.id}
+          onMouseDown={(e) => {
+            if (e.button !== 0) return;
+            if ((e.target as HTMLElement).closest("button,input,textarea,a,[role=menuitem]")) return;
+            onPointerSelect(note.id, e);
+          }}
+          onDoubleClick={(e) => {
+            if ((e.target as HTMLElement).closest("button,input,a,img")) return;
+            if (!note.done) onStartEdit(note.id);
+          }}
           className={cn(
-            "size-1.5 rounded-full transition-opacity group-hover:opacity-0 group-focus-within:opacity-0",
-            ui.dot,
-            note.done && "opacity-40",
+            "group relative flex items-start gap-2.5 rounded-lg px-2 py-1.5 -mx-0.5 outline-none",
+            "hover:bg-foreground/[0.04] dark:hover:bg-foreground/[0.06]",
+            (isSelected || menuOpen) && "bg-foreground/[0.07] dark:bg-foreground/[0.1] hover:bg-foreground/[0.08]",
+            isCursor && "ring-1 ring-ring/40",
+            note.done && !isSelected && "opacity-60",
           )}
-          aria-label={`${ui.label} priority`}
-        />
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-xs" tabIndex={-1} aria-label="Note actions">
+        >
+          <Checkbox
+            checked={note.done}
+            onCheckedChange={() => onToggle(note.id)}
+            aria-label={note.done ? "Mark as not done" : "Mark as done"}
+            className="mt-1 shrink-0"
+            tabIndex={-1}
+          />
+
+          <div className="min-w-0 flex-1">
+            {hasAttachments(note) && (
+              <AttachmentStrip
+                attachments={note.attachments!}
+                dir={attachmentsDir}
+                size="sm"
+                onOpen={onOpenAttachment}
+                onDragStart={(e, a) => onDragAttachments(e, note, a)}
+                className={cn("mb-1", note.done && "opacity-70")}
+              />
+            )}
+            {isEditing ? (
+              <InlineEditor
+                initial={note.text}
+                onCommit={(t) => {
+                  onStopEdit();
+                  onEdit(note.id, t);
+                }}
+                onCancel={onStopEdit}
+              />
+            ) : note.text ? (
+              <Markdown
+                text={note.text}
+                className={cn("text-sm leading-5", note.done && "line-through text-muted-foreground")}
+              />
+            ) : (
+              <span className="text-xs text-muted-foreground/70 select-none">
+                {note.attachments?.length === 1 ? "1 image" : `${note.attachments?.length ?? 0} images`}
+              </span>
+            )}
+            {showSection && sectionName && (
+              <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                <CornerDownRight className="size-2.5" /> {sectionName}
+              </span>
+            )}
+          </div>
+
+          {/* Reserved 24px column: priority dot at rest, ⋯ on hover — text never runs under it. */}
+          <div className="relative mt-0.5 flex h-5 w-6 shrink-0 items-center justify-center">
+            <span
+              className={cn(
+                "size-1.5 rounded-full transition-opacity group-hover:opacity-0 group-focus-within:opacity-0",
+                ui.dot,
+                note.done && "opacity-40",
+              )}
+              aria-label={`${ui.label} priority`}
+            />
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                tabIndex={-1}
+                aria-label="Note actions"
+                onClick={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect();
+                  openMenuAt(r.left, r.bottom);
+                }}
+              >
                 <MoreHorizontal className="size-3.5" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-40">
-              <DropdownMenuItem onSelect={() => onCopy([note.id])}>
-                <Copy /> Copy
-              </DropdownMenuItem>
-              {!note.done && (
-                <DropdownMenuItem onSelect={() => onStartEdit(note.id)}>
-                  <Pencil /> Edit
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <Flag className={cn("size-3.5", ui.text)} /> Priority
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  {PRIORITIES.map((p) => (
-                    <DropdownMenuItem key={p} onSelect={() => onSetPriority([note.id], p)}>
-                      <span className={cn("size-1.5 rounded-full", PRIORITY_UI[p].dot)} />
-                      {PRIORITY_UI[p].label}
-                      <DropdownMenuShortcut>{PRIORITIES.indexOf(p) + 1}</DropdownMenuShortcut>
-                      {p === note.priority && <Check className="ml-1 size-3.5" />}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              {sections.length > 1 && (
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <FolderInput className="size-3.5" /> Move to
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    {sections.map((s) => (
-                      <DropdownMenuItem
-                        key={s.id}
-                        disabled={s.id === note.sectionId}
-                        onSelect={() => onMove([note.id], s.id)}
-                      >
-                        {s.name}
-                        {s.id === note.sectionId && <Check className="ml-auto size-3.5" />}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onSelect={() => onRemove([note.id])}>
-                <Trash2 /> Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-    </li>
+            </div>
+          </div>
+        </li>
+      </ContextMenuTrigger>
+
+      <ContextMenuContent className="min-w-52">
+        <ContextMenuItem onSelect={() => onCopy(targets)}>
+          <Copy /> Copy
+          <ContextMenuShortcut>⌘C</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => onCopyAsList(targets)}>
+          <ListOrdered /> Copy as List
+          <ContextMenuShortcut>{formatBinding(bindings.copyList)}</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onSelect={() => onToggleMany(targets)}>
+          {allDone ? <Square /> : <CheckSquare />} {allDone ? "Mark as Not Done" : "Mark as Done"}
+          <ContextMenuShortcut>Space</ContextMenuShortcut>
+        </ContextMenuItem>
+        {!many && !note.done && (
+          <ContextMenuItem onSelect={() => onStartEdit(note.id)}>
+            <Pencil /> Edit
+            <ContextMenuShortcut>↩</ContextMenuShortcut>
+          </ContextMenuItem>
+        )}
+        {many && (
+          <ContextMenuItem onSelect={() => onMerge(targets)}>
+            <Merge /> Merge Notes
+            <ContextMenuShortcut>{formatBinding(bindings.merge)}</ContextMenuShortcut>
+          </ContextMenuItem>
+        )}
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>
+            <Flag className={cn("size-3.5", ui.text)} /> Priority
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent>
+            {PRIORITIES.map((p) => (
+              <ContextMenuItem key={p} onSelect={() => onSetPriority(targets, p)}>
+                <span className={cn("size-1.5 rounded-full", PRIORITY_UI[p].dot)} />
+                {PRIORITY_UI[p].label}
+                <ContextMenuShortcut>{PRIORITIES.indexOf(p) + 1}</ContextMenuShortcut>
+                {!many && p === note.priority && <Check className="ml-1 size-3.5" />}
+              </ContextMenuItem>
+            ))}
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+        {sections.length > 1 && (
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>
+              <FolderInput className="size-3.5" /> Move to
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent>
+              {sections.map((s) => (
+                <ContextMenuItem
+                  key={s.id}
+                  disabled={!many && s.id === note.sectionId}
+                  onSelect={() => onMove(targets, s.id)}
+                >
+                  {s.name}
+                  {!many && s.id === note.sectionId && <Check className="ml-auto size-3.5" />}
+                </ContextMenuItem>
+              ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+        )}
+        <ContextMenuSeparator />
+        <ContextMenuItem variant="destructive" onSelect={() => onRemove(targets)}>
+          <Trash2 /> Delete{many ? ` ${targets.length} notes` : ""}
+          <ContextMenuShortcut>⌫</ContextMenuShortcut>
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 

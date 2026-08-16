@@ -33,7 +33,7 @@ export const ACTIONS: Record<ActionId, { label: string; customizable: boolean }>
   newSection: { label: "New folder", customizable: true },
   search: { label: "Search", customizable: true },
   filters: { label: "Toggle filters", customizable: true },
-  copySectionAsList: { label: "Copy folder as list", customizable: true },
+  copySectionAsList: { label: "Copy as list (selection, or whole folder)", customizable: true },
   merge: { label: "Merge selected notes", customizable: true },
   clearDone: { label: "Clear done in folder", customizable: true },
   moveNextSection: { label: "Move note to next folder", customizable: true },

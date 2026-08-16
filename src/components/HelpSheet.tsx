@@ -16,7 +16,7 @@ export function HelpSheet({ keymap, toggleShortcut, doubleShift, onBack }: Props
     ["Add note (⇧↩ newline)", "↩"],
     ["Browse notes", "↓ ↑  ·  ⇧↓ ⇧↑ extend"],
     ["Select all", "⌘A"],
-    ["Copy note / selection as list", "⌘C"],
+    ["Copy note(s)", "⌘C"],
     ["Toggle done", "Space"],
     ["Edit note", "↩  ·  double-click"],
     ["Delete", "⌫"],

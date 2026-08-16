@@ -26,7 +26,7 @@ import {
   sectionById,
 } from "@/lib/notes";
 import { type Filter, EMPTY_FILTER, activeFilterCount, applyFilters } from "@/lib/filters";
-import { asList, asPlainText } from "@/lib/format";
+import { asList, asNumberedList, asPlainText } from "@/lib/format";
 import { attachmentsDir as loadAttachmentsDir, dragOut, importPaths } from "@/store/attachments";
 import { allAttachmentIds, type Attachment } from "@/lib/notes";
 import { type ActionId, matchesEvent } from "@/lib/shortcuts";
@@ -142,13 +142,48 @@ export default function App() {
     },
     [notesById, copy, showToast],
   );
+  /** "Copy as List": numbered list (+ images), then mark those notes done — they've been handed off. */
+  const copyAsList = useCallback(
+    async (ids: string[]) => {
+      const picked = ids.map((id) => notesById.get(id)).filter((n): n is NonNullable<typeof n> => !!n);
+      if (picked.length === 0) return showToast("Nothing to copy");
+      const withText = picked.filter((n) => n.text);
+      const text = asNumberedList(withText);
+      const imageIds = picked.flatMap((n) => (n.attachments ?? []).map((a) => a.id));
+      const ok =
+        imageIds.length > 0 && inTauri ? (await native.copyRich(text, imageIds)) !== undefined : await copy(text);
+      if (!ok) return showToast("Couldn't copy");
+      const open = picked.filter((n) => !n.done).map((n) => n.id);
+      if (open.length) notes.setDone(open, true);
+      showToast(
+        `✓ Copied as List${imageIds.length ? ` + ${imageIds.length} image${imageIds.length > 1 ? "s" : ""}` : ""}${
+          open.length ? ` · ${open.length} marked done · ⌘Z to undo` : ""
+        }`,
+      );
+      nav.clear();
+    },
+    [notesById, copy, notes, showToast, nav],
+  );
   const copySectionAsList = useCallback(
     (sectionId: string) => {
       const ids = notesInSection(state, sectionId).map((n) => n.id);
       if (ids.length === 0) return showToast("Nothing to copy");
-      void copyNotes(ids, true);
+      void copyAsList(ids);
     },
-    [state, copyNotes, showToast],
+    [state, copyAsList, showToast],
+  );
+  const toggleMany = useCallback(
+    (ids: string[]) => {
+      if (ids.length === 0) return;
+      const allDone = ids.every((id) => notesById.get(id)?.done);
+      notes.setDone(ids, !allDone);
+    },
+    [notesById, notes],
+  );
+  const targetsFor = useCallback((id: string) => (nav.selected.has(id) ? [...nav.selected] : [id]), [nav.selected]);
+  const allDoneFor = useCallback(
+    (ids: string[]) => ids.length > 0 && ids.every((id) => notesById.get(id)?.done),
+    [notesById],
   );
   const mergeSelected = useCallback(() => {
     if (nav.targets.length < 2) return showToast("Select 2+ notes to merge");
@@ -313,7 +348,8 @@ export default function App() {
           setFiltersOpen((o) => !o);
           break;
         case "copySectionAsList":
-          copySectionAsList(activeSection.id);
+          if (nav.targets.length > 0) void copyAsList(nav.targets);
+          else copySectionAsList(activeSection.id);
           break;
         case "merge":
           mergeSelected();
@@ -348,7 +384,7 @@ export default function App() {
           break;
       }
     },
-    [searchOpen, closeSearch, openSearch, copySectionAsList, activeSection.id, mergeSelected, state, notes, showToast, moveBySection, togglePin],
+    [searchOpen, closeSearch, openSearch, copySectionAsList, copyAsList, nav.targets, activeSection.id, mergeSelected, state, notes, showToast, moveBySection, togglePin],
   );
 
   useEffect(() => {
@@ -417,7 +453,7 @@ export default function App() {
         return void (nav.move(-1, e.shiftKey), listRef.current?.focus());
       }
       if (!nav.cursor) return;
-      if (e.code === "Space") return void (e.preventDefault(), nav.targets.forEach((id) => notes.toggle(id)));
+      if (e.code === "Space") return void (e.preventDefault(), toggleMany(nav.targets));
       if (e.code === "Enter") {
         e.preventDefault();
         const n = notesById.get(nav.cursor);
@@ -436,7 +472,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [
     keymap, runAction, hide, quit, state.sections, nav, view, editingId, searchOpen, closeSearch,
-    filtersOpen, filter, focusCapture, copyNotes, notes, notesById, removeIds,
+    filtersOpen, filter, focusCapture, copyNotes, notes, notesById, removeIds, toggleMany,
   ]);
 
   // ── render ──
@@ -616,6 +652,20 @@ export default function App() {
                 showToast(`Moved to ${sectionById(state, sectionId)?.name ?? "folder"}`);
               }}
               onCopy={(ids) => void copyNotes(ids)}
+              onCopyAsList={(ids) => void copyAsList(ids)}
+              onMerge={(ids) => {
+                if (ids.length < 2) return;
+                notes.merge(ids);
+                showToast(`Merged ${ids.length} → 1 · ⌘Z to undo`);
+                nav.clear();
+              }}
+              onToggleMany={toggleMany}
+              targetsFor={targetsFor}
+              allDoneFor={allDoneFor}
+              bindings={{ copyList: keymap.copySectionAsList, merge: keymap.merge }}
+              onContextSelect={(id) => {
+                if (!nav.selected.has(id)) nav.focus(id);
+              }}
               attachmentsDir={attDir}
               onOpenAttachment={openAttachment}
               onDragAttachments={dragAttachments}

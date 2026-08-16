@@ -79,6 +79,7 @@ export function useNotes(store?: KeyValueStore) {
       },
       setAttachments: (id: string, attachments: Attachment[]) => dispatch({ type: "setAttachments", id, attachments }),
       toggle: (id: string) => dispatch({ type: "toggle", id, now: Date.now() }),
+      setDone: (ids: string[], done: boolean) => dispatch({ type: "setDone", ids, done, now: Date.now() }),
       edit: (id: string, text: string) => dispatch({ type: "edit", id, text }),
       remove: (ids: string[]) => dispatch({ type: "remove", ids }),
       setPriority: (ids: string[], priority: Priority) => dispatch({ type: "setPriority", ids, priority }),

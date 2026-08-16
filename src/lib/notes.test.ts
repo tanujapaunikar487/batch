@@ -118,6 +118,15 @@ describe("notes reducer", () => {
     expect(s2.notes[0].completedAt).toBeUndefined();
   });
 
+  it("setDone marks many at once and is a no-op when nothing changes", () => {
+    const s0 = state([note({ id: "a" }), note({ id: "b", done: true, completedAt: 1 })]);
+    const s1 = reduce(s0, { type: "setDone", ids: ["a", "b"], done: true, now: 7 });
+    expect(s1.notes.map((n) => [n.done, n.completedAt])).toEqual([[true, 7], [true, 1]]);
+    expect(reduce(s1, { type: "setDone", ids: ["a", "b"], done: true, now: 8 })).toBe(s1);
+    const s2 = reduce(s1, { type: "setDone", ids: ["a"], done: false, now: 9 });
+    expect(s2.notes[0].done).toBe(false);
+  });
+
   it("edit trims; blank removes", () => {
     const s0 = state([note({ id: "a" })]);
     expect(reduce(s0, { type: "edit", id: "a", text: " new\n" }).notes[0].text).toBe("new");

@@ -14,10 +14,17 @@ export function asList(notes: Note[], style: "bullet" | "numbered" = "bullet"): 
     .join("\n");
 }
 
-/** What ⌘C puts on the clipboard: one note → its text, several → a list. */
+/** What ⌘C puts on the clipboard: one note → its text, several → texts separated by blank lines. */
 export function asPlainText(notes: Note[]): string {
-  if (notes.length === 1) return notes[0].text;
-  return asList(notes);
+  return chrono(notes)
+    .map((n) => n.text)
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+/** "Copy as List": numbered, chronological — ready to paste into a chat. */
+export function asNumberedList(notes: Note[]): string {
+  return asList(notes, "numbered");
 }
 
 export function mergeText(notes: Note[]): string {

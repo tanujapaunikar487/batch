@@ -89,6 +89,7 @@ export type Action =
     }
   | { type: "setAttachments"; id: string; attachments: Attachment[] }
   | { type: "toggle"; id: string; now: number }
+  | { type: "setDone"; ids: string[]; done: boolean; now: number }
   | { type: "edit"; id: string; text: string }
   | { type: "remove"; ids: string[] }
   | { type: "setPriority"; ids: string[]; priority: Priority }
@@ -150,6 +151,14 @@ export function reduce(state: NotesState, action: Action): NotesState {
         n.done
           ? { ...n, done: false, completedAt: undefined }
           : { ...n, done: true, completedAt: action.now },
+      );
+    case "setDone":
+      return mapNotes(state, action.ids, (n) =>
+        n.done === action.done
+          ? n
+          : action.done
+            ? { ...n, done: true, completedAt: action.now }
+            : { ...n, done: false, completedAt: undefined },
       );
     case "edit": {
       const text = cleanText(action.text);

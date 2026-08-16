@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type Note, INBOX_ID } from "./notes";
-import { asList, mergeText, asPlainText } from "./format";
+import { asList, mergeText, asPlainText, asNumberedList } from "./format";
 
 const n = (text: string, createdAt = 0): Note => ({
   id: text, sectionId: INBOX_ID, text, priority: "medium", done: false, createdAt,
@@ -16,9 +16,12 @@ describe("asList", () => {
   it("numbered style", () => {
     expect(asList([n("a", 1), n("b", 2)], "numbered")).toBe("1. a\n2. b");
   });
-  it("single note → no bullet, just the text", () => {
+  it("asPlainText: single note → its text; several → blank-line separated, chronological", () => {
     expect(asPlainText([n("only")])).toBe("only");
-    expect(asPlainText([n("x", 2), n("y", 1)])).toBe("- y\n- x");
+    expect(asPlainText([n("x", 2), n("y", 1)])).toBe("y\n\nx");
+  });
+  it("asNumberedList", () => {
+    expect(asNumberedList([n("x", 2), n("y", 1)])).toBe("1. y\n2. x");
   });
 });
 
