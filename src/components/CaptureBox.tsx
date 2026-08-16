@@ -121,14 +121,14 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
             className="px-2 pt-2"
           />
         )}
-        <div className="flex items-start gap-1">
+        <div className="flex items-start gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
                 aria-label="Add"
                 title="Attach images · New folder"
-                className="mt-1.5 ml-1.5 grid size-6 shrink-0 place-items-center rounded-full border border-muted-foreground/40 text-muted-foreground transition-colors hover:border-foreground hover:text-foreground aria-expanded:text-foreground"
+                className="ml-2 mt-1.5 grid size-6 shrink-0 place-items-center rounded-full border border-muted-foreground/40 text-muted-foreground transition-colors hover:border-foreground hover:text-foreground aria-expanded:text-foreground"
               >
                 <Plus className="size-3.5" />
               </button>

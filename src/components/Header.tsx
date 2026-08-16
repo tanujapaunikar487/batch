@@ -80,7 +80,7 @@ export function Header(p: Props) {
         if ((e.target as HTMLElement).closest("button")) return;
         p.onToggleExpand();
       }}
-      className="flex h-11 shrink-0 items-center gap-2 px-5 select-none"
+      className="flex shrink-0 items-center gap-2 px-5 pb-3 pt-3 select-none"
     >
       <ListChecks className="size-4 text-muted-foreground" aria-hidden data-tauri-drag-region />
       <span className="text-sm font-semibold tracking-tight" data-tauri-drag-region>

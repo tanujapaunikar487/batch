@@ -22,7 +22,7 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
 ) {
   if (!searchOpen && !filtersOpen) return null;
   return (
-    <div className="flex flex-col gap-1.5 px-5 pb-2">
+    <div className="flex flex-col gap-1.5 px-5 pb-3">
       {searchOpen && (
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
