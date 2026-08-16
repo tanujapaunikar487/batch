@@ -26,7 +26,7 @@ const note = (over: Partial<Note> = {}): Note => ({
 const state = (notes: Note[], extraSections: { id: string; name: string }[] = []): NotesState => ({
   version: 2,
   sections: [
-    { id: INBOX_ID, name: "Inbox", createdAt: 0 },
+    { id: INBOX_ID, name: "Untitled", createdAt: 0 },
     ...extraSections.map((s, i) => ({ ...s, createdAt: i + 1 })),
   ],
   notes,
@@ -42,7 +42,7 @@ describe("cleanText", () => {
 });
 
 describe("emptyState", () => {
-  it("has an Inbox section and no notes", () => {
+  it("has a default 'Untitled' folder and no notes", () => {
     const s = emptyState();
     expect(s.version).toBe(2);
     expect(s.sections.map((x) => x.id)).toEqual([INBOX_ID]);
@@ -145,7 +145,7 @@ describe("notes reducer", () => {
   it("addSection / renameSection / removeSection", () => {
     let s = emptyState();
     s = reduce(s, { type: "addSection", id: "s2", name: "  Prompts ", now: 1 });
-    expect(s.sections.map((x) => x.name)).toEqual(["Inbox", "Prompts"]);
+    expect(s.sections.map((x) => x.name)).toEqual(["Untitled", "Prompts"]);
     s = reduce(s, { type: "renameSection", id: "s2", name: "Ideas" });
     expect(s.sections[1].name).toBe("Ideas");
     s = reduce(s, { type: "add", id: "n1", sectionId: "s2", text: "x", now: 2 });
@@ -198,7 +198,7 @@ describe("normalizeState", () => {
     expect(normalizeState(undefined)).toEqual(emptyState());
     expect(normalizeState({ version: 2, sections: "x", notes: [] })).toEqual(emptyState());
   });
-  it("re-homes notes whose section is missing, ensures Inbox exists first", () => {
+  it("re-homes notes whose folder is missing, ensures the default folder exists first, renames legacy 'Inbox'", () => {
     const s = normalizeState({
       version: 2,
       sections: [{ id: "s2", name: "P", createdAt: 1 }],
@@ -211,6 +211,10 @@ describe("normalizeState", () => {
     expect(s.notes[0].sectionId).toBe(INBOX_ID);
     expect(s.notes[1].priority).toBe("medium");
     expect(typeof s.notes[1].completedAt).toBe("number");
+    const legacy = normalizeState({ version: 2, sections: [{ id: INBOX_ID, name: "Inbox", createdAt: 0 }], notes: [] });
+    expect(legacy.sections[0].name).toBe("Untitled");
+    const custom = normalizeState({ version: 2, sections: [{ id: INBOX_ID, name: "Work", createdAt: 0 }], notes: [] });
+    expect(custom.sections[0].name).toBe("Work");
   });
 });
 

@@ -21,7 +21,7 @@ export function HelpSheet({ keymap, toggleShortcut, doubleShift, onBack }: Props
     ["Edit note", "↩  ·  double-click"],
     ["Delete", "⌫"],
     ["Priority", "1 · 2 · 3"],
-    ["Switch section", "⌘1 … ⌘9"],
+    ["Switch folder", "⌘1 … ⌘9"],
     ...(Object.keys(ACTIONS) as ActionId[]).map((a) => [ACTIONS[a].label, formatBinding(keymap[a])] as [string, string]),
     ["Hide window", "Esc · ⌘W"],
     ["Quit", "⌘Q"],

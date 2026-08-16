@@ -16,7 +16,15 @@ import { native, onShown } from "@/lib/native";
 import { useTheme } from "@/hooks/useSystemTheme";
 import { useListNav } from "@/hooks/useListNav";
 import { useCopy } from "@/hooks/useClipboard";
-import { type Priority, INBOX_ID, doneInSection, notesInSection, searchNotes, sectionById } from "@/lib/notes";
+import {
+  type Priority,
+  DEFAULT_FOLDER_NAME,
+  INBOX_ID,
+  doneInSection,
+  notesInSection,
+  searchNotes,
+  sectionById,
+} from "@/lib/notes";
 import { type Filter, EMPTY_FILTER, activeFilterCount, applyFilters } from "@/lib/filters";
 import { asList, asPlainText } from "@/lib/format";
 import { type ActionId, matchesEvent } from "@/lib/shortcuts";
@@ -47,6 +55,7 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [addSectionRequest, setAddSectionRequest] = useState(0);
+  const [renameRequest, setRenameRequest] = useState(0);
   const [dsStatus, setDsStatus] = useState<{ active: boolean; granted: boolean } | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
@@ -411,6 +420,11 @@ export default function App() {
           canRedo={notes.canRedo}
           onUndo={notes.undo}
           onRedo={notes.redo}
+          onRenameFolder={() => {
+            setView("list");
+            if (searchOpen) closeSearch();
+            setRenameRequest((n) => n + 1);
+          }}
           onCopySectionAsList={() => copySectionAsList(activeSection.id)}
           onClearDone={() => runAction("clearDone")}
           onRevealFile={() => void native.revealNotesFile()}
@@ -471,7 +485,8 @@ export default function App() {
                   const n = state.notes.filter((x) => x.sectionId === id).length;
                   notes.removeSection(id);
                   if (id === activeId) setActiveId(INBOX_ID);
-                  showToast(n ? `Section deleted · ${n} note${n > 1 ? "s" : ""} moved to Inbox · ⌘Z to undo` : "Section deleted");
+                  const home = sectionById(state, INBOX_ID)?.name ?? "the first folder";
+                  showToast(n ? `Folder deleted · ${n} note${n > 1 ? "s" : ""} moved to ${home} · ⌘Z to undo` : "Folder deleted");
                 }}
                 onCopyAsList={copySectionAsList}
                 onClearDone={(id) => {
@@ -480,6 +495,7 @@ export default function App() {
                   showToast(n ? `Cleared ${n} done · ⌘Z to undo` : "Nothing to clear");
                 }}
                 addRequest={addSectionRequest}
+                renameRequest={renameRequest}
               />
             )}
             <SearchAndFilters
@@ -530,7 +546,7 @@ export default function App() {
               onSetPriority={notes.setPriority}
               onMove={(ids, sectionId) => {
                 notes.move(ids, sectionId);
-                showToast(`Moved to ${sectionById(state, sectionId)?.name ?? "section"}`);
+                showToast(`Moved to ${sectionById(state, sectionId)?.name ?? "folder"}`);
               }}
               onCopy={(ids) => void copyNotes(ids)}
             />
@@ -538,7 +554,11 @@ export default function App() {
               // Composer-style: the capture box sits under the list.
               <CaptureBox
                 ref={captureRef}
-                placeholder={`Capture to ${activeSection.name}…`}
+                placeholder={
+                  activeSection.id === INBOX_ID && activeSection.name === DEFAULT_FOLDER_NAME
+                    ? "Capture a note…"
+                    : `Capture to ${activeSection.name}…`
+                }
                 onSubmit={(text) => {
                   if (!text.trim()) return false;
                   const id = notes.add(activeSection.id, text);

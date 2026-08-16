@@ -11,7 +11,9 @@ export function nextPriority(p: Priority): Priority {
   return PRIORITIES[(i + 1) % PRIORITIES.length];
 }
 
+/** Id of the default folder (kept as "inbox" for on-disk compatibility). */
 export const INBOX_ID = "inbox";
+export const DEFAULT_FOLDER_NAME = "Untitled";
 
 export interface Section {
   id: string;
@@ -38,7 +40,7 @@ export interface NotesState {
 
 export const emptyState = (): NotesState => ({
   version: 2,
-  sections: [{ id: INBOX_ID, name: "Inbox", createdAt: 0 }],
+  sections: [{ id: INBOX_ID, name: DEFAULT_FOLDER_NAME, createdAt: 0 }],
   notes: [],
 });
 
@@ -236,11 +238,12 @@ export function normalizeState(raw: unknown): NotesState {
     seen.add(s.id);
     sections.push({
       id: s.id,
-      name,
+      // "Inbox" was the pre-folders default name; show it as "Untitled" now.
+      name: s.id === INBOX_ID && name === "Inbox" ? DEFAULT_FOLDER_NAME : name,
       createdAt: typeof s.createdAt === "number" ? s.createdAt : 0,
     });
   }
-  if (!seen.has(INBOX_ID)) sections.unshift({ id: INBOX_ID, name: "Inbox", createdAt: 0 });
+  if (!seen.has(INBOX_ID)) sections.unshift({ id: INBOX_ID, name: DEFAULT_FOLDER_NAME, createdAt: 0 });
   else {
     // Inbox always first.
     const i = sections.findIndex((s) => s.id === INBOX_ID);

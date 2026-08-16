@@ -182,7 +182,7 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
 
         <Group title="Your data">
           <p className="text-xs text-muted-foreground">
-            {noteCount} note{noteCount === 1 ? "" : "s"} in {sectionCount} section{sectionCount === 1 ? "" : "s"}. Everything is
+            {noteCount} note{noteCount === 1 ? "" : "s"} in {sectionCount} folder{sectionCount === 1 ? "" : "s"}. Everything is
             stored in one local file. Nothing syncs, nothing is tracked, no account.
           </p>
           {inTauri && (

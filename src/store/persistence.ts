@@ -87,7 +87,7 @@ function seedState(): NotesState {
   return {
     version: 2,
     sections: [
-      { id: INBOX_ID, name: "Inbox", createdAt: 0 },
+      { id: INBOX_ID, name: "Untitled", createdAt: 0 },
       { id: "prompts", name: "Prompts", createdAt: 1 },
       { id: "links", name: "Links", createdAt: 2 },
     ],

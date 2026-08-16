@@ -7,7 +7,7 @@ the input focused → type or paste → ↩. Later, arrow to a note, **⌘C** it
 into whatever you're using, and check it off.
 
 Batch combines the useful parts of a to-do list, a clipboard, and a scratchpad.
-Notes are Markdown, live in **Sections**, can be **merged**, **copied as a list**,
+Notes are Markdown, live in **folders**, can be **merged**, **copied as a list**,
 **searched** and **filtered**. Everything is **keyboard-first** and every shortcut
 is **customisable**. Your notes are one **local JSON file**. No account, no sync,
 no tracking, nothing phones home.
@@ -69,7 +69,7 @@ after rebuilding if the banner comes back.
 | --- | --- |
 | Show / hide | ⇧⇧ (double-tap Shift) · ⌥⇧Space · click the menu-bar icon · `Esc` when the input is empty · ⌘W |
 | Add a note | capture box at the bottom: type / paste (Markdown, multi-line), ↩ · ⇧↩ for a newline |
-| Sections | tabs at the top · ⌘1…⌘9 switch · ⇧⌘N new · double-click to rename · right-click for Rename / Copy as list / Clear done / Delete |
+| Folders | tabs at the top (the first is "Untitled" until you rename it) · ⌘1…⌘9 switch · ⇧⌘N new · double-click, ⋯ → Rename folder, or right-click to rename · right-click also has Copy as list / Clear done / Delete |
 | Browse | ↑ from the capture box enters the list (↓ past the last note returns) · ↑↓ move · ⇧↑↓ extend · ⌘A select all · click / ⌘-click / ⇧-click |
 | Copy | ⌘C — one note copies its text; several copy as a Markdown list · ⇧⌘C copies the whole section as a list |
 | Merge notes | select 2+ → ⌘M (texts joined, earliest note kept, ⌘Z to undo) |

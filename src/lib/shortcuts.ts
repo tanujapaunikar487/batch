@@ -30,14 +30,14 @@ export interface Binding {
 }
 
 export const ACTIONS: Record<ActionId, { label: string; customizable: boolean }> = {
-  newSection: { label: "New section", customizable: true },
+  newSection: { label: "New folder", customizable: true },
   search: { label: "Search", customizable: true },
   filters: { label: "Toggle filters", customizable: true },
-  copySectionAsList: { label: "Copy section as list", customizable: true },
+  copySectionAsList: { label: "Copy folder as list", customizable: true },
   merge: { label: "Merge selected notes", customizable: true },
-  clearDone: { label: "Clear done in section", customizable: true },
-  moveNextSection: { label: "Move note to next section", customizable: true },
-  movePrevSection: { label: "Move note to previous section", customizable: true },
+  clearDone: { label: "Clear done in folder", customizable: true },
+  moveNextSection: { label: "Move note to next folder", customizable: true },
+  movePrevSection: { label: "Move note to previous folder", customizable: true },
   pin: { label: "Pin / unpin window", customizable: true },
   settings: { label: "Settings", customizable: false },
   help: { label: "Keyboard shortcuts", customizable: false },

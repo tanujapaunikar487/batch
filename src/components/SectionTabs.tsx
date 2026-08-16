@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,8 +20,10 @@ interface Props {
   onRemove: (id: string) => void;
   onCopyAsList: (id: string) => void;
   onClearDone: (id: string) => void;
-  /** Externally triggered "new section" (⌘⇧N). */
+  /** Externally triggered "new folder" (⌘⇧N). */
   addRequest: number;
+  /** Externally triggered "rename active folder". */
+  renameRequest: number;
 }
 
 export function SectionTabs({
@@ -35,6 +37,7 @@ export function SectionTabs({
   onCopyAsList,
   onClearDone,
   addRequest,
+  renameRequest,
 }: Props) {
   const [adding, setAdding] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -49,6 +52,17 @@ export function SectionTabs({
       setDraft("");
     }
   }, [addRequest]);
+
+  useEffect(() => {
+    if (renameRequest > 0) {
+      const active = sections.find((s) => s.id === activeId);
+      if (active) {
+        setRenaming(active.id);
+        setDraft(active.name);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [renameRequest]);
 
   useEffect(() => {
     if (adding || renaming) inputRef.current?.focus();
@@ -86,8 +100,8 @@ export function SectionTabs({
         if (e.key === "Enter") commit();
         else if (e.key === "Escape") cancel();
       }}
-      placeholder="Section name"
-      aria-label={renaming ? "Rename section" : "New section name"}
+      placeholder="Folder name"
+      aria-label={renaming ? "Rename folder" : "New folder name"}
       className="h-6 w-28 rounded-md border border-input bg-background/60 px-2 text-xs outline-none focus-visible:border-ring/60"
     />
   );
@@ -117,7 +131,7 @@ export function SectionTabs({
                   setMenuFor(s.id);
                 }}
                 className={cn(
-                  "flex h-6 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs transition-colors select-none",
+                  "group/tab flex h-6 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs transition-colors select-none",
                   s.id === activeId
                     ? "bg-foreground/[0.08] text-foreground dark:bg-foreground/[0.12]"
                     : "text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground",
@@ -126,6 +140,12 @@ export function SectionTabs({
                 {s.name}
                 {counts[s.id] > 0 && (
                   <span className="text-[10px] tabular-nums text-muted-foreground/70">{counts[s.id]}</span>
+                )}
+                {s.id === activeId && (
+                  <Pencil
+                    className="size-2.5 text-muted-foreground/0 transition-colors group-hover/tab:text-muted-foreground"
+                    aria-hidden
+                  />
                 )}
               </button>
             </DropdownMenuTrigger>
@@ -144,7 +164,7 @@ export function SectionTabs({
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive" onSelect={() => onRemove(s.id)}>
-                    Delete section
+                    Delete folder
                   </DropdownMenuItem>
                 </>
               )}
@@ -161,8 +181,8 @@ export function SectionTabs({
             setAdding(true);
             setDraft("");
           }}
-          aria-label="New section (⇧⌘N)"
-          title="New section  ⇧⌘N"
+          aria-label="New folder (⇧⌘N)"
+          title="New folder  ⇧⌘N"
           className="grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground/70 hover:bg-foreground/[0.05] hover:text-foreground"
         >
           <Plus className="size-3.5" />

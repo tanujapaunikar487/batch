@@ -31,6 +31,7 @@ interface Props {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  onRenameFolder: () => void;
   onCopySectionAsList: () => void;
   onClearDone: () => void;
   onRevealFile: () => void;
@@ -116,12 +117,13 @@ export function Header(p: Props) {
               Redo <DropdownMenuShortcut>{formatBinding(p.keymap.redo)}</DropdownMenuShortcut>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={p.onRenameFolder}>Rename folder</DropdownMenuItem>
             <DropdownMenuItem onSelect={p.onCopySectionAsList}>
-              Copy section as list
+              Copy folder as list
               <DropdownMenuShortcut>{formatBinding(p.keymap.copySectionAsList)}</DropdownMenuShortcut>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={p.onClearDone}>
-              Clear done in section
+              Clear done in folder
               <DropdownMenuShortcut>{formatBinding(p.keymap.clearDone)}</DropdownMenuShortcut>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
