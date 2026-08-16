@@ -20,9 +20,10 @@ note, **⌘C** it into ChatGPT/Claude/Cursor, check it off. Select several →
 
 | Area | Decision |
 | --- | --- |
-| Organisation | **Sections** (tabs) are primary; every note lives in exactly one. Default section "Inbox". `⌘1…9` switch, `⌘⇧N` new, rename/delete via tab menu. |
+| Organisation | **Sections** (tabs) are primary; every note lives in exactly one. Default section "Inbox". `⌘1…9` switch, `⌘⇧N` new, double-click rename, right-click menu (rename / copy as list / clear done / delete → notes go to Inbox). |
 | Priority | Kept from v1 as a per-note attribute (High/Med/Low dot). Set with `1/2/3` when a note is selected. Not a grouping. |
-| Order | Oldest first within a section (a checklist reads top-down in the order you wrote it). Copy-as-list and merge follow this order. |
+| Order | Oldest first within a section (a checklist reads top-down in the order you wrote it). Copy-as-list and merge follow this order. The list is flat: open notes, a hairline, then done notes (most recently completed first). No headers. |
+| Filters | `⌘⇧F` reveals a chip row: Status (All/Open/Done) · Priority · Type (Links/Code/Text — detected from the text) · When (Today/7 days — created, or completed for done notes). Filters combine with search and with the current section. |
 | Notes | Multi-line Markdown. Capture box is a textarea: `↵` saves, `⇧↵` newline. Paste keeps one note. Rendered with react-markdown + GFM; `↵`/double-click to edit in place. Links open in the browser. |
 | Selection | List has a cursor. `↓/↑` move, `⇧↓/↑` extend, `⌘A` all, click / ⌘-click / ⇧-click. `Esc` clears → back to input. |
 | Copy | `⌘C`: one note → its text; several → Markdown bullet list. `⌘⇧C`: whole section as a list. Toast "Copied". |
