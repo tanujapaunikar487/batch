@@ -9,6 +9,7 @@
     "core:default",
     "core:window:allow-start-dragging",
     "store:default",
-    "autostart:default"
+    "autostart:default",
+    "drag:default"
   ]
 }

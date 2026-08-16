@@ -40,6 +40,14 @@ export const native = {
   revealNotesFile: () => call("reveal_notes_file"),
   /** Absolute path of the notes file (for display). */
   notesFilePath: () => call<string>("notes_file_path"),
+  // ── attachments ──
+  attachmentsDir: () => call<string>("attachments_dir"),
+  importAttachments: (paths: string[]) => call<import("@/lib/notes").Attachment[]>("import_attachments", { paths }),
+  gcAttachments: (keep: string[]) => call<number>("gc_attachments", { keep }),
+  openAttachment: (id: string) => call("open_attachment", { id }),
+  attachmentPaths: (ids: string[]) => call<string[]>("attachment_paths", { ids }),
+  /** Text + image files on the pasteboard together. */
+  copyRich: (text: string, ids: string[]) => call("copy_rich", { text, ids }),
   /** Dev builds only: echo to the `tauri dev` terminal. No-op in production. */
   devLog: (msg: string) => (import.meta.env.DEV ? call("dev_log", { msg }) : Promise.resolve()),
 };

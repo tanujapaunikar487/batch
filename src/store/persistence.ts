@@ -102,6 +102,17 @@ function seedState(): NotesState {
       { id: "p2", sectionId: "prompts", text: "Rewrite this in a calmer tone:\n\n> We MUST ship by Friday or the launch slips.", priority: "medium", done: false, createdAt: now - 9 * H },
       { id: "p3", sectionId: "prompts", text: "Generate 5 test cases for `parseBinding()`", priority: "medium", done: false, createdAt: now - 8 * H },
       { id: "l1", sectionId: "links", text: "https://tauri.app/plugin/global-shortcut/", priority: "medium", done: false, createdAt: now - 5 * H },
+      {
+        id: "s7", sectionId: INBOX_ID, text: "Card needs spacing — see the two screenshots", priority: "medium", done: false, createdAt: now - 1 * H,
+        attachments: [
+          { id: "seed-a.png", name: "before.png", mime: "image/png", thumb: false, width: 64, height: 48, dataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAwCAIAAAAuKetIAAAAQ0lEQVR42u3PQQkAAAgEsItqOUv6soJfYbACS/W8FgEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQGBqwUyR/VaFprtdQAAAABJRU5ErkJggg==" },
+          { id: "seed-b.png", name: "after.png", mime: "image/png", thumb: false, width: 48, height: 64, dataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAABACAIAAADTQmMRAAAARElEQVR42u3OMQ0AAAgDsInBvwWE8eCCcDSpgGa6XomQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQ0JUFBfFpS4NV8boAAAAASUVORK5CYII=" },
+        ],
+      },
+      {
+        id: "s8", sectionId: INBOX_ID, text: "", priority: "low", done: false, createdAt: now - 0.5 * H,
+        attachments: [{ id: "seed-c.png", name: "shot.png", mime: "image/png", thumb: false, width: 64, height: 48, dataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAwCAIAAAAuKetIAAAAQ0lEQVR42u3PQQkAAAgEsItqOUv6soJfYbACS/W8FgEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQGBqwUyR/VaFprtdQAAAABJRU5ErkJggg==" }],
+      },
     ],
   };
 }

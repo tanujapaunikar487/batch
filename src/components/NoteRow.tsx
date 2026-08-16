@@ -14,13 +14,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { type Note, type Priority, type Section, PRIORITIES } from "@/lib/notes";
+import { type Attachment, type Note, type Priority, type Section, PRIORITIES, hasAttachments } from "@/lib/notes";
 import { PRIORITY_UI } from "@/lib/priority-ui";
 import { Markdown } from "./Markdown";
+import { AttachmentStrip } from "./AttachmentStrip";
 
 export interface NoteRowProps {
   note: Note;
   sections: Section[];
+  attachmentsDir: string;
+  onOpenAttachment: (a: Attachment) => void;
+  onDragAttachments: (e: React.DragEvent, note: Note, a: Attachment) => void;
   /** Section pill shown in search results. */
   showSection?: boolean;
   isCursor: boolean;
@@ -40,6 +44,9 @@ export interface NoteRowProps {
 export function NoteRow({
   note,
   sections,
+  attachmentsDir,
+  onOpenAttachment,
+  onDragAttachments,
   showSection,
   isCursor,
   isSelected,
@@ -92,6 +99,16 @@ export function NoteRow({
       />
 
       <div className="min-w-0 flex-1">
+        {hasAttachments(note) && (
+          <AttachmentStrip
+            attachments={note.attachments!}
+            dir={attachmentsDir}
+            size="sm"
+            onOpen={onOpenAttachment}
+            onDragStart={(e, a) => onDragAttachments(e, note, a)}
+            className={cn("mb-1", note.done && "opacity-70")}
+          />
+        )}
         {isEditing ? (
           <InlineEditor
             initial={note.text}
@@ -101,11 +118,15 @@ export function NoteRow({
             }}
             onCancel={onStopEdit}
           />
-        ) : (
+        ) : note.text ? (
           <Markdown
             text={note.text}
             className={cn("text-sm leading-5", note.done && "line-through text-muted-foreground")}
           />
+        ) : (
+          <span className="text-xs text-muted-foreground/70 select-none">
+            {note.attachments?.length === 1 ? "1 image" : `${note.attachments?.length ?? 0} images`}
+          </span>
         )}
         {showSection && sectionName && (
           <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">

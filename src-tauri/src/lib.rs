@@ -24,6 +24,7 @@ use tauri::{
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_store::StoreExt;
 
+mod attachments;
 #[cfg(target_os = "macos")]
 mod double_shift;
 
@@ -497,6 +498,7 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
+        .plugin(tauri_plugin_drag::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, _shortcut, event| {
@@ -521,6 +523,13 @@ pub fn run() {
             open_url,
             notes_file_path,
             reveal_notes_file,
+            attachments::attachments_dir,
+            attachments::save_attachment,
+            attachments::import_attachments,
+            attachments::gc_attachments,
+            attachments::open_attachment,
+            attachments::attachment_paths,
+            attachments::copy_rich,
             dev_log
         ])
         .setup(|app| {

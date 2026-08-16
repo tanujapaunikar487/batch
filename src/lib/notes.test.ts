@@ -11,7 +11,12 @@ import {
   normalizeState,
   migrateFromV1,
   cleanText,
+  allAttachmentIds,
+  MAX_ATTACHMENTS,
+  type Attachment,
 } from "./notes";
+
+const att = (id: string): Attachment => ({ id, name: id, mime: "image/png", thumb: true, width: 10, height: 10 });
 
 const note = (over: Partial<Note> = {}): Note => ({
   id: over.id ?? "n-" + Math.random().toString(36).slice(2),
@@ -69,6 +74,39 @@ describe("notes reducer", () => {
     const s = reduce(emptyState(), { type: "add", id: "a", sectionId: INBOX_ID, text: "line 1\nline 2", now: 1 });
     expect(s.notes).toHaveLength(1);
     expect(s.notes[0].text).toBe("line 1\nline 2");
+  });
+
+  it("add: images-only note is allowed; attachments capped at MAX", () => {
+    const many = Array.from({ length: MAX_ATTACHMENTS + 3 }, (_, i) => att(`a${i}.png`));
+    const s = reduce(emptyState(), { type: "add", id: "a", sectionId: INBOX_ID, text: "  ", now: 1, attachments: many });
+    expect(s.notes).toHaveLength(1);
+    expect(s.notes[0].text).toBe("");
+    expect(s.notes[0].attachments).toHaveLength(MAX_ATTACHMENTS);
+    const e = emptyState();
+    expect(reduce(e, { type: "add", id: "b", sectionId: INBOX_ID, text: " ", now: 1, attachments: [] })).toBe(e);
+  });
+
+  it("edit: blank text keeps an images-only note; setAttachments removes empty notes", () => {
+    const s0 = state([note({ id: "a", text: "cap", attachments: [att("x.png")] })]);
+    const s1 = reduce(s0, { type: "edit", id: "a", text: "" });
+    expect(s1.notes[0].text).toBe("");
+    expect(s1.notes[0].attachments).toHaveLength(1);
+    const s2 = reduce(s1, { type: "setAttachments", id: "a", attachments: [] });
+    expect(s2.notes).toEqual([]);
+    const s3 = reduce(s0, { type: "setAttachments", id: "a", attachments: [] });
+    expect(s3.notes[0].attachments).toBeUndefined();
+    expect(s3.notes[0].text).toBe("cap");
+  });
+
+  it("merge concatenates attachments (capped) and skips empty texts", () => {
+    const s0 = state([
+      note({ id: "a", text: "", createdAt: 1, attachments: [att("1.png"), att("2.png")] }),
+      note({ id: "b", text: "hello", createdAt: 2, attachments: [att("3.png")] }),
+    ]);
+    const s1 = reduce(s0, { type: "merge", ids: ["a", "b"], now: 9 });
+    expect(s1.notes[0].text).toBe("hello");
+    expect(s1.notes[0].attachments?.map((x) => x.id)).toEqual(["1.png", "2.png", "3.png"]);
+    expect(allAttachmentIds(s1)).toEqual(["1.png", "2.png", "3.png"]);
   });
 
   it("toggle sets/clears completedAt", () => {

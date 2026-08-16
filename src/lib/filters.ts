@@ -1,7 +1,7 @@
-import { type Note, type Priority } from "./notes";
+import { type Note, type Priority, hasAttachments } from "./notes";
 
 export type StatusFilter = "all" | "open" | "done";
-export type KindFilter = "link" | "code" | "text";
+export type KindFilter = "link" | "code" | "text" | "image";
 export type WhenFilter = "today" | "week";
 
 export interface Filter {
@@ -31,7 +31,9 @@ export function applyFilters(notes: Note[], f: Filter, now = Date.now()): Note[]
     if (f.status === "open" && n.done) return false;
     if (f.status === "done" && !n.done) return false;
     if (f.priority && n.priority !== f.priority) return false;
-    if (f.kind && detectKind(n.text) !== f.kind) return false;
+    if (f.kind === "image") {
+      if (!hasAttachments(n)) return false;
+    } else if (f.kind && detectKind(n.text) !== f.kind) return false;
     if (f.when) {
       const stamp = n.done && n.completedAt ? Math.max(n.completedAt, n.createdAt) : n.createdAt;
       const horizon = f.when === "today" ? DAY : 7 * DAY;

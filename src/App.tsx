@@ -27,6 +27,8 @@ import {
 } from "@/lib/notes";
 import { type Filter, EMPTY_FILTER, activeFilterCount, applyFilters } from "@/lib/filters";
 import { asList, asPlainText } from "@/lib/format";
+import { attachmentsDir as loadAttachmentsDir, dragOut, importPaths } from "@/store/attachments";
+import { allAttachmentIds, type Attachment } from "@/lib/notes";
 import { type ActionId, matchesEvent } from "@/lib/shortcuts";
 
 const inTauri = isTauri();
@@ -57,6 +59,8 @@ export default function App() {
   const [addSectionRequest, setAddSectionRequest] = useState(0);
   const [renameRequest, setRenameRequest] = useState(0);
   const [dsStatus, setDsStatus] = useState<{ active: boolean; granted: boolean } | null>(null);
+  const [attDir, setAttDir] = useState("");
+  const [dropping, setDropping] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const captureRef = useRef<CaptureBoxHandle>(null);
@@ -120,9 +124,21 @@ export default function App() {
     async (ids: string[], asListAlways = false) => {
       const picked = ids.map((id) => notesById.get(id)).filter((n): n is NonNullable<typeof n> => !!n);
       if (picked.length === 0) return;
-      const text = asListAlways ? asList(picked) : asPlainText(picked);
-      const ok = await copy(text);
-      showToast(ok ? (picked.length > 1 ? `Copied ${picked.length} notes as list` : "Copied") : "Couldn't copy");
+      const withText = picked.filter((n) => n.text);
+      const text = withText.length === 0 ? "" : asListAlways ? asList(withText) : asPlainText(withText);
+      const imageIds = picked.flatMap((n) => (n.attachments ?? []).map((a) => a.id));
+      let ok: boolean;
+      if (imageIds.length > 0 && inTauri) {
+        ok = (await native.copyRich(text, imageIds)) !== undefined;
+      } else {
+        ok = await copy(text);
+      }
+      if (!ok) return showToast("Couldn't copy");
+      const parts = [
+        withText.length > 1 ? `${withText.length} notes as list` : withText.length === 1 ? "text" : "",
+        imageIds.length ? `${imageIds.length} image${imageIds.length > 1 ? "s" : ""}` : "",
+      ].filter(Boolean);
+      showToast(parts.length ? `Copied ${parts.join(" + ")}` : "Copied");
     },
     [notesById, copy, showToast],
   );
@@ -231,6 +247,52 @@ export default function App() {
       window.clearInterval(id);
     };
   }, [settings.settings.doubleShift]);
+
+  // ── attachments: dir, GC after a good load, native file drops ──
+  useEffect(() => {
+    if (inTauri) void loadAttachmentsDir().then(setAttDir);
+  }, []);
+  useEffect(() => {
+    if (!inTauri || !notes.loadOk) return;
+    void native.gcAttachments(allAttachmentIds(notes.state)).then((n) => {
+      if (n) void native.devLog(`gc: removed ${n} orphaned attachment file(s)`);
+    });
+    // Only once, right after the first successful load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes.loadOk]);
+  useEffect(() => {
+    if (!inTauri) return;
+    let off: (() => void) | undefined;
+    import("@tauri-apps/api/webview").then(({ getCurrentWebview }) =>
+      getCurrentWebview().onDragDropEvent(async (e) => {
+        if (e.payload.type === "enter" || e.payload.type === "over") setDropping(true);
+        else if (e.payload.type === "leave") setDropping(false);
+        else if (e.payload.type === "drop") {
+          setDropping(false);
+          setView("list");
+          const { saved, skipped } = await importPaths(e.payload.paths, captureRef.current?.count() ?? 0);
+          if (saved.length === 0 && skipped === 0) showToast("Only images can be attached");
+          captureRef.current?.addAttachments(saved, skipped);
+          captureRef.current?.focus();
+        }
+      }),
+    ).then((fn) => (off = fn));
+    return () => off?.();
+  }, [showToast]);
+
+  const openAttachment = useCallback((a: Attachment) => {
+    if (inTauri) void native.openAttachment(a.id);
+    else if (a.dataUrl) window.open(a.dataUrl, "_blank");
+  }, []);
+  const dragAttachments = useCallback(
+    (e: React.DragEvent, note: { attachments?: Attachment[] }, a: Attachment) => {
+      if (!inTauri) return; // browser: default image drag
+      e.preventDefault();
+      const ids = (note.attachments ?? []).map((x) => x.id);
+      void dragOut(ids, attDir, a);
+    },
+    [attDir],
+  );
 
   // ── keyboard ──
   const keymap = settings.keymap;
@@ -401,7 +463,7 @@ export default function App() {
     <TooltipProvider delayDuration={400}>
       <div
         className={
-          "flex h-dvh w-dvw flex-col overflow-hidden rounded-xl text-foreground " +
+          "relative flex h-dvh w-dvw flex-col overflow-hidden rounded-xl text-foreground " +
           (inTauri ? "bg-background/70 dark:bg-background/55" : "bg-background")
         }
       >
@@ -435,6 +497,11 @@ export default function App() {
           onQuit={quit}
         />
 
+        {dropping && (
+          <div className="pointer-events-none absolute inset-0 z-50 grid place-items-center rounded-xl border-2 border-dashed border-ring/60 bg-background/70 text-sm text-foreground">
+            Drop images to attach
+          </div>
+        )}
         {view === "settings" ? (
           <SettingsPanel
             settings={settings}
@@ -549,6 +616,9 @@ export default function App() {
                 showToast(`Moved to ${sectionById(state, sectionId)?.name ?? "folder"}`);
               }}
               onCopy={(ids) => void copyNotes(ids)}
+              attachmentsDir={attDir}
+              onOpenAttachment={openAttachment}
+              onDragAttachments={dragAttachments}
             />
             {!searchOpen && (
               // Composer-style: the capture box sits under the list.
@@ -559,9 +629,12 @@ export default function App() {
                     ? "Capture a note…"
                     : `Capture to ${activeSection.name}…`
                 }
-                onSubmit={(text) => {
-                  if (!text.trim()) return false;
-                  const id = notes.add(activeSection.id, text);
+                attachmentsDir={attDir}
+                onNewFolder={() => setAddSectionRequest((n) => n + 1)}
+                onNotice={showToast}
+                onSubmit={(text, attachments) => {
+                  if (!text.trim() && attachments.length === 0) return false;
+                  const id = notes.add(activeSection.id, text, undefined, attachments);
                   nav.clear();
                   // New note lands at the bottom of the open list, right above the box.
                   requestAnimationFrame(() =>

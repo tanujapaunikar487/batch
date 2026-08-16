@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
   type Action,
+  type Attachment,
   type NotesState,
   type Priority,
   emptyState,
@@ -26,6 +27,7 @@ export function useNotes(store?: KeyValueStore) {
   const kv = useMemo(() => store ?? createStore(NOTES_FILE), [store]);
   const [h, dispatch] = useReducer(reducer, emptyState(), init);
   const [loaded, setLoaded] = useState(false);
+  const [loadOk, setLoadOk] = useState(false);
   const saveTimer = useRef<number | null>(null);
   const latest = useRef<NotesState>(h.present);
   latest.current = h.present;
@@ -36,6 +38,7 @@ export function useNotes(store?: KeyValueStore) {
       .then(({ state, migrated }) => {
         if (cancelled) return;
         dispatch({ type: "replace", state });
+        setLoadOk(true);
         void native.devLog(
           `loaded ${state.notes.length} note(s) in ${state.sections.length} section(s)${migrated ? " (migrated from v1)" : ""}`,
         );
@@ -69,11 +72,12 @@ export function useNotes(store?: KeyValueStore) {
 
   const actions = useMemo(
     () => ({
-      add: (sectionId: string, text: string, priority?: Priority) => {
+      add: (sectionId: string, text: string, priority?: Priority, attachments?: Attachment[]) => {
         const id = newId();
-        dispatch({ type: "add", id, sectionId, text, now: Date.now(), priority });
+        dispatch({ type: "add", id, sectionId, text, now: Date.now(), priority, attachments });
         return id;
       },
+      setAttachments: (id: string, attachments: Attachment[]) => dispatch({ type: "setAttachments", id, attachments }),
       toggle: (id: string) => dispatch({ type: "toggle", id, now: Date.now() }),
       edit: (id: string, text: string) => dispatch({ type: "edit", id, text }),
       remove: (ids: string[]) => dispatch({ type: "remove", ids }),
@@ -99,6 +103,8 @@ export function useNotes(store?: KeyValueStore) {
     canUndo: h.canUndo,
     canRedo: h.canRedo,
     loaded,
+    /** True only if the store was read successfully (guards attachment GC). */
+    loadOk,
     flush,
     ...actions,
   };

@@ -96,6 +96,18 @@ survive ⌥-layouts; displayed as ⌘⇧N.
   `request_accessibility`, `set_toggle_shortcut`, `reveal_notes_file`;
   reads `settings.json` at startup for the hotkey + double-shift flag.
 
+## Attachments (added after v2)
+
+Notes carry up to 10 images (`Note.attachments: {id,name,mime,thumb,width,height}`),
+stored as files under `<app data>/attachments/<uuid>.<ext>` with ≤256px PNG
+thumbnails in `attachments/thumbs/`; `notes.json` only references ids. Sources:
+paste, ⊕ → picker, native file drop (Tauri drag-drop event → `import_attachments`).
+Images-only notes are allowed. `copy_rich(text, ids)` writes the text and one
+`public.file-url` item per image to the general pasteboard so a single paste
+carries both; thumbnails start a native file drag (tauri-plugin-drag). Orphaned
+files are removed on launch (`gc_attachments`) so undo never dangles mid-session.
+Sections are called **folders** in the UI; the default one is "Untitled".
+
 ## Out of scope (still)
 
 Widget, sync, due dates, tags, drag-reorder, capture-selected-text via

@@ -21,16 +21,36 @@ export interface Section {
   createdAt: number;
 }
 
+/** Max images per note. */
+export const MAX_ATTACHMENTS = 10;
+
+export interface Attachment {
+  /** File name inside the attachments dir (uuid + ext). */
+  id: string;
+  /** Original file name, for display. */
+  name: string;
+  mime: string;
+  /** A PNG thumbnail exists at thumbs/<id>.png */
+  thumb: boolean;
+  width: number;
+  height: number;
+  /** Browser-only fallback (dev): inline data URL instead of a file. */
+  dataUrl?: string;
+}
+
 export interface Note {
   id: string;
   sectionId: string;
-  /** Markdown. Multi-line allowed. */
+  /** Markdown. Multi-line allowed. May be "" when the note is images-only. */
   text: string;
   priority: Priority;
   done: boolean;
   createdAt: number;
   completedAt?: number;
+  attachments?: Attachment[];
 }
+
+export const hasAttachments = (n: Pick<Note, "attachments">) => (n.attachments?.length ?? 0) > 0;
 
 export interface NotesState {
   version: 2;
@@ -58,7 +78,16 @@ export function cleanText(raw: string): string {
 const cleanName = (raw: string) => raw.replace(/\s+/g, " ").trim();
 
 export type Action =
-  | { type: "add"; id: string; sectionId: string; text: string; now: number; priority?: Priority }
+  | {
+      type: "add";
+      id: string;
+      sectionId: string;
+      text: string;
+      now: number;
+      priority?: Priority;
+      attachments?: Attachment[];
+    }
+  | { type: "setAttachments"; id: string; attachments: Attachment[] }
   | { type: "toggle"; id: string; now: number }
   | { type: "edit"; id: string; text: string }
   | { type: "remove"; ids: string[] }
@@ -93,7 +122,8 @@ export function reduce(state: NotesState, action: Action): NotesState {
   switch (action.type) {
     case "add": {
       const text = cleanText(action.text);
-      if (!text || !hasSection(state, action.sectionId)) return state;
+      const attachments = (action.attachments ?? []).slice(0, MAX_ATTACHMENTS);
+      if ((!text && attachments.length === 0) || !hasSection(state, action.sectionId)) return state;
       const note: Note = {
         id: action.id,
         sectionId: action.sectionId,
@@ -102,7 +132,18 @@ export function reduce(state: NotesState, action: Action): NotesState {
         done: false,
         createdAt: action.now,
       };
+      if (attachments.length) note.attachments = attachments;
       return { ...state, notes: [...state.notes, note] };
+    }
+    case "setAttachments": {
+      const attachments = action.attachments.slice(0, MAX_ATTACHMENTS);
+      return mapNotes(state, [action.id], (n) => {
+        if (!n.text && attachments.length === 0) return null; // nothing left
+        const next = { ...n };
+        if (attachments.length) next.attachments = attachments;
+        else delete next.attachments;
+        return next;
+      });
     }
     case "toggle":
       return mapNotes(state, [action.id], (n) =>
@@ -112,7 +153,12 @@ export function reduce(state: NotesState, action: Action): NotesState {
       );
     case "edit": {
       const text = cleanText(action.text);
-      return mapNotes(state, [action.id], (n) => (text ? (text === n.text ? n : { ...n, text }) : null));
+      return mapNotes(state, [action.id], (n) => {
+        if (text === n.text) return n;
+        // Blank text removes the note unless it still carries images.
+        if (!text && !hasAttachments(n)) return null;
+        return { ...n, text };
+      });
     }
     case "remove":
       return mapNotes(state, action.ids, () => null);
@@ -131,10 +177,14 @@ export function reduce(state: NotesState, action: Action): NotesState {
       if (picked.length < 2) return state;
       const ordered = [...picked].sort((a, b) => a.createdAt - b.createdAt);
       const first = ordered[0];
+      const attachments = ordered.flatMap((n) => n.attachments ?? []).slice(0, MAX_ATTACHMENTS);
       const merged: Note = {
         id: first.id,
         sectionId: first.sectionId,
-        text: ordered.map((n) => n.text).join("\n\n"),
+        text: ordered
+          .map((n) => n.text)
+          .filter(Boolean)
+          .join("\n\n"),
         priority: ordered.reduce<Priority>(
           (best, n) => (PRIORITY_RANK[n.priority] < PRIORITY_RANK[best] ? n.priority : best),
           first.priority,
@@ -142,6 +192,7 @@ export function reduce(state: NotesState, action: Action): NotesState {
         done: false,
         createdAt: first.createdAt,
       };
+      if (attachments.length) merged.attachments = attachments;
       const notes: Note[] = [];
       for (const n of state.notes) {
         if (n.id === first.id) notes.push(merged);
@@ -258,7 +309,8 @@ export function normalizeState(raw: unknown): NotesState {
     const n = item as Record<string, unknown>;
     if (typeof n.id !== "string" || typeof n.text !== "string" || noteIds.has(n.id)) continue;
     const text = cleanText(n.text);
-    if (!text) continue;
+    const attachments = normalizeAttachments(n.attachments);
+    if (!text && attachments.length === 0) continue;
     noteIds.add(n.id);
     const done = Boolean(n.done);
     const createdAt = typeof n.createdAt === "number" ? n.createdAt : Date.now();
@@ -271,9 +323,37 @@ export function normalizeState(raw: unknown): NotesState {
       createdAt,
     };
     if (done) note.completedAt = typeof n.completedAt === "number" ? n.completedAt : createdAt;
+    if (attachments.length) note.attachments = attachments;
     notes.push(note);
   }
   return { version: 2, sections, notes };
+}
+
+function normalizeAttachments(raw: unknown): Attachment[] {
+  if (!Array.isArray(raw)) return [];
+  const out: Attachment[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const a = item as Record<string, unknown>;
+    if (typeof a.id !== "string" || !a.id || a.id.includes("/")) continue;
+    const att: Attachment = {
+      id: a.id,
+      name: typeof a.name === "string" && a.name ? a.name : a.id,
+      mime: typeof a.mime === "string" ? a.mime : "image/*",
+      thumb: Boolean(a.thumb),
+      width: typeof a.width === "number" ? a.width : 0,
+      height: typeof a.height === "number" ? a.height : 0,
+    };
+    if (typeof a.dataUrl === "string" && a.dataUrl.startsWith("data:")) att.dataUrl = a.dataUrl;
+    out.push(att);
+    if (out.length >= MAX_ATTACHMENTS) break;
+  }
+  return out;
+}
+
+/** Every attachment id referenced anywhere (for GC). */
+export function allAttachmentIds(state: NotesState): string[] {
+  return state.notes.flatMap((n) => (n.attachments ?? []).map((a) => a.id));
 }
 
 /** v1 `todos.json` ({version:1, todos:[...]}) → v2 state with everything in Inbox. */

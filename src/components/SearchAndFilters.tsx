@@ -80,6 +80,7 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
             value={filter.kind ?? "any"}
             options={[
               ["any", "Any"],
+              ["image", "Images"],
               ["link", "Links"],
               ["code", "Code"],
               ["text", "Text"],

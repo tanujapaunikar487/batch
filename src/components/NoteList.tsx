@@ -2,7 +2,10 @@ import { forwardRef } from "react";
 import { type Note, type Section } from "@/lib/notes";
 import { NoteRow, type NoteRowProps } from "./NoteRow";
 
-type RowHandlers = Omit<NoteRowProps, "note" | "sections" | "showSection" | "isCursor" | "isSelected" | "isEditing">;
+type RowHandlers = Omit<
+  NoteRowProps,
+  "note" | "sections" | "showSection" | "isCursor" | "isSelected" | "isEditing"
+>;
 
 interface Props extends RowHandlers {
   open: Note[];

@@ -16,6 +16,7 @@
     "icons": "swift scripts/render-icons.swift src-tauri/icons/src && PATH=\"$HOME/.cargo/bin:$PATH\" tauri icon src-tauri/icons/src/app-icon.png && cp src-tauri/icons/src/tray.png src-tauri/icons/tray.png && rm -rf src-tauri/icons/android src-tauri/icons/ios"
   },
   "dependencies": {
+    "@crabnebula/tauri-plugin-drag": "^2.1.0",
     "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-autostart": "^2.5.1",
