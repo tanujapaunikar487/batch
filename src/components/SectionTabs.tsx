@@ -102,7 +102,7 @@ export function SectionTabs({
       }}
       placeholder="Folder name"
       aria-label={renaming ? "Rename folder" : "New folder name"}
-      className="h-6 w-28 rounded-md border border-input bg-background/60 px-2 text-xs outline-none focus-visible:border-ring/60"
+      className="h-7 w-28 rounded-md border border-input bg-background/60 px-2 text-[13px] outline-none focus-visible:border-ring/60"
     />
   );
 
@@ -140,7 +140,7 @@ export function SectionTabs({
                   setMenuFor(s.id);
                 }}
                 className={cn(
-                  "flex h-6 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs transition-colors select-none",
+                  "flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[13px] transition-colors select-none",
                   s.id === activeId
                     ? "bg-foreground/[0.08] text-foreground dark:bg-foreground/[0.12]"
                     : "text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground",
@@ -148,7 +148,7 @@ export function SectionTabs({
               >
                 {s.name}
                 {counts[s.id] > 0 && (
-                  <span className="text-[10px] tabular-nums text-muted-foreground/70">{counts[s.id]}</span>
+                  <span className="text-[11px] tabular-nums text-muted-foreground/70">{counts[s.id]}</span>
                 )}
               </button>
             </DropdownMenuTrigger>
@@ -186,9 +186,9 @@ export function SectionTabs({
           }}
           aria-label="New folder (⇧⌘N)"
           title="New folder  ⇧⌘N"
-          className="grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground/70 hover:bg-foreground/[0.05] hover:text-foreground"
+          className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground/70 hover:bg-foreground/[0.05] hover:text-foreground"
         >
-          <Plus className="size-3.5" />
+          <Plus className="size-4" />
         </button>
       )}
     </div>

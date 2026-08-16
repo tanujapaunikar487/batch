@@ -128,9 +128,9 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
                 type="button"
                 aria-label="Add"
                 title="Attach images · New folder"
-                className="ml-2 mt-1.5 grid size-6 shrink-0 place-items-center rounded-full border border-muted-foreground/40 text-muted-foreground transition-colors hover:border-foreground hover:text-foreground aria-expanded:text-foreground"
+                className="ml-2 mt-1.5 grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:text-foreground aria-expanded:text-foreground"
               >
-                <Plus className="size-3.5" />
+                <Plus className="size-4" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" side="top" className="min-w-44">
