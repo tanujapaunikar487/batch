@@ -12,6 +12,8 @@ export interface Settings {
   doubleShift: boolean;
   theme: ThemePref;
   keymap: Partial<Record<ActionId, string>>;
+  /** Remembered popover size (logical px); applied by Rust on launch. */
+  window?: { width: number; height: number };
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -31,6 +33,10 @@ function normalizeSettings(raw: unknown): Settings {
   }
   if (typeof r.doubleShift === "boolean") s.doubleShift = r.doubleShift;
   if (r.theme === "light" || r.theme === "dark" || r.theme === "system") s.theme = r.theme;
+  const w = r.window as { width?: unknown; height?: unknown } | undefined;
+  if (w && typeof w.width === "number" && typeof w.height === "number" && w.width >= 320 && w.height >= 360) {
+    s.window = { width: w.width, height: w.height };
+  }
   if (r.keymap && typeof r.keymap === "object") {
     for (const [k, v] of Object.entries(r.keymap as Record<string, unknown>)) {
       if (k in DEFAULT_KEYMAP && typeof v === "string" && normalizeBinding(v)) {
@@ -106,8 +112,9 @@ export function useSettings(store?: KeyValueStore) {
   );
 
   const setTheme = useCallback((theme: ThemePref) => update({ theme }), [update]);
+  const setWindowSize = useCallback((width: number, height: number) => update({ window: { width, height } }), [update]);
 
-  return { settings, keymap, loaded, setBinding, resetKeymap, setToggleShortcut, setDoubleShift, setTheme };
+  return { settings, keymap, loaded, setBinding, resetKeymap, setToggleShortcut, setDoubleShift, setTheme, setWindowSize };
 }
 
 export type SettingsApi = ReturnType<typeof useSettings>;

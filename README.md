@@ -86,6 +86,8 @@ after rebuilding if the banner comes back.
 | Undo / redo | ⌘Z / ⇧⌘Z (every note change, 50 steps) |
 | Delete | ⌫ on selected notes · hover → ⋯ → Delete |
 | Pin (stay open when unfocused) | 📌 or ⌘P |
+| Full screen / restore | ⌃⌘F, the ⤢ button, ⋯ menu, or double-click the header — fills the screen's work area; again to restore |
+| Resize | drag the grip in the bottom-right corner (or any edge); the size is remembered |
 | Appearance | ⋯ menu → Appearance, or Settings: System / Light / Dark (the vibrancy backdrop follows) |
 | Settings | ⌘, — appearance, launch at login, double-Shift, hotkey, custom shortcuts, data location |
 | Shortcut cheat-sheet | ⌘/ |

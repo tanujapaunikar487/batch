@@ -16,6 +16,7 @@ export type ActionId =
   | "moveNextSection"
   | "movePrevSection"
   | "pin"
+  | "expand"
   | "settings"
   | "help"
   | "undo"
@@ -39,6 +40,7 @@ export const ACTIONS: Record<ActionId, { label: string; customizable: boolean }>
   moveNextSection: { label: "Move note to next folder", customizable: true },
   movePrevSection: { label: "Move note to previous folder", customizable: true },
   pin: { label: "Pin / unpin window", customizable: true },
+  expand: { label: "Full screen / restore", customizable: true },
   settings: { label: "Settings", customizable: false },
   help: { label: "Keyboard shortcuts", customizable: false },
   undo: { label: "Undo", customizable: false },
@@ -55,6 +57,7 @@ export const DEFAULT_KEYMAP: Record<ActionId, string> = {
   moveNextSection: "mod+shift+BracketRight",
   movePrevSection: "mod+shift+BracketLeft",
   pin: "mod+KeyP",
+  expand: "ctrl+mod+KeyF",
   settings: "mod+Comma",
   help: "mod+Slash",
   undo: "mod+KeyZ",

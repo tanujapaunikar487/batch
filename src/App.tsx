@@ -62,6 +62,7 @@ export default function App() {
   const [attDir, setAttDir] = useState("");
   const [dropping, setDropping] = useState(false);
   const dragDepth = useRef(0);
+  const [expanded, setExpanded] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const captureRef = useRef<CaptureBoxHandle>(null);
@@ -343,6 +344,48 @@ export default function App() {
     [attDir],
   );
 
+  // ── window: full-screen toggle, remembered size, resize grip ──
+  const toggleExpand = useCallback(async () => {
+    const next = await native.toggleExpand();
+    if (typeof next === "boolean") setExpanded(next);
+  }, []);
+  useEffect(() => {
+    if (!inTauri) return;
+    void native.isExpanded().then((v) => typeof v === "boolean" && setExpanded(v));
+  }, []);
+  const expandedRef = useRef(expanded);
+  expandedRef.current = expanded;
+  useEffect(() => {
+    if (!inTauri || !settings.loaded) return;
+    let off: (() => void) | undefined;
+    let timer: number | null = null;
+    import("@tauri-apps/api/window").then(({ getCurrentWindow }) => {
+      const win = getCurrentWindow();
+      return win.onResized(async () => {
+        if (expandedRef.current) return;
+        if (timer) window.clearTimeout(timer);
+        timer = window.setTimeout(async () => {
+          const [size, scale] = await Promise.all([win.innerSize(), win.scaleFactor()]);
+          const width = Math.round(size.width / scale);
+          const height = Math.round(size.height / scale);
+          const cur = settings.settings.window;
+          if (!cur || cur.width !== width || cur.height !== height) settings.setWindowSize(width, height);
+        }, 400);
+      });
+    }).then((fn) => (off = fn));
+    return () => {
+      off?.();
+      if (timer) window.clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.loaded, settings.settings.window?.width, settings.settings.window?.height]);
+  const startResize = useCallback(async (e: React.MouseEvent) => {
+    if (!inTauri || e.button !== 0) return;
+    e.preventDefault();
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    await getCurrentWindow().startResizeDragging("SouthEast");
+  }, []);
+
   // ── keyboard ──
   const keymap = settings.keymap;
   const runAction = useCallback(
@@ -384,6 +427,9 @@ export default function App() {
         case "pin":
           togglePin();
           break;
+        case "expand":
+          void toggleExpand();
+          break;
         case "settings":
           setView((v) => (v === "settings" ? "list" : "settings"));
           break;
@@ -398,7 +444,7 @@ export default function App() {
           break;
       }
     },
-    [searchOpen, closeSearch, openSearch, copySectionAsList, copyAsList, nav.targets, activeSection.id, mergeSelected, state, notes, showToast, moveBySection, togglePin],
+    [searchOpen, closeSearch, openSearch, copySectionAsList, copyAsList, nav.targets, activeSection.id, mergeSelected, state, notes, showToast, moveBySection, togglePin, toggleExpand],
   );
 
   useEffect(() => {
@@ -490,10 +536,6 @@ export default function App() {
   ]);
 
   // ── render ──
-  const subtitle = searching
-    ? `${open.length + done.length} result${open.length + done.length === 1 ? "" : "s"}`
-    : `${counts[activeSection.id] ?? 0} open in ${activeSection.name}`;
-
   const listEmptyMessage = searching ? (
     <>No notes match “{query}”.</>
   ) : activeFilterCount(filter) > 0 ? (
@@ -523,8 +565,9 @@ export default function App() {
         }
       >
         <Header
-          subtitle={subtitle}
           searchOpen={searchOpen}
+          expanded={expanded}
+          onToggleExpand={() => void toggleExpand()}
           onToggleSearch={() => (searchOpen ? closeSearch() : openSearch())}
           filtersOpen={filtersOpen}
           activeFilters={activeFilterCount(filter)}
@@ -722,6 +765,19 @@ export default function App() {
               totalOpen={totalOpen}
             />
           </>
+        )}
+        {inTauri && !expanded && (
+          <div
+            onMouseDown={(e) => void startResize(e)}
+            title="Drag to resize"
+            aria-label="Resize window"
+            role="separator"
+            className="absolute bottom-0 right-0 z-40 h-4 w-4 cursor-nwse-resize"
+          >
+            <svg viewBox="0 0 16 16" className="size-4 text-muted-foreground/50" aria-hidden>
+              <path d="M14 6 6 14M14 10l-4 4M14 14h0" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+            </svg>
+          </div>
         )}
       </div>
     </TooltipProvider>

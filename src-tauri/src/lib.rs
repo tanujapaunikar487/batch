@@ -95,6 +95,8 @@ struct AppState {
     double_shift_active: Arc<AtomicBool>,
     /// Bumped on every focus change; a deferred blur-hide only fires if it still matches.
     blur_gen: std::sync::atomic::AtomicU64,
+    /// Frame to restore when leaving "full screen" (expanded) mode.
+    restore_frame: Mutex<Option<(tauri::PhysicalPosition<i32>, tauri::PhysicalSize<u32>)>>,
 }
 
 // ───────────────────────── commands (called from the UI) ─────────────────────────
@@ -107,6 +109,47 @@ fn hide_window(app: AppHandle) {
 #[tauri::command]
 fn quit_app(app: AppHandle) {
     app.exit(0);
+}
+
+/// "Full screen": fill the current display's work area; call again to restore. Returns the new state.
+#[tauri::command]
+fn toggle_expand(app: AppHandle) -> bool {
+    let Some(w) = main_window(&app) else {
+        return false;
+    };
+    let state = app.state::<AppState>();
+    let mut guard = match state.restore_frame.lock() {
+        Ok(g) => g,
+        Err(_) => return false,
+    };
+    if let Some((pos, size)) = guard.take() {
+        let _ = w.set_size(size);
+        let _ = w.set_position(pos);
+        return false;
+    }
+    let (Ok(pos), Ok(size)) = (w.outer_position(), w.outer_size()) else {
+        return false;
+    };
+    let monitor = w
+        .current_monitor()
+        .ok()
+        .flatten()
+        .or_else(|| w.primary_monitor().ok().flatten());
+    let Some(m) = monitor else { return false };
+    let area = m.work_area();
+    *guard = Some((pos, size));
+    let _ = w.set_position(area.position);
+    let _ = w.set_size(area.size);
+    true
+}
+
+#[tauri::command]
+fn is_expanded(state: tauri::State<'_, AppState>) -> bool {
+    state
+        .restore_frame
+        .lock()
+        .map(|g| g.is_some())
+        .unwrap_or(false)
 }
 
 /// Bring the (already visible) window to the front without repositioning — used after a drop.
@@ -326,8 +369,16 @@ fn show(app: &AppHandle) {
     dlog!("[batch] show");
     #[cfg(target_os = "macos")]
     let _ = app.show();
-    if let Err(e) = place_under_tray(app, &w) {
-        eprintln!("[batch] could not position under tray: {e}");
+    let expanded = app
+        .state::<AppState>()
+        .restore_frame
+        .lock()
+        .map(|g| g.is_some())
+        .unwrap_or(false);
+    if !expanded {
+        if let Err(e) = place_under_tray(app, &w) {
+            eprintln!("[batch] could not position under tray: {e}");
+        }
     }
     let _ = w.show();
     let _ = w.set_focus();
@@ -434,23 +485,40 @@ fn place_under_tray(app: &AppHandle, w: &WebviewWindow) -> tauri::Result<()> {
     w.set_position(LogicalPosition::new(x, y))
 }
 
-/// Read `settings.json` written by the UI: (toggle binding, doubleShift flag).
-fn read_settings(app: &AppHandle) -> (String, bool) {
-    let mut binding = DEFAULT_TOGGLE_BINDING.to_string();
-    let mut double_shift = true;
+struct StartupSettings {
+    binding: String,
+    double_shift: bool,
+    window: Option<(f64, f64)>,
+}
+
+/// Read `settings.json` written by the UI.
+fn read_settings(app: &AppHandle) -> StartupSettings {
+    let mut out = StartupSettings {
+        binding: DEFAULT_TOGGLE_BINDING.to_string(),
+        double_shift: true,
+        window: None,
+    };
     if let Ok(store) = app.store(SETTINGS_FILE) {
         if let Some(v) = store.get("state") {
             if let Some(b) = v.get("toggleShortcut").and_then(|x| x.as_str()) {
                 if !b.is_empty() {
-                    binding = b.to_string();
+                    out.binding = b.to_string();
                 }
             }
             if let Some(d) = v.get("doubleShift").and_then(|x| x.as_bool()) {
-                double_shift = d;
+                out.double_shift = d;
+            }
+            if let (Some(w), Some(h)) = (
+                v.pointer("/window/width").and_then(|x| x.as_f64()),
+                v.pointer("/window/height").and_then(|x| x.as_f64()),
+            ) {
+                if w >= 320.0 && h >= 360.0 && w <= 4000.0 && h <= 4000.0 {
+                    out.window = Some((w, h));
+                }
             }
         }
     }
-    (binding, double_shift)
+    out
 }
 
 #[cfg(target_os = "macos")]
@@ -552,6 +620,8 @@ pub fn run() {
             hide_window,
             quit_app,
             focus_window,
+            toggle_expand,
+            is_expanded,
             set_pinned,
             set_toggle_shortcut,
             set_double_shift,
@@ -738,8 +808,15 @@ pub fn run() {
                 });
             }
 
-            // ── settings (hotkey + double-shift flag) ──
-            let (binding, double_shift_on) = read_settings(app.handle());
+            // ── settings (hotkey, double-shift flag, remembered window size) ──
+            let StartupSettings {
+                binding,
+                double_shift: double_shift_on,
+                window: saved_size,
+            } = read_settings(app.handle());
+            if let Some((w_pt, h_pt)) = saved_size {
+                let _ = window.set_size(tauri::LogicalSize::new(w_pt, h_pt));
+            }
             match binding_to_shortcut(&binding) {
                 Ok(sc) => match app.global_shortcut().register(sc) {
                     Ok(()) => {

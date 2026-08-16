@@ -131,7 +131,7 @@ export function NoteRow({
             checked={note.done}
             onCheckedChange={() => onToggle(note.id)}
             aria-label={note.done ? "Mark as not done" : "Mark as done"}
-            className="mt-1 shrink-0"
+            className="mt-1 shrink-0 border-muted-foreground/60 dark:border-muted-foreground/70"
             tabIndex={-1}
           />
 

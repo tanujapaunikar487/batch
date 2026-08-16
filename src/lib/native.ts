@@ -22,6 +22,9 @@ export const native = {
   quit: () => call("quit_app"),
   /** Bring the window to the front (after a drop from another app). */
   focus: () => call("focus_window"),
+  /** Fill the screen's work area / restore. Resolves to the new expanded state. */
+  toggleExpand: () => call<boolean>("toggle_expand"),
+  isExpanded: () => call<boolean>("is_expanded"),
   /** Pinned = stays open when it loses focus. */
   setPinned: (pinned: boolean) => call("set_pinned", { pinned }),
   /** Re-register the system-wide toggle hotkey. Returns false if it couldn't be registered. */

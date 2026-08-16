@@ -1,4 +1,4 @@
-import { Check, ListChecks, ListFilter, Monitor, Moon, MoreHorizontal, Pin, Search, Sun } from "lucide-react";
+import { Check, ListChecks, ListFilter, Maximize2, Minimize2, Monitor, Moon, MoreHorizontal, Pin, Search, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,8 +17,9 @@ import { cn } from "@/lib/utils";
 import { type ActionId, formatBinding } from "@/lib/shortcuts";
 
 interface Props {
-  subtitle: string;
   searchOpen: boolean;
+  expanded: boolean;
+  onToggleExpand: () => void;
   onToggleSearch: () => void;
   filtersOpen: boolean;
   activeFilters: number;
@@ -73,13 +74,17 @@ export function Header(p: Props) {
   );
 
   return (
-    <header data-tauri-drag-region className="flex h-11 shrink-0 items-center gap-2 px-3 select-none">
+    <header
+      data-tauri-drag-region
+      onDoubleClick={(e) => {
+        if ((e.target as HTMLElement).closest("button")) return;
+        p.onToggleExpand();
+      }}
+      className="flex h-11 shrink-0 items-center gap-2 px-3 select-none"
+    >
       <ListChecks className="size-4 text-muted-foreground" aria-hidden data-tauri-drag-region />
       <span className="text-sm font-semibold tracking-tight" data-tauri-drag-region>
         Batch
-      </span>
-      <span className="truncate text-xs text-muted-foreground tabular-nums" data-tauri-drag-region>
-        {p.subtitle}
       </span>
 
       <div className="ml-auto flex items-center gap-0.5">
@@ -96,6 +101,13 @@ export function Header(p: Props) {
           <ListFilter className="size-4 text-muted-foreground" />,
           p.activeFilters,
         )}
+        {p.isTauri &&
+          iconBtn(
+            p.expanded ? `Restore size  ${formatBinding(p.keymap.expand)}` : `Full screen  ${formatBinding(p.keymap.expand)}`,
+            p.expanded,
+            p.onToggleExpand,
+            p.expanded ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4 text-muted-foreground" />,
+          )}
         {p.isTauri &&
           iconBtn(
             p.pinned ? "Pinned — stays open" : `Pin window  ${formatBinding(p.keymap.pin)}`,
@@ -117,6 +129,12 @@ export function Header(p: Props) {
               Redo <DropdownMenuShortcut>{formatBinding(p.keymap.redo)}</DropdownMenuShortcut>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            {p.isTauri && (
+              <DropdownMenuItem onSelect={p.onToggleExpand}>
+                {p.expanded ? "Restore size" : "Full screen"}
+                <DropdownMenuShortcut>{formatBinding(p.keymap.expand)}</DropdownMenuShortcut>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onSelect={p.onRenameFolder}>Rename folder</DropdownMenuItem>
             <DropdownMenuItem onSelect={p.onCopySectionAsList}>
               Copy folder as list

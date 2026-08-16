@@ -88,8 +88,9 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
     if (!el) return;
     el.style.height = "0px";
     const line = 20;
+    const min = 2 * line + 16; // two lines tall at rest
     const max = MAX_ROWS * line + 16;
-    el.style.height = Math.min(el.scrollHeight, max) + "px";
+    el.style.height = Math.min(Math.max(el.scrollHeight, min), max) + "px";
     el.style.overflowY = el.scrollHeight > max ? "auto" : "hidden";
   }, [value]);
 
@@ -185,12 +186,12 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
                 }
               }
             }}
-            rows={1}
+            rows={2}
             placeholder={busy ? "Saving image…" : placeholder}
             aria-label="Capture"
             autoComplete="off"
             spellCheck
-            className="block min-w-0 flex-1 resize-none bg-transparent py-2 pr-8 text-sm leading-5 outline-none placeholder:text-muted-foreground"
+            className="block min-w-0 flex-1 resize-none bg-transparent py-2 pr-8 text-[15px] leading-5 outline-none placeholder:text-muted-foreground"
           />
           <button
             type="button"
