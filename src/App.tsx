@@ -500,7 +500,8 @@ export default function App() {
       <div
         className={
           "relative flex h-dvh w-dvw flex-col overflow-hidden rounded-xl text-foreground " +
-          (inTauri ? "bg-background/70 dark:bg-background/55" : "bg-background")
+          // Light: near-opaque so the frosted backdrop can't grey the UI; dark: keep the glass.
+          (inTauri ? "bg-background/[0.92] dark:bg-background/60" : "bg-background")
         }
       >
         <Header

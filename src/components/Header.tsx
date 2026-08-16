@@ -1,4 +1,4 @@
-import { Check, ListChecks, ListFilter, Monitor, Moon, MoreHorizontal, Pin, PinOff, Search, Sun } from "lucide-react";
+import { Check, ListChecks, ListFilter, Monitor, Moon, MoreHorizontal, Pin, Search, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -101,7 +101,7 @@ export function Header(p: Props) {
             p.pinned ? "Pinned — stays open" : `Pin window  ${formatBinding(p.keymap.pin)}`,
             p.pinned,
             p.onTogglePin,
-            p.pinned ? <Pin className="size-4" /> : <PinOff className="size-4 text-muted-foreground" />,
+            <Pin className={cn("size-4", p.pinned ? "fill-current" : "text-muted-foreground")} />,
           )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
