@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -90,7 +91,7 @@ export function SectionTabs({
   };
 
   const editor = (
-    <input
+    <Input
       ref={inputRef}
       value={draft}
       onChange={(e) => setDraft(e.target.value)}
@@ -102,7 +103,7 @@ export function SectionTabs({
       }}
       placeholder="Folder name"
       aria-label={renaming ? "Rename folder" : "New folder name"}
-      className="h-7 w-28 rounded-md border border-input bg-background/60 px-2 text-[13px] outline-none focus-visible:border-ring/60"
+      className="h-7 w-32 bg-background/60 px-2 text-[13px] md:text-[13px] focus-visible:ring-ring/15 dark:bg-input/40"
     />
   );
 

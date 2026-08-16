@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,9 +32,11 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
   return (
     <div className="flex flex-col gap-2 px-5 pb-3">
       {searchOpen && (
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <input
+        <InputGroup className="h-8 bg-background/60 has-[[data-slot=input-group-control]:focus-visible]:ring-ring/15 dark:bg-input/40">
+          <InputGroupAddon>
+            <Search />
+          </InputGroupAddon>
+          <InputGroupInput
             ref={ref}
             value={query}
             onChange={(e) => onQuery(e.target.value)}
@@ -51,17 +54,14 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
             placeholder="Search all folders…"
             aria-label="Search"
             autoComplete="off"
-            className="h-7 w-full rounded-md border border-input bg-background/60 pl-8 pr-7 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring/60 dark:bg-input/40"
+            className="text-sm"
           />
-          <button
-            type="button"
-            onClick={onCloseSearch}
-            aria-label="Close search"
-            className="absolute right-1 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded text-muted-foreground hover:text-foreground"
-          >
-            <X className="size-3" />
-          </button>
-        </div>
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton size="icon-xs" onClick={onCloseSearch} aria-label="Close search">
+              <X />
+            </InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
       )}
       {filtersOpen && (
         <div className="flex flex-wrap items-center gap-1.5">
