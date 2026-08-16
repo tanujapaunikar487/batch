@@ -1,0 +1,27 @@
+import { type Note } from "./notes";
+
+const chrono = (notes: Note[]) => [...notes].sort((a, b) => a.createdAt - b.createdAt);
+
+/** Markdown list; multi-line notes keep their extra lines indented under the bullet. */
+export function asList(notes: Note[], style: "bullet" | "numbered" = "bullet"): string {
+  return chrono(notes)
+    .map((n, i) => {
+      const marker = style === "numbered" ? `${i + 1}. ` : "- ";
+      const indent = " ".repeat(marker.length);
+      const [first, ...rest] = n.text.split("\n");
+      return [marker + first, ...rest.map((l) => (l ? indent + l : ""))].join("\n");
+    })
+    .join("\n");
+}
+
+/** What ⌘C puts on the clipboard: one note → its text, several → a list. */
+export function asPlainText(notes: Note[]): string {
+  if (notes.length === 1) return notes[0].text;
+  return asList(notes);
+}
+
+export function mergeText(notes: Note[]): string {
+  return chrono(notes)
+    .map((n) => n.text)
+    .join("\n\n");
+}
