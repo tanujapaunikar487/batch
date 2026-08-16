@@ -45,7 +45,7 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
       aria-multiselectable
       aria-label="Notes"
       onKeyDown={onKeyDown}
-      className="min-h-0 flex-1 overflow-y-auto px-5 pb-2 pt-1 outline-none"
+      className="min-h-0 flex-1 overflow-y-auto px-5 pb-3 pt-3 outline-none"
     >
       {empty ? (
         <div className="px-2 pt-12 text-center text-sm text-muted-foreground select-none">{emptyMessage}</div>
