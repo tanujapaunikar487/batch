@@ -75,12 +75,12 @@ after rebuilding if the banner comes back.
 | Merge notes | select 2+ → ⌘M (texts joined, earliest note kept, ⌘Z to undo) |
 | Done | Space (or the checkbox); done notes sink below a hairline · ⇧⌘⌫ clears done in the section |
 | Edit | ↩ or double-click · ↩ saves · `Esc` cancels |
-| Priority | 1 / 2 / 3 on the selected notes · hover → flag cycles · shown as a coloured dot |
+| Priority | 1 / 2 / 3 on the selected notes · hover → ⋯ → Priority · shown as a coloured dot |
 | Move to another section | ⇧⌘] / ⇧⌘[ · or hover → ⋯ → Move to |
 | Search | ⌘F — searches all sections; results show their section |
 | Filters | ⇧⌘F — Status (All / Open / Done) · Priority · Type (Links / Code / Text) · When (Today / 7 days) |
 | Undo / redo | ⌘Z / ⇧⌘Z (every note change, 50 steps) |
-| Delete | ⌫ on selected notes · hover → × |
+| Delete | ⌫ on selected notes · hover → ⋯ → Delete |
 | Pin (stay open when unfocused) | 📌 or ⌘P |
 | Appearance | ⋯ menu → Appearance, or Settings: System / Light / Dark (the vibrancy backdrop follows) |
 | Settings | ⌘, — appearance, launch at login, double-Shift, hotkey, custom shortcuts, data location |

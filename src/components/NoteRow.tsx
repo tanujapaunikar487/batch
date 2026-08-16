@@ -7,14 +7,14 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { type Note, type Priority, type Section, PRIORITIES, nextPriority } from "@/lib/notes";
+import { type Note, type Priority, type Section, PRIORITIES } from "@/lib/notes";
 import { PRIORITY_UI } from "@/lib/priority-ui";
 import { Markdown } from "./Markdown";
 
@@ -114,37 +114,20 @@ export function NoteRow({
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-0.5 pt-0.5">
+      {/* Reserved 24px column: priority dot at rest, ⋯ menu on hover — text never runs under it. */}
+      <div className="relative mt-0.5 flex h-5 w-6 shrink-0 items-center justify-center">
         <span
           className={cn(
-            "size-1.5 rounded-full transition-opacity group-hover:opacity-0",
+            "size-1.5 rounded-full transition-opacity group-hover:opacity-0 group-focus-within:opacity-0",
             ui.dot,
             note.done && "opacity-40",
           )}
           aria-label={`${ui.label} priority`}
         />
-        <div className="absolute right-1.5 top-1 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-          {!note.done && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  tabIndex={-1}
-                  onClick={() => onSetPriority([note.id], nextPriority(note.priority))}
-                  aria-label={`Priority ${ui.label}; change`}
-                >
-                  <Flag className={cn("size-3.5", ui.text)} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                {ui.label} → {PRIORITY_UI[nextPriority(note.priority)].label}
-              </TooltipContent>
-            </Tooltip>
-          )}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-xs" tabIndex={-1} aria-label="More">
+              <Button variant="ghost" size="icon-xs" tabIndex={-1} aria-label="Note actions">
                 <MoreHorizontal className="size-3.5" />
               </Button>
             </DropdownMenuTrigger>
@@ -156,13 +139,16 @@ export function NoteRow({
                 <DropdownMenuItem onSelect={() => onStartEdit(note.id)}>Edit</DropdownMenuItem>
               )}
               <DropdownMenuSub>
-                <DropdownMenuSubTrigger>Priority</DropdownMenuSubTrigger>
+                <DropdownMenuSubTrigger>
+                  <Flag className={cn("size-3.5", ui.text)} /> Priority
+                </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
                   {PRIORITIES.map((p) => (
                     <DropdownMenuItem key={p} onSelect={() => onSetPriority([note.id], p)}>
                       <span className={cn("size-1.5 rounded-full", PRIORITY_UI[p].dot)} />
                       {PRIORITY_UI[p].label}
-                      {p === note.priority && <Check className="ml-auto size-3.5" />}
+                      <DropdownMenuShortcut>{PRIORITIES.indexOf(p) + 1}</DropdownMenuShortcut>
+                      {p === note.priority && <Check className="ml-1 size-3.5" />}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuSubContent>
