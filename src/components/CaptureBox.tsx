@@ -6,8 +6,6 @@ interface Props {
   placeholder: string;
   /** Return true when the text was accepted (clears the box). */
   onSubmit: (text: string) => boolean;
-  /** Esc when empty. */
-  onEscapeEmpty: () => void;
   /** ↓ on the last line — hand focus to the list. */
   onArrowDownOut: () => void;
 }
@@ -21,7 +19,7 @@ export interface CaptureBoxHandle {
 const MAX_ROWS = 6;
 
 export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBox(
-  { placeholder, onSubmit, onEscapeEmpty, onArrowDownOut },
+  { placeholder, onSubmit, onArrowDownOut },
   ref,
 ) {
   const [value, setValue] = useState("");
@@ -59,12 +57,11 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
               e.preventDefault();
               submit();
             } else if (e.key === "Escape") {
+              // With text: clear it here. Empty: let it bubble to the app-level Esc cascade.
               if (value) {
                 e.preventDefault();
                 e.stopPropagation();
                 setValue("");
-              } else {
-                onEscapeEmpty();
               }
             } else if (e.key === "ArrowDown" && !e.metaKey && !e.altKey) {
               const el = e.currentTarget;

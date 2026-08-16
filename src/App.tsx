@@ -386,7 +386,7 @@ export default function App() {
         <Header
           subtitle={subtitle}
           searchOpen={searchOpen}
-          onToggleSearch={() => runAction("search")}
+          onToggleSearch={() => (searchOpen ? closeSearch() : openSearch())}
           filtersOpen={filtersOpen}
           activeFilters={activeFilterCount(filter)}
           onToggleFilters={() => runAction("filters")}
@@ -495,7 +495,6 @@ export default function App() {
                   );
                   return true;
                 }}
-                onEscapeEmpty={hide}
                 onArrowDownOut={focusList}
               />
             )}
