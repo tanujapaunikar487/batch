@@ -100,7 +100,6 @@ export default function App() {
     for (const n of state.notes) if (!n.done) c[n.sectionId] = (c[n.sectionId] ?? 0) + 1;
     return c;
   }, [state.notes]);
-  const totalOpen = state.notes.filter((n) => !n.done).length;
 
   // ── helpers ──
   const showToast = useCallback((msg: string) => {
@@ -767,7 +766,8 @@ export default function App() {
               selectedCount={nav.selected.size}
               toast={toast}
               mergeBinding={keymap.merge}
-              totalOpen={totalOpen}
+              done={done.length}
+              total={open.length + done.length}
             />
           </>
         )}
