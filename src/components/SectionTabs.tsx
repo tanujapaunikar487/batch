@@ -112,7 +112,7 @@ export function SectionTabs({
   );
 
   return (
-    <div className="flex items-center gap-1 overflow-x-auto px-5 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist">
+    <div className="flex shrink-0 items-center gap-1 overflow-x-auto px-5 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist">
       {sections.map((s, i) =>
         renaming === s.id ? (
           <span key={s.id}>{editor}</span>

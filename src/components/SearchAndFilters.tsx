@@ -1,13 +1,7 @@
 import { forwardRef } from "react";
-import { ChevronDown, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { type Filter, EMPTY_FILTER, isFilterActive } from "@/lib/filters";
 import { PRIORITIES, type Priority } from "@/lib/notes";
@@ -30,7 +24,7 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
 ) {
   if (!searchOpen && !filtersOpen) return null;
   return (
-    <div className="flex flex-col gap-2 px-5 pb-3">
+    <div className="flex shrink-0 flex-col gap-2 px-5 pb-3">
       {searchOpen && (
         <InputGroup className="h-8 bg-background/60 has-[[data-slot=input-group-control]:focus-visible]:ring-ring/15 dark:bg-input/40">
           <InputGroupAddon>
@@ -66,27 +60,24 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
       {filtersOpen && (
         <div className="flex flex-wrap items-center gap-1.5">
           <FilterSelect
-            label="Status"
             value={filter.status}
             options={[
-              ["all", "All"],
+              ["all", "All Status"],
               ["open", "Open"],
               ["done", "Done"],
             ]}
             onChange={(v) => onFilter({ ...filter, status: v as Filter["status"] })}
           />
           <FilterSelect
-            label="Priority"
             value={filter.priority ?? "any"}
-            options={[["any", "Any"], ...PRIORITIES.map((p) => [p, PRIORITY_UI[p].label] as [string, string])]}
+            options={[["any", "Any Priority"], ...PRIORITIES.map((p) => [p, PRIORITY_UI[p].label] as [string, string])]}
             dots={Object.fromEntries(PRIORITIES.map((p) => [p, PRIORITY_UI[p].dot]))}
             onChange={(v) => onFilter({ ...filter, priority: v === "any" ? undefined : (v as Priority) })}
           />
           <FilterSelect
-            label="Type"
             value={filter.kind ?? "any"}
             options={[
-              ["any", "Any"],
+              ["any", "Any Type"],
               ["image", "Images"],
               ["link", "Links"],
               ["code", "Code"],
@@ -95,12 +86,11 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
             onChange={(v) => onFilter({ ...filter, kind: v === "any" ? undefined : (v as Filter["kind"]) })}
           />
           <FilterSelect
-            label="When"
             value={filter.when ?? "any"}
             options={[
-              ["any", "Any"],
+              ["any", "Any Time"],
               ["today", "Today"],
-              ["week", "7 days"],
+              ["week", "Last 7 days"],
             ]}
             onChange={(v) => onFilter({ ...filter, when: v === "any" ? undefined : (v as Filter["when"]) })}
           />
@@ -120,49 +110,38 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
 });
 
 function FilterSelect({
-  label,
   value,
   options,
   dots,
   onChange,
 }: {
-  label: string;
   value: string;
   options: [string, string][];
   dots?: Record<string, string>;
   onChange: (v: string) => void;
 }) {
-  const current = options.find(([v]) => v === value)?.[1] ?? value;
   const active = value !== options[0][0];
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label={`${label}: ${current}`}
-          className={cn(
-            "flex h-7 items-center gap-1 rounded-md border px-2 text-xs transition-colors",
-            active
-              ? "border-foreground/25 bg-foreground/[0.06] text-foreground"
-              : "border-input bg-background/60 text-muted-foreground hover:text-foreground dark:bg-input/40",
-          )}
-        >
-          <span className="text-[10px] uppercase tracking-wider opacity-70">{label}</span>
-          {dots?.[value] && <span className={cn("size-1.5 rounded-full", dots[value])} />}
-          <span className={cn(active && "font-medium")}>{current}</span>
-          <ChevronDown className="size-3 opacity-60" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-36">
-        <DropdownMenuRadioGroup value={value} onValueChange={onChange}>
-          {options.map(([v, text]) => (
-            <DropdownMenuRadioItem key={v} value={v}>
-              {dots?.[v] && <span className={cn("mr-1 size-1.5 rounded-full", dots[v])} />}
-              {text}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger
+        size="sm"
+        aria-label={options[0][1]}
+        className={cn(
+          "h-7 w-auto gap-1 bg-background/60 px-2 text-xs dark:bg-input/40",
+          active && "border-foreground/25 bg-foreground/[0.06] font-medium text-foreground",
+        )}
+      >
+        {dots?.[value] && <span className={cn("size-1.5 rounded-full", dots[value])} />}
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent align="start" className="min-w-36">
+        {options.map(([v, text]) => (
+          <SelectItem key={v} value={v}>
+            {dots?.[v] && <span className={cn("mr-1 inline-block size-1.5 rounded-full", dots[v])} />}
+            {text}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
