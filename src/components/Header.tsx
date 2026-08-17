@@ -1,4 +1,4 @@
-import { Check, ListFilter, Maximize2, Minimize2, Monitor, Moon, MoreHorizontal, Pin, Search, Sun } from "lucide-react";
+import { Check, ListFilter, Monitor, Moon, MoreHorizontal, Pin, Search, Sun } from "lucide-react";
 import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -105,13 +105,6 @@ export function Header(p: Props) {
           <ListFilter className="size-4 text-muted-foreground" />,
           p.activeFilters,
         )}
-        {p.isTauri &&
-          iconBtn(
-            p.expanded ? `Restore size  ${formatBinding(p.keymap.expand)}` : `Full screen  ${formatBinding(p.keymap.expand)}`,
-            p.expanded,
-            p.onToggleExpand,
-            p.expanded ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4 text-muted-foreground" />,
-          )}
         {p.isTauri &&
           iconBtn(
             p.pinned ? "Pinned — stays open" : `Pin window  ${formatBinding(p.keymap.pin)}`,
