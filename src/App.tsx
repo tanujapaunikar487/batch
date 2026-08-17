@@ -126,7 +126,7 @@ export default function App() {
 
   const copyNotes = useCallback(
     async (ids: string[], asListAlways = false) => {
-      const picked = ids.map((id) => notesById.get(id)).filter((n): n is NonNullable<typeof n> => !!n);
+      const picked = ids.map((id) => notesById.get(id)).filter((n): n is NonNullable<typeof n> => !!n && !isHeading(n));
       if (picked.length === 0) return;
       const withText = picked.filter((n) => n.text);
       const text = withText.length === 0 ? "" : asListAlways ? asList(withText) : asPlainText(withText);
@@ -149,7 +149,7 @@ export default function App() {
   /** "Copy as List": numbered list (+ images), then mark those notes done — they've been handed off. */
   const copyAsList = useCallback(
     async (ids: string[]) => {
-      const picked = ids.map((id) => notesById.get(id)).filter((n): n is NonNullable<typeof n> => !!n);
+      const picked = ids.map((id) => notesById.get(id)).filter((n): n is NonNullable<typeof n> => !!n && !isHeading(n));
       if (picked.length === 0) return showToast("Nothing to copy");
       const withText = picked.filter((n) => n.text);
       const text = asNumberedList(withText);
@@ -192,11 +192,12 @@ export default function App() {
     [notesById],
   );
   const mergeSelected = useCallback(() => {
-    if (nav.targets.length < 2) return showToast("Select 2+ notes to merge");
-    notes.merge(nav.targets);
-    showToast(`Merged ${nav.targets.length} → 1 · ⌘Z to undo`);
+    const ids = nav.targets.filter((id) => !isHeading(notesById.get(id) ?? {}));
+    if (ids.length < 2) return showToast("Select 2+ notes to merge");
+    notes.merge(ids);
+    showToast(`Merged ${ids.length} → 1 · ⌘Z to undo`);
     nav.clear();
-  }, [nav, notes, showToast]);
+  }, [nav, notes, notesById, showToast]);
   const removeIds = useCallback(
     (ids: string[]) => {
       if (ids.length === 0) return;
@@ -457,7 +458,7 @@ export default function App() {
           setFiltersOpen((o) => !o);
           break;
         case "copySectionAsList":
-          if (nav.targets.length > 0) void copyAsList(nav.targets);
+          if (taskTargets.length > 0) void copyAsList(taskTargets);
           else copySectionAsList(activeSection.id);
           break;
         case "merge":
@@ -496,7 +497,7 @@ export default function App() {
           break;
       }
     },
-    [searchOpen, closeSearch, openSearch, copySectionAsList, copyAsList, nav.targets, activeSection.id, mergeSelected, state, notes, showToast, moveBySection, togglePin, toggleExpand],
+    [searchOpen, closeSearch, openSearch, copySectionAsList, copyAsList, taskTargets, activeSection.id, mergeSelected, state, notes, showToast, moveBySection, togglePin, toggleExpand],
   );
 
   useEffect(() => {
