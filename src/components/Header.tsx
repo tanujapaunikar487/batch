@@ -37,6 +37,7 @@ interface Props {
   onCopySectionAsList: () => void;
   onClearDone: () => void;
   onRevealFile: () => void;
+  onResetPosition: () => void;
   onExport: (what: "folder-md" | "all-md" | "json") => void;
   onImport: () => void;
   theme: ThemePref;
@@ -133,10 +134,13 @@ export function Header(p: Props) {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             {p.isTauri && (
-              <DropdownMenuItem onSelect={p.onToggleExpand}>
-                {p.expanded ? "Restore size" : "Full screen"}
-                <DropdownMenuShortcut>{formatBinding(p.keymap.expand)}</DropdownMenuShortcut>
-              </DropdownMenuItem>
+              <>
+                <DropdownMenuItem onSelect={p.onToggleExpand}>
+                  {p.expanded ? "Restore size" : "Full screen"}
+                  <DropdownMenuShortcut>{formatBinding(p.keymap.expand)}</DropdownMenuShortcut>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={p.onResetPosition}>Snap under menu-bar icon</DropdownMenuItem>
+              </>
             )}
             <DropdownMenuItem onSelect={p.onRenameFolder}>Rename folder</DropdownMenuItem>
             <DropdownMenuItem onSelect={p.onCopySectionAsList}>

@@ -31,6 +31,8 @@ export const native = {
   /** Fill the screen's work area / restore. Resolves to the new expanded state. */
   toggleExpand: () => call<boolean>("toggle_expand"),
   isExpanded: () => call<boolean>("is_expanded"),
+  /** Forget a manual drag; snap back under the menu-bar icon. */
+  resetPosition: () => call("reset_position"),
   /** Pinned = stays open when it loses focus. */
   setPinned: (pinned: boolean) => call("set_pinned", { pinned }),
   /** Re-register the system-wide toggle hotkey. Returns false if it couldn't be registered. */

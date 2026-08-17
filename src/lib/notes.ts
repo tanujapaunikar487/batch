@@ -108,6 +108,8 @@ export type Action =
   | { type: "addSection"; id: string; name: string; now: number }
   | { type: "renameSection"; id: string; name: string }
   | { type: "removeSection"; id: string }
+  /** Move a folder right after `afterId` (null = first). */
+  | { type: "reorderSection"; id: string; afterId: string | null }
   | { type: "replace"; state: NotesState };
 
 const hasSection = (s: NotesState, id: string) => s.sections.some((x) => x.id === id);
@@ -287,6 +289,20 @@ export function reduce(state: NotesState, action: Action): NotesState {
         version: 2,
       };
     }
+    case "reorderSection": {
+      if (action.id === action.afterId || !hasSection(state, action.id)) return state;
+      const rest = state.sections.filter((s) => s.id !== action.id);
+      const moving = state.sections.find((s) => s.id === action.id)!;
+      let at = 0;
+      if (action.afterId !== null) {
+        const i = rest.findIndex((s) => s.id === action.afterId);
+        if (i === -1) return state;
+        at = i + 1;
+      }
+      const sections = [...rest.slice(0, at), moving, ...rest.slice(at)];
+      if (sections.every((s, i) => s.id === state.sections[i].id)) return state;
+      return { ...state, sections };
+    }
     case "replace":
       return action.state;
   }
@@ -348,12 +364,9 @@ export function normalizeState(raw: unknown): NotesState {
       createdAt: typeof s.createdAt === "number" ? s.createdAt : 0,
     });
   }
+  // The default folder must exist (it's where notes go when a folder is deleted),
+  // but the user may order folders however they like.
   if (!seen.has(INBOX_ID)) sections.unshift({ id: INBOX_ID, name: DEFAULT_FOLDER_NAME, createdAt: 0 });
-  else {
-    // Inbox always first.
-    const i = sections.findIndex((s) => s.id === INBOX_ID);
-    if (i > 0) sections.unshift(...sections.splice(i, 1));
-  }
   const sectionIds = new Set(sections.map((s) => s.id));
 
   const notes: Note[] = [];

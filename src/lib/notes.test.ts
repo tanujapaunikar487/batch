@@ -271,7 +271,18 @@ describe("normalizeState", () => {
     expect(normalizeState(undefined)).toEqual(emptyState());
     expect(normalizeState({ version: 2, sections: "x", notes: [] })).toEqual(emptyState());
   });
-  it("re-homes notes whose folder is missing, ensures the default folder exists first, renames legacy 'Inbox'", () => {
+  it("reorderSection moves folders", () => {
+    let s = emptyState();
+    s = reduce(s, { type: "addSection", id: "b", name: "B", now: 1 });
+    s = reduce(s, { type: "addSection", id: "c", name: "C", now: 2 });
+    s = reduce(s, { type: "reorderSection", id: "c", afterId: null });
+    expect(s.sections.map((x) => x.id)).toEqual(["c", INBOX_ID, "b"]);
+    s = reduce(s, { type: "reorderSection", id: INBOX_ID, afterId: "b" });
+    expect(s.sections.map((x) => x.id)).toEqual(["c", "b", INBOX_ID]);
+    expect(reduce(s, { type: "reorderSection", id: "zz", afterId: null })).toBe(s);
+  });
+
+  it("re-homes notes whose folder is missing, ensures the default folder exists, renames legacy 'Inbox'", () => {
     const s = normalizeState({
       version: 2,
       sections: [{ id: "s2", name: "P", createdAt: 1 }],
@@ -280,7 +291,7 @@ describe("normalizeState", () => {
         { id: "b", sectionId: "s2", text: "y", priority: "weird", done: true, createdAt: 1 },
       ],
     });
-    expect(s.sections.map((x) => x.id)).toEqual([INBOX_ID, "s2"]);
+    expect(s.sections.map((x) => x.id)).toEqual([INBOX_ID, "s2"]); // inserted first when missing
     expect(s.notes[0].sectionId).toBe(INBOX_ID);
     expect(s.notes[1].priority).toBe("medium");
     expect(typeof s.notes[1].completedAt).toBe("number");

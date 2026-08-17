@@ -643,6 +643,7 @@ export default function App() {
           onCopySectionAsList={() => copySectionAsList(activeSection.id)}
           onClearDone={() => runAction("clearDone")}
           onRevealFile={() => void native.revealNotesFile()}
+          onResetPosition={() => void native.resetPosition()}
           onExport={exportAs}
           onImport={importJson}
           theme={settings.settings.theme}
@@ -724,8 +725,20 @@ export default function App() {
                   focusCapture();
                 }}
                 onRename={notes.renameSection}
-                onRemove={(id) => {
+                onReorder={notes.reorderSection}
+                onRemove={async (id) => {
                   const n = state.notes.filter((x) => x.sectionId === id).length;
+                  const name = sectionById(state, id)?.name ?? "this folder";
+                  if (n > 0) {
+                    const home = sectionById(state, INBOX_ID)?.name ?? "the first folder";
+                    const msg = `Delete “${name}”? Its ${n} note${n > 1 ? "s" : ""} will move to ${home}.`;
+                    let ok = false;
+                    if (inTauri) {
+                      const { ask } = await import("@tauri-apps/plugin-dialog");
+                      ok = await ask(msg, { title: "Delete folder", kind: "warning", okLabel: "Delete", cancelLabel: "Cancel" });
+                    } else ok = window.confirm(msg);
+                    if (!ok) return;
+                  }
                   notes.removeSection(id);
                   if (id === activeId) setActiveId(INBOX_ID);
                   const home = sectionById(state, INBOX_ID)?.name ?? "the first folder";

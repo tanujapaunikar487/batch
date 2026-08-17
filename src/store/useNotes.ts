@@ -120,6 +120,7 @@ export function useNotes(store?: KeyValueStore) {
       },
       renameSection: (id: string, name: string) => dispatch({ type: "renameSection", id, name }),
       removeSection: (id: string) => dispatch({ type: "removeSection", id }),
+      reorderSection: (id: string, afterId: string | null) => dispatch({ type: "reorderSection", id, afterId }),
       /** Wholesale replacement that stays undoable (import). */
       replace: (state: NotesState) => dispatch({ type: "replaceUndoable", state }),
       undo: () => dispatch({ type: "undo" }),

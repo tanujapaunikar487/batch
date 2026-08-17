@@ -21,6 +21,7 @@ interface Props {
   onRemove: (id: string) => void;
   onCopyAsList: (id: string) => void;
   onClearDone: (id: string) => void;
+  onReorder: (id: string, afterId: string | null) => void;
   /** Externally triggered "new folder" (⌘⇧N). */
   addRequest: number;
   /** Externally triggered "rename active folder". */
@@ -37,9 +38,12 @@ export function SectionTabs({
   onRemove,
   onCopyAsList,
   onClearDone,
+  onReorder,
   addRequest,
   renameRequest,
 }: Props) {
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [over, setOver] = useState<{ id: string; side: "left" | "right" } | null>(null);
   const [adding, setAdding] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
@@ -119,6 +123,37 @@ export function SectionTabs({
                 ref={s.id === activeId ? activeRef : undefined}
                 role="tab"
                 aria-selected={s.id === activeId}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("application/x-batch-folder", s.id);
+                  e.dataTransfer.effectAllowed = "move";
+                  setDragId(s.id);
+                }}
+                onDragOver={(e) => {
+                  if (!e.dataTransfer.types.includes("application/x-batch-folder")) return;
+                  e.preventDefault();
+                  const r = e.currentTarget.getBoundingClientRect();
+                  const side = e.clientX < r.left + r.width / 2 ? "left" : "right";
+                  setOver((o) => (o?.id === s.id && o.side === side ? o : { id: s.id, side }));
+                }}
+                onDrop={(e) => {
+                  if (!e.dataTransfer.types.includes("application/x-batch-folder")) return;
+                  e.preventDefault();
+                  const from = dragId;
+                  const r = e.currentTarget.getBoundingClientRect();
+                  const side = e.clientX < r.left + r.width / 2 ? "left" : "right";
+                  setDragId(null);
+                  setOver(null);
+                  if (!from || from === s.id) return;
+                  const ids = sections.map((x) => x.id).filter((x) => x !== from);
+                  const ti = ids.indexOf(s.id);
+                  const at = side === "left" ? ti : ti + 1;
+                  onReorder(from, at === 0 ? null : ids[at - 1]);
+                }}
+                onDragEnd={() => {
+                  setDragId(null);
+                  setOver(null);
+                }}
                 title={
                   s.id === activeId
                     ? "Click to rename · right-click for options"
@@ -141,7 +176,11 @@ export function SectionTabs({
                   setMenuFor(s.id);
                 }}
                 className={cn(
-                  "flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[13px] transition-colors select-none",
+                  "relative flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[13px] transition-colors select-none",
+                  dragId && over?.id === s.id && dragId !== s.id && over.side === "left" &&
+                    "before:absolute before:-left-1 before:top-1 before:bottom-1 before:w-0.5 before:rounded-full before:bg-ring",
+                  dragId && over?.id === s.id && dragId !== s.id && over.side === "right" &&
+                    "after:absolute after:-right-1 after:top-1 after:bottom-1 after:w-0.5 after:rounded-full after:bg-ring",
                   s.id === activeId
                     ? "bg-foreground/[0.08] text-foreground dark:bg-foreground/[0.12]"
                     : "text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground",

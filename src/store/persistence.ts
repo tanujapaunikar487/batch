@@ -118,7 +118,32 @@ export async function loadNotes(store: KeyValueStore): Promise<{ state: NotesSta
     await store.save(state);
     return { state, migrated: true };
   }
-  return { state: emptyState(), migrated: false };
+  // First run: a few notes that teach by doing.
+  return { state: tutorialState(), migrated: false };
+}
+
+function tutorialState(): NotesState {
+  const now = Date.now();
+  const mk = (i: number, text: string, priority: "high" | "medium" | "low" = "medium") => ({
+    id: `tour-${i}`,
+    sectionId: INBOX_ID,
+    text,
+    priority,
+    done: false,
+    createdAt: now - (10 - i) * 1000,
+  });
+  return {
+    version: 2,
+    sections: emptyState().sections,
+    notes: [
+      mk(1, "Welcome to Batch 👋 — check things off as you go. Everything here stays on your Mac.", "high"),
+      mk(2, "Tap **Shift twice** in any app to open Batch. Select some text first and it comes along."),
+      mk(3, "Type or paste below and press ↩. Markdown works: **bold**, `code`, lists, links."),
+      mk(4, "Drag a screenshot or image onto this window to attach it — up to 10 per note."),
+      mk(5, "Select two notes (⇧↓), then ⌘M merges them, ⇧⌘C copies them as a numbered list.", "low"),
+      mk(6, "⌘/ shows every shortcut · ⌘, opens settings · click a folder name to rename it.", "low"),
+    ],
+  };
 }
 
 // ───────────────────────── dev seed (?seed=1) ─────────────────────────

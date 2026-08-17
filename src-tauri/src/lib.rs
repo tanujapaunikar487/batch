@@ -98,6 +98,10 @@ struct AppState {
     blur_gen: std::sync::atomic::AtomicU64,
     /// Grab the frontmost app's selection on double-Shift (needs Accessibility).
     capture_selection: AtomicBool,
+    /// Last position we set ourselves (to tell user drags apart from our moves).
+    last_set_pos: Mutex<Option<tauri::PhysicalPosition<i32>>>,
+    /// Where the user dragged the window; while set, `show()` won't snap under the tray.
+    custom_pos: Mutex<Option<tauri::PhysicalPosition<i32>>>,
     /// Frame to restore when leaving "full screen" (expanded) mode.
     restore_frame: Mutex<Option<(tauri::PhysicalPosition<i32>, tauri::PhysicalSize<u32>)>>,
 }
@@ -126,6 +130,9 @@ fn toggle_expand(app: AppHandle) -> bool {
         Err(_) => return false,
     };
     if let Some((pos, size)) = guard.take() {
+        if let Ok(mut g) = state.last_set_pos.lock() {
+            *g = Some(pos);
+        }
         let _ = w.set_size(size);
         let _ = w.set_position(pos);
         return false;
@@ -141,9 +148,23 @@ fn toggle_expand(app: AppHandle) -> bool {
     let Some(m) = monitor else { return false };
     let area = m.work_area();
     *guard = Some((pos, size));
+    if let Ok(mut g) = state.last_set_pos.lock() {
+        *g = Some(area.position);
+    }
     let _ = w.set_position(area.position);
     let _ = w.set_size(area.size);
     true
+}
+
+/// Forget a user drag and snap back under the menu-bar icon.
+#[tauri::command]
+fn reset_position(app: AppHandle) {
+    if let Ok(mut g) = app.state::<AppState>().custom_pos.lock() {
+        *g = None;
+    }
+    if let Some(w) = main_window(&app) {
+        let _ = place_under_tray(&app, &w);
+    }
 }
 
 #[tauri::command]
@@ -416,7 +437,13 @@ fn show(app: &AppHandle) {
         .lock()
         .map(|g| g.is_some())
         .unwrap_or(false);
-    if !expanded {
+    let user_moved = app
+        .state::<AppState>()
+        .custom_pos
+        .lock()
+        .map(|g| g.is_some())
+        .unwrap_or(false);
+    if !expanded && !user_moved {
         if let Err(e) = place_under_tray(app, &w) {
             eprintln!("[batch] could not position under tray: {e}");
         }
@@ -523,7 +550,12 @@ fn place_under_tray(app: &AppHandle, w: &WebviewWindow) -> tauri::Result<()> {
         win.width, win.height
     );
 
-    w.set_position(LogicalPosition::new(x, y))
+    let target = LogicalPosition::new(x, y);
+    let scale_now = w.scale_factor().unwrap_or(scale);
+    if let Ok(mut g) = app.state::<AppState>().last_set_pos.lock() {
+        *g = Some(target.to_physical(scale_now));
+    }
+    w.set_position(target)
 }
 
 struct StartupSettings {
@@ -672,6 +704,7 @@ pub fn run() {
             focus_window,
             toggle_expand,
             is_expanded,
+            reset_position,
             set_pinned,
             set_toggle_shortcut,
             set_double_shift,
@@ -856,6 +889,27 @@ pub fn run() {
                                 let _ = (h, generation);
                             }
                         });
+                    }
+                    WindowEvent::Moved(pos) => {
+                        // A move that isn't one we asked for = the user dragged the window.
+                        let st = app_handle.state::<AppState>();
+                        let ours = st
+                            .last_set_pos
+                            .lock()
+                            .ok()
+                            .and_then(|g| *g)
+                            .map(|p| (p.x - pos.x).abs() <= 2 && (p.y - pos.y).abs() <= 2)
+                            .unwrap_or(false);
+                        let expanded = st
+                            .restore_frame
+                            .lock()
+                            .map(|g| g.is_some())
+                            .unwrap_or(false);
+                        if !ours && !expanded {
+                            if let Ok(mut g) = st.custom_pos.lock() {
+                                *g = Some(*pos);
+                            }
+                        }
                     }
                     WindowEvent::CloseRequested { api, .. } => {
                         // No close button, but ⌘W / scripts: hide instead of destroying.
