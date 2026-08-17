@@ -14,7 +14,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
-import { type Attachment, type Note, type Priority, type Section, PRIORITIES, hasAttachments } from "@/lib/notes";
+import { type Attachment, type Note, type Priority, type Section, PRIORITIES, hasAttachments, isHeading } from "@/lib/notes";
 import { PRIORITY_UI } from "@/lib/priority-ui";
 import { formatBinding } from "@/lib/shortcuts";
 import { Markdown } from "./Markdown";
@@ -50,6 +50,8 @@ export interface NoteRowProps {
   onNudge?: (id: string, delta: -1 | 1) => void;
   onOpenAttachment: (a: Attachment) => void;
   onDragAttachments: (e: React.DragEvent, note: Note, a: Attachment) => void;
+  /** For heading rows: open notes under this heading. */
+  sectionCount?: number;
   /** Manual reordering (disabled in search results). */
   reorderable?: boolean;
   dropEdge?: "top" | "bottom" | null;
@@ -86,6 +88,7 @@ export function NoteRow({
   onNudge,
   onOpenAttachment,
   onDragAttachments,
+  sectionCount,
   reorderable,
   dropEdge,
   onRowDragStart,
@@ -94,6 +97,7 @@ export function NoteRow({
   onRowDragEnd,
 }: NoteRowProps) {
   const ui = PRIORITY_UI[note.priority];
+  const heading = isHeading(note);
   const sectionName = sections.find((s) => s.id === note.sectionId)?.name;
   const rowRef = useRef<HTMLLIElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -171,15 +175,19 @@ export function NoteRow({
             dropEdge === "bottom" && "after:absolute after:inset-x-2 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-ring",
           )}
         >
-          <Checkbox
-            checked={note.done}
-            onCheckedChange={() => onToggle(note.id)}
-            aria-label={note.done ? "Mark as not done" : "Mark as done"}
-            className="mt-1 shrink-0 border-muted-foreground/60 dark:border-muted-foreground/70"
-            tabIndex={-1}
-          />
+          {heading ? (
+            <span className="mt-1 h-3.5 w-4 shrink-0" aria-hidden />
+          ) : (
+            <Checkbox
+              checked={note.done}
+              onCheckedChange={() => onToggle(note.id)}
+              aria-label={note.done ? "Mark as not done" : "Mark as done"}
+              className="mt-1 shrink-0 border-muted-foreground/60 dark:border-muted-foreground/70"
+              tabIndex={-1}
+            />
+          )}
 
-          <div className="min-w-0 flex-1">
+          <div className={cn("min-w-0 flex-1", heading && "pt-0.5")}>
             {hasAttachments(note) && (
               <AttachmentStrip
                 attachments={note.attachments!}
@@ -199,6 +207,23 @@ export function NoteRow({
                 }}
                 onCancel={onStopEdit}
               />
+            ) : heading ? (
+              <div className="flex items-baseline gap-2">
+                <h3
+                  className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onStartEdit(note.id);
+                  }}
+                  title="Click to rename"
+                >
+                  {note.text}
+                </h3>
+                {sectionCount !== undefined && sectionCount > 0 && (
+                  <span className="text-[11px] tabular-nums text-muted-foreground/60">{sectionCount}</span>
+                )}
+                <span className="ml-1 h-px flex-1 self-center bg-border/60" aria-hidden />
+              </div>
             ) : note.text ? (
               <Markdown
                 text={note.text}
@@ -218,15 +243,17 @@ export function NoteRow({
 
           {/* Reserved 24px column: priority dot at rest, ⋯ on hover — text never runs under it. */}
           <div className="relative mt-0.5 flex h-5 w-6 shrink-0 items-center justify-center">
-            <span
-              className={cn(
-                "size-1.5 rounded-full transition-opacity group-hover:opacity-0 group-focus-within:opacity-0",
-                ui.dot,
-                note.done && "opacity-40",
-                menuOpen && "opacity-0",
-              )}
-              aria-label={`${ui.label} priority`}
-            />
+            {!heading && (
+              <span
+                className={cn(
+                  "size-1.5 rounded-full transition-opacity group-hover:opacity-0 group-focus-within:opacity-0",
+                  ui.dot,
+                  note.done && "opacity-40",
+                  menuOpen && "opacity-0",
+                )}
+                aria-label={`${ui.label} priority`}
+              />
+            )}
             <div
               className={cn(
                 "absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
@@ -253,6 +280,32 @@ export function NoteRow({
       </ContextMenuTrigger>
 
       <ContextMenuContent className="min-w-52">
+        {heading ? (
+          <>
+            <ContextMenuItem onSelect={() => onStartEdit(note.id)}>
+              <Pencil /> Rename section
+              <ContextMenuShortcut>↩</ContextMenuShortcut>
+            </ContextMenuItem>
+            {reorderable && onNudge && (
+              <>
+                <ContextMenuItem onSelect={() => onNudge(note.id, -1)}>
+                  <ArrowUp /> Move up
+                  <ContextMenuShortcut>⌥↑</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem onSelect={() => onNudge(note.id, 1)}>
+                  <ArrowDown /> Move down
+                  <ContextMenuShortcut>⌥↓</ContextMenuShortcut>
+                </ContextMenuItem>
+              </>
+            )}
+            <ContextMenuSeparator />
+            <ContextMenuItem variant="destructive" onSelect={() => onRemove([note.id])}>
+              <Trash2 /> Delete section (keeps its notes)
+              <ContextMenuShortcut>⌫</ContextMenuShortcut>
+            </ContextMenuItem>
+          </>
+        ) : (
+          <>
         <ContextMenuItem onSelect={() => onCopy(targets)}>
           <Copy /> Copy
           <ContextMenuShortcut>⌘C</ContextMenuShortcut>
@@ -329,6 +382,8 @@ export function NoteRow({
           <Trash2 /> Delete{many ? ` ${targets.length} notes` : ""}
           <ContextMenuShortcut>⌫</ContextMenuShortcut>
         </ContextMenuItem>
+          </>
+        )}
       </ContextMenuContent>
     </ContextMenu>
   );

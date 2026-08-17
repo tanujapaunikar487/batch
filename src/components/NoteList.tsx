@@ -1,5 +1,5 @@
 import { forwardRef, useState } from "react";
-import { type Note, type Section } from "@/lib/notes";
+import { type Note, type Section, isHeading } from "@/lib/notes";
 import { NoteRow, type NoteRowProps } from "./NoteRow";
 
 type RowHandlers = Omit<
@@ -68,10 +68,21 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
     onReorder(from, insertAt === 0 ? null : ids[insertAt - 1]);
   };
 
+  // Open notes under each heading (until the next heading).
+  const headingCounts = new Map<string, number>();
+  let currentHeading: string | null = null;
+  for (const n of open) {
+    if (isHeading(n)) {
+      currentHeading = n.id;
+      headingCounts.set(n.id, 0);
+    } else if (currentHeading) headingCounts.set(currentHeading, (headingCounts.get(currentHeading) ?? 0) + 1);
+  }
+
   const row = (n: Note, canDrag: boolean) => (
     <NoteRow
       key={n.id}
       note={n}
+      sectionCount={isHeading(n) ? headingCounts.get(n.id) : undefined}
       sections={sections}
       showSection={showSection}
       isCursor={cursorId === n.id}

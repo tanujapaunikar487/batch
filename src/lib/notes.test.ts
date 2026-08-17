@@ -135,6 +135,20 @@ describe("notes reducer", () => {
     expect(notesInSection(s3, INBOX_ID).map((n) => n.id)).toEqual(["a", "c", "b"]);
   });
 
+  it("headings: created from '# Title', immune to done/priority/merge, kept in order", () => {
+    let s = emptyState();
+    s = reduce(s, { type: "add", id: "h", sectionId: INBOX_ID, text: "## Prompts to try", now: 1, kind: "heading" });
+    s = reduce(s, { type: "add", id: "n", sectionId: INBOX_ID, text: "ask about caching", now: 2 });
+    expect(s.notes[0]).toMatchObject({ kind: "heading", text: "Prompts to try", done: false });
+    expect(reduce(s, { type: "toggle", id: "h", now: 3 })).toBe(s);
+    expect(reduce(s, { type: "setDone", ids: ["h"], done: true, now: 3 })).toBe(s);
+    expect(reduce(s, { type: "setPriority", ids: ["h"], priority: "high" })).toBe(s);
+    expect(reduce(s, { type: "merge", ids: ["h", "n"], now: 4 })).toBe(s); // needs 2 real notes
+    expect(notesInSection(s, INBOX_ID).map((x) => x.id)).toEqual(["h", "n"]);
+    const back = normalizeState({ ...s, notes: [{ ...s.notes[0], done: true }] });
+    expect(back.notes[0].done).toBe(false);
+  });
+
   it("toggle sets/clears completedAt", () => {
     const s0 = state([note({ id: "a" })]);
     const s1 = reduce(s0, { type: "toggle", id: "a", now: 5 });

@@ -1,8 +1,9 @@
-import { type Note, type NotesState, type Section, notesInSection, doneInSection, sortKey } from "./notes";
+import { type Note, type NotesState, type Section, notesInSection, doneInSection, isHeading, sortKey } from "./notes";
 
 /** Markdown export of one folder: task list, images referenced by attachment id. */
 export function folderToMarkdown(state: NotesState, section: Section): string {
   const line = (n: Note) => {
+    if (isHeading(n)) return `\n## ${n.text}\n`;
     const body = n.text ? n.text.split("\n").join("\n  ") : "";
     const imgs = (n.attachments ?? []).map((a) => `![${a.name}](attachments/${a.id})`).join(" ");
     const content = [body, imgs].filter(Boolean).join(body && imgs ? "\n  " : "");

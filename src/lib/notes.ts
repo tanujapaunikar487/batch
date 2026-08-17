@@ -50,7 +50,13 @@ export interface Note {
   attachments?: Attachment[];
   /** Manual position within the folder; defaults to createdAt (chronological). */
   order?: number;
+  /** "heading" = a section title row inside the folder (no checkbox / priority). */
+  kind?: "heading";
 }
+
+export const isHeading = (n: Pick<Note, "kind">) => n.kind === "heading";
+/** `# Title` typed into the capture box becomes a heading. */
+export const HEADING_PREFIX = /^#{1,3}\s+(.+)$/;
 
 /** Sort key for open notes: manual order if set, else creation time. */
 export const sortKey = (n: Pick<Note, "order" | "createdAt">) => n.order ?? n.createdAt;
@@ -91,6 +97,7 @@ export type Action =
       now: number;
       priority?: Priority;
       attachments?: Attachment[];
+      kind?: "heading";
     }
   | { type: "setAttachments"; id: string; attachments: Attachment[] }
   | { type: "toggle"; id: string; now: number }
@@ -144,7 +151,11 @@ export function reduce(state: NotesState, action: Action): NotesState {
         done: false,
         createdAt: action.now,
       };
-      if (attachments.length) note.attachments = attachments;
+      if (action.kind === "heading") {
+        note.kind = "heading";
+        note.text = text.split("\n")[0].replace(/^#{1,3}\s+/, "");
+        delete note.attachments;
+      } else if (attachments.length) note.attachments = attachments;
       return { ...state, notes: [...state.notes, note] };
     }
     case "setAttachments": {
@@ -159,13 +170,13 @@ export function reduce(state: NotesState, action: Action): NotesState {
     }
     case "toggle":
       return mapNotes(state, [action.id], (n) =>
-        n.done
+        isHeading(n) ? n : n.done
           ? { ...n, done: false, completedAt: undefined }
           : { ...n, done: true, completedAt: action.now },
       );
     case "setDone":
       return mapNotes(state, action.ids, (n) =>
-        n.done === action.done
+        isHeading(n) || n.done === action.done
           ? n
           : action.done
             ? { ...n, done: true, completedAt: action.now }
@@ -184,7 +195,7 @@ export function reduce(state: NotesState, action: Action): NotesState {
       return mapNotes(state, action.ids, () => null);
     case "setPriority":
       return mapNotes(state, action.ids, (n) =>
-        n.priority === action.priority ? n : { ...n, priority: action.priority },
+        isHeading(n) || n.priority === action.priority ? n : { ...n, priority: action.priority },
       );
     case "move":
       if (!hasSection(state, action.sectionId)) return state;
@@ -193,7 +204,7 @@ export function reduce(state: NotesState, action: Action): NotesState {
       );
     case "merge": {
       const set = new Set(action.ids);
-      const picked = state.notes.filter((n) => set.has(n.id));
+      const picked = state.notes.filter((n) => set.has(n.id) && !isHeading(n));
       if (picked.length < 2) return state;
       const ordered = [...picked].sort((a, b) => sortKey(a) - sortKey(b));
       const first = ordered[0];
@@ -217,7 +228,7 @@ export function reduce(state: NotesState, action: Action): NotesState {
       const notes: Note[] = [];
       for (const n of state.notes) {
         if (n.id === first.id) notes.push(merged);
-        else if (!set.has(n.id)) notes.push(n);
+        else if (!set.has(n.id) || isHeading(n)) notes.push(n);
       }
       return { ...state, notes };
     }
@@ -392,6 +403,12 @@ export function normalizeState(raw: unknown): NotesState {
     if (done) note.completedAt = typeof n.completedAt === "number" ? n.completedAt : createdAt;
     if (attachments.length) note.attachments = attachments;
     if (typeof n.order === "number" && Number.isFinite(n.order)) note.order = n.order;
+    if (n.kind === "heading") {
+      note.kind = "heading";
+      note.done = false;
+      delete note.completedAt;
+      delete note.attachments;
+    }
     notes.push(note);
   }
   return { version: 2, sections, notes };

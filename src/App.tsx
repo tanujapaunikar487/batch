@@ -31,7 +31,7 @@ import {
 import { type Filter, EMPTY_FILTER, activeFilterCount, applyFilters } from "@/lib/filters";
 import { asList, asNumberedList, asPlainText } from "@/lib/format";
 import { attachmentsDir as loadAttachmentsDir, dragHasImages, dragOut, imagesFromDrop } from "@/store/attachments";
-import { allAttachmentIds, normalizeState, type Attachment } from "@/lib/notes";
+import { allAttachmentIds, normalizeState, HEADING_PREFIX, isHeading, type Attachment } from "@/lib/notes";
 import { type ActionId, matchesEvent } from "@/lib/shortcuts";
 
 const inTauri = isTauri();
@@ -100,7 +100,7 @@ export default function App() {
   const notesById = useMemo(() => new Map(state.notes.map((n) => [n.id, n])), [state.notes]);
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
-    for (const n of state.notes) if (!n.done) c[n.sectionId] = (c[n.sectionId] ?? 0) + 1;
+    for (const n of state.notes) if (!n.done && !isHeading(n)) c[n.sectionId] = (c[n.sectionId] ?? 0) + 1;
     return c;
   }, [state.notes]);
 
@@ -185,6 +185,8 @@ export default function App() {
     [notesById, notes],
   );
   const targetsFor = useCallback((id: string) => (nav.selected.has(id) ? [...nav.selected] : [id]), [nav.selected]);
+  /** Task targets only (headings are structure, not tasks). */
+  const taskTargets = useMemo(() => nav.targets.filter((id) => !isHeading(notesById.get(id) ?? { kind: undefined })), [nav.targets, notesById]);
   const allDoneFor = useCallback(
     (ids: string[]) => ids.length > 0 && ids.every((id) => notesById.get(id)?.done),
     [notesById],
@@ -546,7 +548,7 @@ export default function App() {
 
       // List-mode keys.
       if (meta && e.code === "KeyA") return void (e.preventDefault(), nav.selectAll());
-      if (meta && e.code === "KeyC" && nav.targets.length) return void (e.preventDefault(), copyNotes(nav.targets));
+      if (meta && e.code === "KeyC" && taskTargets.length) return void (e.preventDefault(), copyNotes(taskTargets));
       if (e.altKey && !meta && (e.code === "ArrowUp" || e.code === "ArrowDown") && nav.cursor && !searching) {
         e.preventDefault();
         notes.nudge(nav.cursor, e.code === "ArrowUp" ? -1 : 1);
@@ -568,7 +570,7 @@ export default function App() {
         return void (nav.move(-1, e.shiftKey), listRef.current?.focus());
       }
       if (!nav.cursor) return;
-      if (e.code === "Space") return void (e.preventDefault(), toggleMany(nav.targets));
+      if (e.code === "Space") return void (e.preventDefault(), toggleMany(taskTargets));
       if (e.code === "Enter") {
         e.preventDefault();
         const n = notesById.get(nav.cursor);
@@ -579,7 +581,7 @@ export default function App() {
       if (/^Digit[123]$/.test(e.code) && !meta) {
         e.preventDefault();
         const p: Priority = (["high", "medium", "low"] as const)[Number(e.code.slice(5)) - 1];
-        notes.setPriority(nav.targets, p);
+        notes.setPriority(taskTargets, p);
         return;
       }
     };
@@ -587,7 +589,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [
     keymap, runAction, hide, quit, state.sections, nav, view, editingId, searchOpen, closeSearch,
-    filtersOpen, filter, focusCapture, copyNotes, notes, notesById, removeIds, toggleMany, searching,
+    filtersOpen, filter, focusCapture, copyNotes, notes, notesById, removeIds, toggleMany, searching, taskTargets,
   ]);
 
   // ── render ──
@@ -599,7 +601,8 @@ export default function App() {
     <>
       <p>Nothing yet.</p>
       <p className="mt-1 text-xs text-muted-foreground/70">
-        Type or paste something below and press ↩. Markdown works. Press <kbd className="font-sans">⌘/</kbd> for shortcuts.
+        Type or paste something below and press ↩. Start a line with <kbd className="font-sans">#</kbd> (or use ⊕ → New section) to add a
+        section heading. Press <kbd className="font-sans">⌘/</kbd> for shortcuts.
       </p>
     </>
   ) : (
@@ -845,9 +848,19 @@ export default function App() {
                 onNewFolder={() => setAddSectionRequest((n) => n + 1)}
                 onNotice={showToast}
                 dropTarget={dropping}
+                onNewSection={() => {
+                  const id = notes.add(activeSection.id, "New section", undefined, undefined, "heading");
+                  nav.focus(id);
+                  setEditingId(id);
+                  requestAnimationFrame(() =>
+                    listRef.current?.querySelector(`[data-note-id="${id}"]`)?.scrollIntoView({ block: "nearest" }),
+                  );
+                }}
                 onSubmit={(text, attachments) => {
                   if (!text.trim() && attachments.length === 0) return false;
-                  const id = notes.add(activeSection.id, text, undefined, attachments);
+                  const single = text.trim().split("\n").length === 1;
+                  const isHeadingText = single && attachments.length === 0 && HEADING_PREFIX.test(text.trim());
+                  const id = notes.add(activeSection.id, text, undefined, attachments, isHeadingText ? "heading" : undefined);
                   nav.clear();
                   // New note lands at the bottom of the open list, right above the box.
                   requestAnimationFrame(() =>
@@ -863,7 +876,7 @@ export default function App() {
               toast={toast}
               mergeBinding={keymap.merge}
               done={done.length}
-              total={open.length + done.length}
+              total={open.filter((n) => !isHeading(n)).length + done.length}
             />
           </>
         )}

@@ -87,6 +87,7 @@ after rebuilding if the banner comes back.
 | Edit | ↩ or double-click · ↩ saves · `Esc` cancels |
 | Priority | 1 / 2 / 3 on the selected notes · hover → ⋯ → Priority · shown as a coloured dot |
 | Move to another folder | ⇧⌘] / ⇧⌘[ · or ⋯ / right-click → Move to |
+| Sections inside a folder | ⊕ → *New section*, or type `# Title` in the box — a heading row you can drag notes under (rename by clicking it; delete keeps its notes) |
 | Reorder | drag a note up or down within its folder (a line shows where it lands) · ⌥↑ / ⌥↓ on the selected note · right-click → Move up / Move down · ⌘Z undoes |
 | Search | ⌘F — searches all sections; results show their section |
 | Filters | ⇧⌘F — Status (All / Open / Done) · Priority · Type (Links / Code / Text) · When (Today / 7 days) |

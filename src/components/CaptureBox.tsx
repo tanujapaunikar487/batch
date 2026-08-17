@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
-import { CornerDownLeft, FolderPlus, ImagePlus, Plus } from "lucide-react";
+import { CornerDownLeft, FolderPlus, Heading, ImagePlus, Plus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,8 @@ interface Props {
   /** ↑ on the first line — hand focus to the list (which sits above the box). */
   onArrowUpOut: () => void;
   onNewFolder: () => void;
+  /** Add a section heading row to the current folder. */
+  onNewSection: () => void;
   onNotice: (msg: string) => void;
   /** A drag is hovering over the box (App owns drop handling). */
   dropTarget?: boolean;
@@ -53,7 +55,7 @@ export function draftAttachmentIds(): string[] {
 }
 
 export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBox(
-  { placeholder, attachmentsDir, onSubmit, onArrowUpOut, onNewFolder, onNotice, dropTarget },
+  { placeholder, attachmentsDir, onSubmit, onArrowUpOut, onNewFolder, onNewSection, onNotice, dropTarget },
   ref,
 ) {
   // Draft survives hide/quit.
@@ -181,6 +183,9 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
             <DropdownMenuContent align="start" side="top" className="min-w-44">
               <DropdownMenuItem onSelect={() => fileInput.current?.click()}>
                 <ImagePlus /> Attach images…
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={onNewSection}>
+                <Heading /> New section
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={onNewFolder}>
                 <FolderPlus /> New folder

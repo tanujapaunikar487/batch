@@ -159,9 +159,11 @@ function seedState(): NotesState {
       { id: "links", name: "Links", createdAt: 2 },
     ],
     notes: [
+      { id: "h1", sectionId: INBOX_ID, text: "Today", priority: "medium", done: false, createdAt: now - 31 * H, kind: "heading" },
       { id: "s1", sectionId: INBOX_ID, text: "Ship the design review", priority: "high", done: false, createdAt: now - 30 * H },
       { id: "s2", sectionId: INBOX_ID, text: "Ask Claude to **summarise the thread** and pull out action items", priority: "medium", done: false, createdAt: now - 26 * H },
       { id: "s3", sectionId: INBOX_ID, text: "https://ui.shadcn.com/docs/components/textarea", priority: "low", done: false, createdAt: now - 20 * H },
+      { id: "h2", sectionId: INBOX_ID, text: "Later", priority: "medium", done: false, createdAt: now - 3.5 * H, kind: "heading" },
       { id: "s4", sectionId: INBOX_ID, text: "Try `bun run app:build` and check the dmg step", priority: "medium", done: false, createdAt: now - 3 * H },
       { id: "s5", sectionId: INBOX_ID, text: "Renew passport", priority: "high", done: true, createdAt: now - 50 * H, completedAt: now - 2 * H },
       { id: "s6", sectionId: INBOX_ID, text: "Book dentist", priority: "low", done: true, createdAt: now - 60 * H, completedAt: now - 40 * H },

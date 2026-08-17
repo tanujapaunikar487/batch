@@ -1,7 +1,7 @@
-import { type Note, sortKey } from "./notes";
+import { type Note, isHeading, sortKey } from "./notes";
 
-/** Display order (manual position, else chronological). */
-const chrono = (notes: Note[]) => [...notes].sort((a, b) => sortKey(a) - sortKey(b));
+/** Display order (manual position, else chronological); headings are not tasks. */
+const chrono = (notes: Note[]) => notes.filter((n) => !isHeading(n)).sort((a, b) => sortKey(a) - sortKey(b));
 
 /** Markdown list; multi-line notes keep their extra lines indented under the bullet. */
 export function asList(notes: Note[], style: "bullet" | "numbered" = "bullet"): string {
