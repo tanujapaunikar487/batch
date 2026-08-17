@@ -4,7 +4,7 @@ import { type ThemePref } from "@/store/useSettings";
 
 /**
  * Apply the appearance preference: "system" mirrors macOS, "light"/"dark" force it.
- * Toggles <html class="dark"> for shadcn tokens and tells the native window so the
+ * Toggles <html class="dark"> for the theme tokens and tells the native window so the
  * vibrancy backdrop follows. Dev override: ?theme=dark|light in the URL.
  */
 export function useTheme(pref: ThemePref) {
