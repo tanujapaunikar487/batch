@@ -21,15 +21,29 @@ jobs:
           workspaces: src-tauri
       - run: bun install
       - run: bun run test
-      - name: Build universal .app + .dmg
+      # Only expose Apple signing/notarization variables when the secrets are actually set;
+      # an empty APPLE_CERTIFICATE makes Tauri try (and fail) to import a certificate.
+      - name: Configure signing (optional)
         env:
-          # Optional — add these repo secrets to ship a signed, notarized build.
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          S_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          S_CERT: ${{ secrets.APPLE_CERTIFICATE }}
+          S_CERT_PW: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          S_ID: ${{ secrets.APPLE_ID }}
+          S_PW: ${{ secrets.APPLE_PASSWORD }}
+          S_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$S_IDENTITY" ] && [ -n "$S_CERT" ]; then
+            echo "APPLE_SIGNING_IDENTITY=$S_IDENTITY" >> "$GITHUB_ENV"
+            echo "APPLE_CERTIFICATE=$S_CERT" >> "$GITHUB_ENV"
+            echo "APPLE_CERTIFICATE_PASSWORD=$S_CERT_PW" >> "$GITHUB_ENV"
+            [ -n "$S_ID" ] && echo "APPLE_ID=$S_ID" >> "$GITHUB_ENV"
+            [ -n "$S_PW" ] && echo "APPLE_PASSWORD=$S_PW" >> "$GITHUB_ENV"
+            [ -n "$S_TEAM" ] && echo "APPLE_TEAM_ID=$S_TEAM" >> "$GITHUB_ENV"
+            echo "signing: enabled"
+          else
+            echo "signing: not configured (ad-hoc build)"
+          fi
+      - name: Build universal .app + .dmg
         run: bash scripts/release.sh
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
