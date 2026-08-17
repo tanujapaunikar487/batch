@@ -7,4 +7,6 @@ if [ -z "${APPLE_SIGNING_IDENTITY:-}" ] && security find-identity -v -p codesign
   export APPLE_SIGNING_IDENTITY="Batch Dev"
   echo "signing with: Batch Dev"
 fi
-exec bunx tauri build "$@"
+bunx tauri build "$@"
+APP="src-tauri/target/release/bundle/macos/Batch.app"
+[ -d "$APP" ] && bash scripts/apply-icon.sh "$APP" "${APPLE_SIGNING_IDENTITY:-}" || true

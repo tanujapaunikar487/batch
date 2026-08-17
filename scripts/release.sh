@@ -30,6 +30,7 @@ bunx tauri build --target universal-apple-darwin --bundles app
 APP="src-tauri/target/universal-apple-darwin/release/bundle/macos/Batch.app"
 [ -d "$APP" ] || { echo "build failed: $APP not found"; exit 1; }
 cp -R "$APP" "$OUT/Batch.app"
+bash scripts/apply-icon.sh "$OUT/Batch.app" "${APPLE_SIGNING_IDENTITY:-}"
 
 # Notarize + staple if we're signed and have credentials (env vars or keychain profile).
 HAVE_PROFILE=0
