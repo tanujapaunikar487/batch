@@ -10,6 +10,15 @@
 set -euo pipefail
 export PATH="$HOME/.cargo/bin:$PATH"
 cd "$(dirname "$0")/.."
+
+# Auto-detect a Developer ID certificate in the keychain when none is given.
+if [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
+  DEVID=$(security find-identity -v -p codesigning 2>/dev/null | grep -o '"Developer ID Application: [^"]*"' | head -1 | tr -d '"')
+  if [ -n "$DEVID" ]; then export APPLE_SIGNING_IDENTITY="$DEVID"; echo "▸ signing with: $DEVID"; fi
+fi
+# Notarization credentials: either APPLE_ID/APPLE_PASSWORD/APPLE_TEAM_ID, or a keychain
+# profile created once with:  xcrun notarytool store-credentials batch-notary --apple-id you@x --team-id TEAMID
+NOTARY_PROFILE="${NOTARY_PROFILE:-batch-notary}"
 VERSION=$(node -p "require('./package.json').version")
 OUT="dist-mac"
 rm -rf "$OUT"; mkdir -p "$OUT"
@@ -22,11 +31,17 @@ APP="src-tauri/target/universal-apple-darwin/release/bundle/macos/Batch.app"
 [ -d "$APP" ] || { echo "build failed: $APP not found"; exit 1; }
 cp -R "$APP" "$OUT/Batch.app"
 
-# Notarize + staple if credentials are present (Tauri already signed with APPLE_SIGNING_IDENTITY).
-if [ -n "${APPLE_ID:-}" ] && [ -n "${APPLE_PASSWORD:-}" ] && [ -n "${APPLE_TEAM_ID:-}" ] && [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
+# Notarize + staple if we're signed and have credentials (env vars or keychain profile).
+HAVE_PROFILE=0
+xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1 && HAVE_PROFILE=1
+if [ -n "${APPLE_SIGNING_IDENTITY:-}" ] && { [ "$HAVE_PROFILE" = 1 ] || { [ -n "${APPLE_ID:-}" ] && [ -n "${APPLE_PASSWORD:-}" ] && [ -n "${APPLE_TEAM_ID:-}" ]; }; }; then
   echo "▸ notarizing…"
   ditto -c -k --keepParent "$OUT/Batch.app" "$OUT/Batch.zip"
-  xcrun notarytool submit "$OUT/Batch.zip" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+  if [ "$HAVE_PROFILE" = 1 ]; then
+    xcrun notarytool submit "$OUT/Batch.zip" --keychain-profile "$NOTARY_PROFILE" --wait
+  else
+    xcrun notarytool submit "$OUT/Batch.zip" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+  fi
   xcrun stapler staple "$OUT/Batch.app"
   rm -f "$OUT/Batch.zip"
 else
