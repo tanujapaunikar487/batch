@@ -175,9 +175,7 @@ export function NoteRow({
             dropEdge === "bottom" && "after:absolute after:inset-x-2 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-ring",
           )}
         >
-          {heading ? (
-            <span className="mt-1 h-3.5 w-4 shrink-0" aria-hidden />
-          ) : (
+          {!heading && (
             <Checkbox
               checked={note.done}
               onCheckedChange={() => onToggle(note.id)}

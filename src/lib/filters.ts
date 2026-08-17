@@ -28,8 +28,8 @@ const DAY = 86_400_000;
 
 export function applyFilters(notes: Note[], f: Filter, now = Date.now()): Note[] {
   return notes.filter((n) => {
-    // Headings stay while only "open"/"all" is asked for; any narrower filter hides them.
-    if (isHeading(n)) return f.status !== "done" && !f.priority && !f.kind && !f.when;
+    // Section headings always stay visible; they're structure, not tasks.
+    if (isHeading(n)) return true;
     if (f.status === "open" && n.done) return false;
     if (f.status === "done" && !n.done) return false;
     if (f.priority && n.priority !== f.priority) return false;

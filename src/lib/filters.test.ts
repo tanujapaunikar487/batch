@@ -50,6 +50,13 @@ describe("applyFilters", () => {
   });
 });
 
+describe("headings", () => {
+  it("are never filtered out", () => {
+    const h: Note = n({ id: "h", text: "Today", kind: "heading" });
+    expect(applyFilters([h], { ...EMPTY_FILTER, status: "done", priority: "high", kind: "link", when: "today" }, NOW)).toEqual([h]);
+  });
+});
+
 describe("isFilterActive / activeFilterCount", () => {
   it("counts non-default fields", () => {
     expect(isFilterActive(EMPTY_FILTER)).toBe(false);
