@@ -158,7 +158,7 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
             <button
               type="button"
               onClick={onAddSection}
-              className="mt-2 flex h-7 w-full items-center gap-1.5 rounded-lg px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground/70 transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+              className="mt-2 flex h-7 w-full items-center gap-1.5 rounded-lg px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
             >
               <Plus className="size-3" /> Add section
             </button>

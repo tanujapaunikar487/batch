@@ -132,7 +132,7 @@ export function Header(p: Props) {
             {p.isTauri && (
               <>
                 <DropdownMenuItem onSelect={p.onToggleExpand}>
-                  {p.expanded ? "Restore size" : "Full screen"}
+                  {p.expanded ? "Restore size" : "Expand (side panel)"}
                   <DropdownMenuShortcut>{formatBinding(p.keymap.expand)}</DropdownMenuShortcut>
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={p.onResetPosition}>Snap under menu-bar icon</DropdownMenuItem>

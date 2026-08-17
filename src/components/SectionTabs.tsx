@@ -182,7 +182,7 @@ export function SectionTabs({
               >
                 {s.name}
                 {counts[s.id] > 0 && (
-                  <span className="text-xs tabular-nums text-muted-foreground/80">{counts[s.id]}</span>
+                  <span className="text-xs tabular-nums text-muted-foreground">{counts[s.id]}</span>
                 )}
               </button>
             </ContextMenuTrigger>
@@ -220,7 +220,7 @@ export function SectionTabs({
           }}
           aria-label="New folder (⇧⌘N)"
           title="New folder  ⇧⌘N"
-          className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground/70 hover:bg-foreground/[0.05] hover:text-foreground"
+          className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground"
         >
           <Plus className="size-4" />
         </button>

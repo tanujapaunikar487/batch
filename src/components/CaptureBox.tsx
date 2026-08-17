@@ -248,7 +248,7 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
             onClick={submit}
             disabled={!canSubmit}
             aria-label="Add note"
-            className="mr-1.5 mt-1.5 grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground/60 transition-colors hover:text-foreground disabled:opacity-40"
+            className="mr-1.5 mt-1.5 grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
           >
             <CornerDownLeft className="size-3.5" />
           </button>

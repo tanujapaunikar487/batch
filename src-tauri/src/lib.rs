@@ -118,7 +118,8 @@ fn quit_app(app: AppHandle) {
     app.exit(0);
 }
 
-/// "Full screen": fill the current display's work area; call again to restore. Returns the new state.
+/// "Expand": a side panel — 40% of the display's width, full work-area height, docked right.
+/// Call again to restore. Returns the new state.
 #[tauri::command]
 fn toggle_expand(app: AppHandle) -> bool {
     let Some(w) = main_window(&app) else {
@@ -148,11 +149,17 @@ fn toggle_expand(app: AppHandle) -> bool {
     let Some(m) = monitor else { return false };
     let area = m.work_area();
     *guard = Some((pos, size));
+    let width = (area.size.width as f64 * 0.40).round() as u32;
+    let target_pos = tauri::PhysicalPosition::new(
+        area.position.x + area.size.width as i32 - width as i32,
+        area.position.y,
+    );
+    let target_size = tauri::PhysicalSize::new(width, area.size.height);
     if let Ok(mut g) = state.last_set_pos.lock() {
-        *g = Some(area.position);
+        *g = Some(target_pos);
     }
-    let _ = w.set_position(area.position);
-    let _ = w.set_size(area.size);
+    let _ = w.set_size(target_size);
+    let _ = w.set_position(target_pos);
     true
 }
 

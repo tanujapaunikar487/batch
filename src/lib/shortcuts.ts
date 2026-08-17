@@ -42,7 +42,7 @@ export const ACTIONS: Record<ActionId, { label: string; customizable: boolean }>
   moveNextSection: { label: "Move note to next folder", customizable: true },
   movePrevSection: { label: "Move note to previous folder", customizable: true },
   pin: { label: "Pin / unpin window", customizable: true },
-  expand: { label: "Full screen / restore", customizable: true },
+  expand: { label: "Expand to side panel / restore", customizable: true },
   settings: { label: "Settings", customizable: false },
   help: { label: "Keyboard shortcuts", customizable: false },
   undo: { label: "Undo", customizable: false },

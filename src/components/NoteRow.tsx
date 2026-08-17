@@ -259,12 +259,12 @@ export function NoteRow({
                   }}
                   aria-label={note.collapsed ? "Expand section" : "Collapse section"}
                   aria-expanded={!note.collapsed}
-                  className="-ml-0.5 grid size-4 shrink-0 place-items-center self-center rounded text-muted-foreground/70 hover:text-foreground"
+                  className="-ml-0.5 grid size-4 shrink-0 place-items-center self-center rounded text-muted-foreground hover:text-foreground"
                 >
                   {note.collapsed ? <ChevronRight className="size-3" /> : <ChevronDown className="size-3" />}
                 </button>
                 <h3
-                  className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                  className="text-xs font-semibold uppercase tracking-wide text-foreground/85"
                   onClick={(e) => {
                     e.stopPropagation();
                     onStartEdit(note.id);
@@ -274,7 +274,7 @@ export function NoteRow({
                   {note.text}
                 </h3>
                 {sectionCount !== undefined && sectionCount > 0 && (
-                  <span className="text-xs tabular-nums text-muted-foreground/70">{sectionCount}</span>
+                  <span className="text-xs tabular-nums text-muted-foreground">{sectionCount}</span>
                 )}
                 <span className="ml-1 h-px flex-1 self-center bg-border/60" aria-hidden />
               </div>

@@ -21,7 +21,6 @@ import { useListNav } from "@/hooks/useListNav";
 import { useCopy } from "@/hooks/useClipboard";
 import {
   type Priority,
-  DEFAULT_FOLDER_NAME,
   INBOX_ID,
   doneInSection,
   notesInSection,
@@ -716,7 +715,7 @@ export default function App() {
   ) : state.notes.length === 0 ? (
     <>
       <p>Nothing yet.</p>
-      <p className="mt-1 text-xs text-muted-foreground/70">
+      <p className="mt-1 text-xs text-muted-foreground">
         Type or paste something below and press ↩. Start a line with <kbd className="font-sans">#</kbd> (or use ⊕ → New section) to add a
         section heading. Press <kbd className="font-sans">⌘/</kbd> for shortcuts.
       </p>
@@ -994,11 +993,7 @@ export default function App() {
               // Composer-style: the capture box sits under the list.
               <CaptureBox
                 ref={captureRef}
-                placeholder={
-                  activeSection.id === INBOX_ID && activeSection.name === DEFAULT_FOLDER_NAME
-                    ? "Capture a note…"
-                    : `Capture to ${activeSection.name}…`
-                }
+                placeholder="Add a note…"
                 attachmentsDir={attDir}
                 onNewFolder={() => setAddSectionRequest((n) => n + 1)}
                 onNotice={showToast}
@@ -1036,7 +1031,7 @@ export default function App() {
             role="separator"
             className="absolute bottom-0 right-0 z-40 h-4 w-4 cursor-nwse-resize"
           >
-            <svg viewBox="0 0 16 16" className="size-4 text-muted-foreground/50" aria-hidden>
+            <svg viewBox="0 0 16 16" className="size-4 text-muted-foreground" aria-hidden>
               <path d="M14 6 6 14M14 10l-4 4M14 14h0" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none" />
             </svg>
           </div>
