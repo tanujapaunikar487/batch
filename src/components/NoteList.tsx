@@ -145,12 +145,12 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
       ) : (
         <>
           {visible.length > 0 && (
-            <ul role="listbox" aria-multiselectable aria-label="Notes" className="flex flex-col">
+            <ul role="listbox" aria-multiselectable aria-label="Notes" className="flex flex-col gap-1">
               {visible.map((n) => row(n, !!reorderable))}
             </ul>
           )}
           {done.length > 0 && (
-            <ul role="listbox" aria-multiselectable aria-label="Search results — done" className="flex flex-col">
+            <ul role="listbox" aria-multiselectable aria-label="Search results — done" className="flex flex-col gap-1">
               {done.map((n) => row(n, false))}
             </ul>
           )}
