@@ -13,7 +13,7 @@ cd "$(dirname "$0")/.."
 
 # Auto-detect a Developer ID certificate in the keychain when none is given.
 if [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
-  DEVID=$(security find-identity -v -p codesigning 2>/dev/null | grep -o '"Developer ID Application: [^"]*"' | head -1 | tr -d '"')
+  DEVID=$( (security find-identity -v -p codesigning 2>/dev/null || true) | grep -o '"Developer ID Application: [^"]*"' | head -1 | tr -d '"' || true)
   if [ -n "$DEVID" ]; then export APPLE_SIGNING_IDENTITY="$DEVID"; echo "▸ signing with: $DEVID"; fi
 fi
 # Notarization credentials: either APPLE_ID/APPLE_PASSWORD/APPLE_TEAM_ID, or a keychain
