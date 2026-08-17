@@ -29,18 +29,20 @@ Releases page (or build it: `bun run dist:mac` → `dist-mac/`). Open the DMG, d
 **Batch** to **Applications**, launch it — the ✓ mark appears in the menu bar (there's
 no Dock icon by design).
 
-**First launch:** this build isn't notarized, so macOS will say it "cannot verify
-the developer". Either **right-click Batch.app → Open → Open**, or go to *System
-Settings → Privacy & Security* and click **Open Anyway**. Only needed once.
+Releases are signed with a Developer ID and notarized by Apple, so they open
+without any Gatekeeper warning. (If you build the DMG yourself without a
+Developer ID, right-click Batch.app → Open once.)
 
 Then, when Batch asks: allow **Input Monitoring** (for the double-Shift trigger)
 and, if you turn on *Capture selected text*, **Accessibility** — both under
 *System Settings → Privacy & Security*. Relaunch after granting.
 
-Shipping a notarized build (no Gatekeeper prompt) needs an Apple Developer ID:
-set `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD` (app-specific), `APPLE_TEAM_ID`
-and run `bun run dist:mac` — or add them as GitHub secrets and push a `v*` tag; the
-included workflow builds and attaches the DMG to a GitHub Release.
+Maintainers: `bun run dist:mac` builds, signs, notarizes and staples automatically
+when a "Developer ID Application" certificate is in the Keychain and a
+`batch-notary` notarytool profile exists (`xcrun notarytool store-credentials …`).
+Pushing a `v*` tag runs the GitHub workflow, which attaches an (unsigned unless the
+`APPLE_*` secrets are set) DMG to the release; upload the notarized one with
+`gh release upload vX.Y.Z dist-mac/*.dmg --clobber`.
 
 ## Run it
 
