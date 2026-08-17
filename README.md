@@ -20,6 +20,26 @@ Built with **Tauri v2** (Rust shell) + **React** + **Tailwind v4** + **shadcn/ui
   <img src="docs/screenshots/search-filters.png" width="240" alt="Search across sections with filters">
 </p>
 
+## Install (download)
+
+Grab **`Batch-<version>-universal.dmg`** (Apple Silicon + Intel, macOS 12+) from the
+Releases page (or build it: `bun run dist:mac` → `dist-mac/`). Open the DMG, drag
+**Batch** to **Applications**, launch it — the ✓ mark appears in the menu bar (there's
+no Dock icon by design).
+
+**First launch:** this build isn't notarized, so macOS will say it "cannot verify
+the developer". Either **right-click Batch.app → Open → Open**, or go to *System
+Settings → Privacy & Security* and click **Open Anyway**. Only needed once.
+
+Then, when Batch asks: allow **Input Monitoring** (for the double-Shift trigger)
+and, if you turn on *Capture selected text*, **Accessibility** — both under
+*System Settings → Privacy & Security*. Relaunch after granting.
+
+Shipping a notarized build (no Gatekeeper prompt) needs an Apple Developer ID:
+set `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD` (app-specific), `APPLE_TEAM_ID`
+and run `bun run dist:mac` — or add them as GitHub secrets and push a `v*` tag; the
+included workflow builds and attaches the DMG to a GitHub Release.
+
 ## Run it
 
 ```sh

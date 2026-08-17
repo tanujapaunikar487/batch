@@ -1,6 +1,6 @@
 [package]
 name = "batch"
-version = "0.1.0"
+version = "1.0.0"
 description = "Batch — a tiny menu-bar checklist for macOS"
 authors = ["Tanuja Paunikar"]
 edition = "2021"
