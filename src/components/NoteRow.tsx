@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Check, CheckSquare, ChevronDown, ChevronRight, Copy, CornerDownRight, Flag, FolderInput, ImagePlus, ListOrdered, Merge, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, CheckSquare, ChevronDown, ChevronRight, Copy, CornerDownRight, Flag, FolderInput, Heading, ImagePlus, ListOrdered, Merge, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,6 +61,8 @@ export interface NoteRowProps {
   onGoToFolder?: (id: string) => void;
   /** Ids that move together if this (selected) note is dragged. */
   dragGroup?: (id: string) => string[];
+  /** Insert a new section heading right above this note. */
+  onAddSectionAbove?: (id: string) => void;
   /** For heading rows: open notes under this heading. */
   sectionCount?: number;
   /** Manual reordering (disabled in search results). */
@@ -105,6 +107,7 @@ export function NoteRow({
   onToggleCollapse,
   onGoToFolder,
   dragGroup,
+  onAddSectionAbove,
   sectionCount,
   reorderable,
   dropEdge,
@@ -388,6 +391,11 @@ export function NoteRow({
         {!many && !note.done && (
           <ContextMenuItem onSelect={() => onAttachImages(note.id)}>
             <ImagePlus /> Attach images…
+          </ContextMenuItem>
+        )}
+        {!many && reorderable && onAddSectionAbove && (
+          <ContextMenuItem onSelect={() => onAddSectionAbove(note.id)}>
+            <Heading /> Add section above
           </ContextMenuItem>
         )}
         {many && (

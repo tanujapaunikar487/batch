@@ -100,6 +100,8 @@ export type Action =
       priority?: Priority;
       attachments?: Attachment[];
       kind?: "heading";
+      /** Place the new note right after this id (null = top) instead of at the end. */
+      insertAfter?: string | null;
     }
   | { type: "setAttachments"; id: string; attachments: Attachment[] }
   | { type: "toggle"; id: string; now: number }
@@ -161,7 +163,18 @@ export function reduce(state: NotesState, action: Action): NotesState {
         note.text = text.split("\n")[0].replace(/^#{1,3}\s+/, "");
         delete note.attachments;
       } else if (attachments.length) note.attachments = attachments;
-      return { ...state, notes: [...state.notes, note] };
+      const next = { ...state, notes: [...state.notes, note] };
+      if (action.insertAfter === undefined) return next;
+      // Position it: raw insertion (no section snapping) so "add section above X" lands exactly there.
+      const sorted = folderSorted(next, note.sectionId);
+      const rest = sorted.filter((n) => n.id !== note.id);
+      let at = 0;
+      if (action.insertAfter !== null) {
+        const i = rest.findIndex((n) => n.id === action.insertAfter);
+        if (i === -1) return next;
+        at = i + 1;
+      }
+      return withSequence(next, sorted, [...rest.slice(0, at), note, ...rest.slice(at)]);
     }
     case "setAttachments": {
       const attachments = action.attachments.slice(0, MAX_ATTACHMENTS);

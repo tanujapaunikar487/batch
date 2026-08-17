@@ -203,6 +203,16 @@ describe("notes reducer", () => {
     expect(reduce(s3, { type: "toggleCollapse", id: "h" }).notes[0].collapsed).toBe(false);
   });
 
+  it("add with insertAfter places the note exactly there", () => {
+    const s0 = state([note({ id: "a", createdAt: 1 }), note({ id: "b", createdAt: 2 })]);
+    const s1 = reduce(s0, { type: "add", id: "h", sectionId: INBOX_ID, text: "Sec", now: 9, kind: "heading", insertAfter: "a" });
+    expect(allInSection(s1, INBOX_ID).map((n) => n.id)).toEqual(["a", "h", "b"]);
+    const s2 = reduce(s0, { type: "add", id: "t", sectionId: INBOX_ID, text: "top", now: 9, insertAfter: null });
+    expect(allInSection(s2, INBOX_ID).map((n) => n.id)).toEqual(["t", "a", "b"]);
+    const s3 = reduce(s2, { type: "add", id: "z", sectionId: INBOX_ID, text: "end", now: 10 });
+    expect(allInSection(s3, INBOX_ID).map((n) => n.id)).toEqual(["t", "a", "b", "z"]);
+  });
+
   it("toggle sets/clears completedAt", () => {
     const s0 = state([note({ id: "a" })]);
     const s1 = reduce(s0, { type: "toggle", id: "a", now: 5 });

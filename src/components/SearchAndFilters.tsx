@@ -131,7 +131,6 @@ function FilterSelect({
           active && "border-foreground/25 bg-foreground/[0.06] font-medium text-foreground",
         )}
       >
-        {dots?.[value] && <span className={cn("size-1.5 rounded-full", dots[value])} />}
         <SelectValue />
       </SelectTrigger>
       <SelectContent align="start" className="min-w-36">

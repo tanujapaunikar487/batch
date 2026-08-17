@@ -310,6 +310,27 @@ export default function App() {
     // Only once, right after the first successful load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notes.loadOk]);
+  /** New section heading in the current folder — at the end, or right above `aboveId`. */
+  const addSectionHeading = useCallback(
+    (aboveId?: string) => {
+      setView("list");
+      if (searchOpen) closeSearch();
+      let insertAfter: string | null | undefined;
+      if (aboveId) {
+        const seq = allInSection(state, activeSection.id);
+        const i = seq.findIndex((n) => n.id === aboveId);
+        insertAfter = i <= 0 ? null : seq[i - 1].id;
+      }
+      const id = notes.add(activeSection.id, "New section", undefined, undefined, "heading", insertAfter);
+      nav.focus(id);
+      setEditingId(id);
+      requestAnimationFrame(() =>
+        listRef.current?.querySelector(`[data-note-id="${id}"]`)?.scrollIntoView({ block: "nearest" }),
+      );
+    },
+    [state, activeSection.id, notes, nav, searchOpen, closeSearch],
+  );
+
   /** From a search result: open the note's folder with the note focused. */
   const goToFolder = useCallback(
     (id: string) => {
@@ -538,6 +559,9 @@ export default function App() {
           setView("list");
           setAddSectionRequest((n) => n + 1);
           break;
+        case "newHeading":
+          addSectionHeading();
+          break;
         case "search":
           setView("list");
           if (searchOpen && document.activeElement === searchRef.current) closeSearch();
@@ -587,7 +611,7 @@ export default function App() {
           break;
       }
     },
-    [searchOpen, closeSearch, openSearch, copySectionAsList, copyAsList, taskTargets, activeSection.id, mergeSelected, state, notes, showToast, moveBySection, togglePin, toggleExpand],
+    [searchOpen, closeSearch, openSearch, copySectionAsList, copyAsList, taskTargets, activeSection.id, mergeSelected, state, notes, showToast, moveBySection, togglePin, toggleExpand, addSectionHeading],
   );
 
   useEffect(() => {
@@ -956,6 +980,8 @@ export default function App() {
               dragGroup={(id) => (nav.selected.has(id) ? [...nav.selected].filter((x) => !isHeading(notesById.get(x) ?? {})) : [id])}
               onToggleCollapse={notes.toggleCollapse}
               onGoToFolder={goToFolder}
+              onAddSection={searching ? undefined : () => addSectionHeading()}
+              onAddSectionAbove={(id) => addSectionHeading(id)}
               onNudge={(id, delta) => {
                 notes.nudge(id, delta);
                 nav.focus(id);
@@ -977,14 +1003,7 @@ export default function App() {
                 onNewFolder={() => setAddSectionRequest((n) => n + 1)}
                 onNotice={showToast}
                 dropTarget={dropping}
-                onNewSection={() => {
-                  const id = notes.add(activeSection.id, "New section", undefined, undefined, "heading");
-                  nav.focus(id);
-                  setEditingId(id);
-                  requestAnimationFrame(() =>
-                    listRef.current?.querySelector(`[data-note-id="${id}"]`)?.scrollIntoView({ block: "nearest" }),
-                  );
-                }}
+                onNewSection={() => addSectionHeading()}
                 onSubmit={(text, attachments) => {
                   if (!text.trim() && attachments.length === 0) return false;
                   const single = text.trim().split("\n").length === 1;

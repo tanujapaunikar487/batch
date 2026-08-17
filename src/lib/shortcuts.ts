@@ -8,6 +8,7 @@
 
 export type ActionId =
   | "newSection"
+  | "newHeading"
   | "search"
   | "filters"
   | "copySectionAsList"
@@ -32,6 +33,7 @@ export interface Binding {
 
 export const ACTIONS: Record<ActionId, { label: string; customizable: boolean }> = {
   newSection: { label: "New folder", customizable: true },
+  newHeading: { label: "New section in this folder", customizable: true },
   search: { label: "Search", customizable: true },
   filters: { label: "Toggle filters", customizable: true },
   copySectionAsList: { label: "Copy as list (selection, or whole folder)", customizable: true },
@@ -49,6 +51,7 @@ export const ACTIONS: Record<ActionId, { label: string; customizable: boolean }>
 
 export const DEFAULT_KEYMAP: Record<ActionId, string> = {
   newSection: "mod+shift+KeyN",
+  newHeading: "mod+shift+KeyH",
   search: "mod+KeyF",
   filters: "mod+shift+KeyF",
   copySectionAsList: "mod+shift+KeyC",

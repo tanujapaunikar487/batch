@@ -97,9 +97,16 @@ export function useNotes(store?: KeyValueStore) {
 
   const actions = useMemo(
     () => ({
-      add: (sectionId: string, text: string, priority?: Priority, attachments?: Attachment[], kind?: "heading") => {
+      add: (
+        sectionId: string,
+        text: string,
+        priority?: Priority,
+        attachments?: Attachment[],
+        kind?: "heading",
+        insertAfter?: string | null,
+      ) => {
         const id = newId();
-        dispatch({ type: "add", id, sectionId, text, now: Date.now(), priority, attachments, kind });
+        dispatch({ type: "add", id, sectionId, text, now: Date.now(), priority, attachments, kind, insertAfter });
         return id;
       },
       setAttachments: (id: string, attachments: Attachment[]) => dispatch({ type: "setAttachments", id, attachments }),

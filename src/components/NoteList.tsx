@@ -1,4 +1,5 @@
 import { forwardRef, useState } from "react";
+import { Plus } from "lucide-react";
 import { type Note, type Section, isHeading } from "@/lib/notes";
 import { NoteRow, type NoteRowProps } from "./NoteRow";
 
@@ -30,6 +31,8 @@ interface Props extends RowHandlers {
   selectionForDrag?: (id: string) => string[];
   /** Row currently hovered by an external image drag. */
   imageDropRowId?: string | null;
+  /** Shows a "+ Add section" row at the end of the folder list. */
+  onAddSection?: () => void;
   open: Note[];
   done: Note[];
   sections: Section[];
@@ -58,6 +61,7 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
     onReorderMany,
     selectionForDrag,
     imageDropRowId,
+    onAddSection,
     ...handlers
   },
   ref,
@@ -144,7 +148,15 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
         <>
           {visible.length > 0 && <ul className="flex flex-col">{visible.map((n) => row(n, !!reorderable))}</ul>}
           {done.length > 0 && <ul className="flex flex-col">{done.map((n) => row(n, false))}</ul>}
-          {dragging && null}
+          {onAddSection && !dragging && (
+            <button
+              type="button"
+              onClick={onAddSection}
+              className="mt-1 flex h-7 w-full items-center gap-1.5 rounded-lg px-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/50 transition-colors hover:bg-foreground/[0.04] hover:text-muted-foreground"
+            >
+              <Plus className="size-3" /> Add section
+            </button>
+          )}
         </>
       )}
     </div>
