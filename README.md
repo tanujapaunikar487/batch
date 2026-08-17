@@ -5,19 +5,21 @@
   <a href="https://github.com/tanujapaunikar487/batch/releases">all releases</a>
 </p>
 
-> Free and open source (MIT). Everything stays on your Mac — no account, no sync, no tracking.
+> Free and open source (MIT). Your notes are stored locally, in one file on your Mac. No account, no sync, no tracking.
 
-A tiny macOS menu-bar app for the bits you want to keep while working with
-ChatGPT, Claude, Cursor & co: prompts to try next, answers worth saving, links,
-ideas. **Tap Shift twice** (or press ⌥⇧Space) anywhere → Batch drops down with
-the input focused → type or paste → ↩. Later, arrow to a note, **⌘C** it back
-into whatever you're using, and check it off.
+Batch is a small macOS menu-bar notepad. It's for the things you'd otherwise
+lose while you're busy in ChatGPT, Claude, Cursor or a terminal: a prompt you
+want to try next, an answer worth keeping, a link, a half-formed idea.
 
-Batch combines the useful parts of a to-do list, a clipboard, and a scratchpad.
-Notes are Markdown, live in **folders**, can be **merged**, **copied as a list**,
-**searched** and **filtered**. Everything is **keyboard-first** and every shortcut
-is **customisable**. Your notes are one **local JSON file**. No account, no sync,
-no tracking, nothing phones home.
+**Tap Shift twice** (or press ⌥⇧Space) from any app. Batch drops down from the
+menu bar with the cursor already in the input box. Type or paste, press ↩, and
+carry on. When you need something back, arrow to it, press **⌘C**, paste it
+wherever you're working, and mark it done.
+
+Notes are Markdown and live in **folders**. You can **search** across all
+folders, **filter** them, **merge** several notes into one, **copy a selection
+as a numbered list**, and **attach images**. Everything works from the
+keyboard, and every shortcut can be changed.
 
 Built with **Tauri v2** (Rust) + **React** + **Tailwind CSS**.
 
@@ -98,9 +100,13 @@ The double-tap-Shift listener is a listen-only macOS event tap, which needs
 Batch to that list the first time it starts). Batch shows a one-line banner with
 a **Grant** button until it's allowed, then a **Relaunch** button — macOS only
 applies a fresh Input Monitoring grant to a new process. The ⌥⇧Space hotkey and
-the menu-bar icon work regardless. Because this personal build is ad-hoc
-signed, macOS may treat a rebuild as a new app — re-tick Batch in that list
-after rebuilding if the banner comes back.
+the menu-bar icon work regardless.
+
+Downloaded releases are signed with a Developer ID, so the grant sticks. If you
+build from source without a signing certificate, macOS may treat each rebuild as
+a new app and the banner comes back — re-tick Batch in that list, or run
+`bun run sign:setup` once (see *Keep permissions across rebuilds* above) so every
+build shares one identity.
 
 ## Using it
 

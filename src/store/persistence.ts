@@ -136,7 +136,7 @@ function tutorialState(): NotesState {
     version: 2,
     sections: emptyState().sections,
     notes: [
-      mk(1, "Welcome to Batch 👋 — check things off as you go. Everything here stays on your Mac.", "high"),
+      mk(1, "Welcome to Batch 👋 — check things off as you go. Your notes are saved locally, in one file on this Mac.", "high"),
       mk(2, "Tap **Shift twice** in any app to open Batch. Select some text first and it comes along."),
       mk(3, "Type or paste below and press ↩. Markdown works: **bold**, `code`, lists, links."),
       mk(4, "Drag a screenshot or image onto this window to attach it — up to 10 per note."),

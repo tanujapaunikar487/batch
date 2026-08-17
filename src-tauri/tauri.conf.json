@@ -48,7 +48,7 @@
       "app"
     ],
     "category": "Productivity",
-    "shortDescription": "A tiny menu-bar checklist.",
+    "shortDescription": "A small menu-bar notepad.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -61,6 +61,6 @@
       "hardenedRuntime": true
     },
     "copyright": "\u00a9 2026 Tanuja Paunikar",
-    "longDescription": "A tiny menu-bar checklist and scratchpad for AI-assisted work. Notes stay on your Mac."
+    "longDescription": "A small menu-bar notepad for prompts, answers, links and ideas you want to keep while working with AI tools. Notes are stored locally in a single file."
   }
 }
