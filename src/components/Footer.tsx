@@ -36,9 +36,9 @@ function Ring({ done, total }: { done: number; total: number }) {
 export function Footer({ selectedCount, toast, mergeBinding, done, total }: Props) {
   const left = total - done;
   return (
-    <footer className="flex h-7 shrink-0 items-center gap-2 border-t border-border/60 px-5 text-[11px] text-muted-foreground select-none">
+    <footer className="flex h-8 shrink-0 items-center gap-2 border-t border-border/60 px-5 text-xs text-muted-foreground select-none">
       {toast ? (
-        <span className="text-foreground">{toast}</span>
+        <span role="status" aria-live="polite" className="text-foreground">{toast}</span>
       ) : selectedCount > 0 ? (
         <>
           <span className="tabular-nums text-foreground">{selectedCount} selected</span>

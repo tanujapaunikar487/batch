@@ -156,6 +156,9 @@ export function NoteRow({
         <li
           ref={rowRef}
           data-note-id={note.id}
+          role="option"
+          aria-selected={isSelected}
+          aria-label={heading ? `Section ${note.text}` : undefined}
           draggable={!!reorderable && !isEditing}
           onDragStart={(e) => {
             if (!reorderable) return;
@@ -204,6 +207,7 @@ export function NoteRow({
           }}
           className={cn(
             "group relative flex items-start gap-2.5 rounded-lg p-2 outline-none",
+            heading && "mt-2 first:mt-0",
             "hover:bg-foreground/[0.04] dark:hover:bg-foreground/[0.06]",
             (isSelected || menuOpen) && "bg-foreground/[0.07] dark:bg-foreground/[0.1] hover:bg-foreground/[0.08]",
             isCursor && "ring-1 ring-ring/40",
@@ -260,7 +264,7 @@ export function NoteRow({
                   {note.collapsed ? <ChevronRight className="size-3" /> : <ChevronDown className="size-3" />}
                 </button>
                 <h3
-                  className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+                  className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
                   onClick={(e) => {
                     e.stopPropagation();
                     onStartEdit(note.id);
@@ -270,7 +274,7 @@ export function NoteRow({
                   {note.text}
                 </h3>
                 {sectionCount !== undefined && sectionCount > 0 && (
-                  <span className="text-[11px] tabular-nums text-muted-foreground/60">{sectionCount}</span>
+                  <span className="text-xs tabular-nums text-muted-foreground/70">{sectionCount}</span>
                 )}
                 <span className="ml-1 h-px flex-1 self-center bg-border/60" aria-hidden />
               </div>
@@ -280,7 +284,7 @@ export function NoteRow({
                 className={cn("text-sm leading-5", note.done && "line-through text-muted-foreground")}
               />
             ) : (
-              <span className="text-xs text-muted-foreground/70 select-none">
+              <span className="text-xs text-muted-foreground select-none">
                 {note.attachments?.length === 1 ? "1 image" : `${note.attachments?.length ?? 0} images`}
               </span>
             )}
@@ -292,7 +296,7 @@ export function NoteRow({
                   onGoToFolder?.(note.id);
                 }}
                 title="Go to folder"
-                className="mt-0.5 inline-flex items-center gap-1 rounded text-[10px] uppercase tracking-wider text-muted-foreground/70 hover:text-foreground"
+                className="mt-0.5 inline-flex items-center gap-1 rounded text-[11px] uppercase tracking-wide text-muted-foreground hover:text-foreground"
               >
                 <CornerDownRight className="size-2.5" /> {sectionName}
               </button>

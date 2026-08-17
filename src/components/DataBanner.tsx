@@ -12,7 +12,7 @@ interface Props {
 /** Shown when notes.json can't be read (saving paused) or a save failed. */
 export function DataBanner({ kind, detail, onReveal, onStartFresh, onRetry }: Props) {
   return (
-    <div className="mx-5 mb-2 flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1.5 text-[11px] text-foreground">
+    <div className="mx-5 mb-2 flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1.5 text-xs text-foreground">
       <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-red-600 dark:text-red-400" />
       <div className="min-w-0 flex-1">
         {kind === "corrupt" ? (
@@ -31,15 +31,15 @@ export function DataBanner({ kind, detail, onReveal, onStartFresh, onRetry }: Pr
       </div>
       <div className="flex shrink-0 items-center gap-1">
         {kind === "save-error" && onRetry && (
-          <Button size="xs" variant="outline" className="h-5 px-1.5 text-[11px]" onClick={onRetry}>
+          <Button size="xs" variant="outline" className="h-6 px-2 text-xs" onClick={onRetry}>
             Retry
           </Button>
         )}
-        <Button size="xs" variant="outline" className="h-5 px-1.5 text-[11px]" onClick={onReveal}>
+        <Button size="xs" variant="outline" className="h-6 px-2 text-xs" onClick={onReveal}>
           Reveal
         </Button>
         {kind === "corrupt" && onStartFresh && (
-          <Button size="xs" variant="destructive" className="h-5 px-1.5 text-[11px]" onClick={onStartFresh}>
+          <Button size="xs" variant="destructive" className="h-6 px-2 text-xs" onClick={onStartFresh}>
             Start fresh
           </Button>
         )}

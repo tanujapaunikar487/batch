@@ -69,7 +69,7 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
           <ArrowLeft className="size-4" />
         </Button>
         <h2 className="text-sm font-semibold">Settings</h2>
-        <span className="ml-auto text-[11px] text-muted-foreground">Esc to close</span>
+        <span className="ml-auto text-xs text-muted-foreground">Esc to close</span>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-3">
@@ -204,13 +204,13 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
               />
             </Row>
           ))}
-          <p className="pt-1 text-[11px] text-muted-foreground">
+          <p className="pt-1 text-xs leading-5 text-muted-foreground">
             Fixed: ⌘1–9 sections · ↑↓ browse · Space done · ↩ edit · ⌫ delete · 1/2/3 priority · ⌘A · ⌘C · ⌘Z · ⌘, · ⌘/
           </p>
         </Group>
 
         <Group title="Your data">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs leading-5 text-muted-foreground">
             {noteCount} note{noteCount === 1 ? "" : "s"} in {sectionCount} folder{sectionCount === 1 ? "" : "s"}. Everything is
             stored in one local file. Nothing syncs, nothing is tracked, no account.
           </p>
@@ -234,7 +234,7 @@ function Group({ title, action, children }: { title: string; action?: React.Reac
   return (
     <section className="mb-4">
       <div className="mb-1.5 flex items-center">
-        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
         <div className="ml-auto">{action}</div>
       </div>
       <div className="flex flex-col">{children}</div>
@@ -247,8 +247,8 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
   return (
     <div className={cn("flex min-h-8 items-center gap-3 py-1")}>
       <div className="min-w-0 flex-1">
-        <div className="text-xs">{label}</div>
-        {hint && <div className="text-[10px] text-muted-foreground">{hint}</div>}
+        <div className="text-[13px]">{label}</div>
+        {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
       </div>
       <div className="shrink-0">{children}</div>
     </div>

@@ -136,23 +136,29 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
     <div
       ref={ref}
       tabIndex={0}
-      role="listbox"
-      aria-multiselectable
       aria-label="Notes"
       onKeyDown={onKeyDown}
       className="min-h-0 flex-1 overflow-y-auto px-5 pb-3 pt-3 outline-none"
     >
       {empty ? (
-        <div className="px-2 pt-12 text-center text-sm text-muted-foreground select-none">{emptyMessage}</div>
+        <div className="px-2 pt-12 text-center text-sm leading-6 text-muted-foreground select-none">{emptyMessage}</div>
       ) : (
         <>
-          {visible.length > 0 && <ul className="flex flex-col">{visible.map((n) => row(n, !!reorderable))}</ul>}
-          {done.length > 0 && <ul className="flex flex-col">{done.map((n) => row(n, false))}</ul>}
+          {visible.length > 0 && (
+            <ul role="listbox" aria-multiselectable aria-label="Notes" className="flex flex-col">
+              {visible.map((n) => row(n, !!reorderable))}
+            </ul>
+          )}
+          {done.length > 0 && (
+            <ul role="listbox" aria-multiselectable aria-label="Search results — done" className="flex flex-col">
+              {done.map((n) => row(n, false))}
+            </ul>
+          )}
           {onAddSection && !dragging && (
             <button
               type="button"
               onClick={onAddSection}
-              className="mt-1 flex h-7 w-full items-center gap-1.5 rounded-lg px-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/50 transition-colors hover:bg-foreground/[0.04] hover:text-muted-foreground"
+              className="mt-2 flex h-7 w-full items-center gap-1.5 rounded-lg px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground/70 transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
             >
               <Plus className="size-3" /> Add section
             </button>

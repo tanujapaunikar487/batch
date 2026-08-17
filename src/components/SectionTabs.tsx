@@ -182,7 +182,7 @@ export function SectionTabs({
               >
                 {s.name}
                 {counts[s.id] > 0 && (
-                  <span className="text-[11px] tabular-nums text-muted-foreground/70">{counts[s.id]}</span>
+                  <span className="text-xs tabular-nums text-muted-foreground/80">{counts[s.id]}</span>
                 )}
               </button>
             </ContextMenuTrigger>
