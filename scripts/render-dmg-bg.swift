@@ -16,27 +16,33 @@ func render(scale: CGFloat) -> CGImage {
     ctx.setFillColor(CGColor(gray: 0, alpha: 1))
     ctx.fill(CGRect(x: 0, y: 0, width: W, height: H))
 
-    // Arrow: line — label — line ▶  centred at y = 200 (icons sit at y ≈ 200 too)
-    let y: CGFloat = 200
-    let grey = CGColor(gray: 0.62, alpha: 1)
+    // Hand-drawn arrow from the app icon (left, ~x=165) to Applications (right, ~x=495),
+    // arcing above the icons; slightly wobbly, double-stroked like a marker.
+    let grey = CGColor(gray: 0.72, alpha: 1)
+    ctx.setStrokeColor(grey); ctx.setLineCap(.round); ctx.setLineJoin(.round)
+    let start = CGPoint(x: 232, y: 244), end = CGPoint(x: 428, y: 246)
+    let c1 = CGPoint(x: 290, y: 305), c2 = CGPoint(x: 380, y: 305)
+    func wobble(_ p: CGPoint, _ dx: CGFloat, _ dy: CGFloat) -> CGPoint { CGPoint(x: p.x + dx, y: p.y + dy) }
+    for (i, w) in [CGFloat(2.6), 1.4].enumerated() {
+        ctx.setLineWidth(w)
+        let j: CGFloat = i == 0 ? 0 : 1.2
+        ctx.move(to: wobble(start, 0, j))
+        ctx.addCurve(to: wobble(end, -2, j), control1: wobble(c1, -3, -j), control2: wobble(c2, 4, j))
+        ctx.strokePath()
+    }
+    // Arrow head: two loose strokes
+    ctx.setLineWidth(2.6)
+    ctx.move(to: CGPoint(x: 410, y: 262)); ctx.addLine(to: end); ctx.strokePath()
+    ctx.move(to: CGPoint(x: 405, y: 236)); ctx.addLine(to: CGPoint(x: end.x + 1, y: end.y - 1)); ctx.strokePath()
+
+    // Label under the arc
     let label = "DRAG TO INSTALL" as NSString
     let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
     let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor(cgColor: grey)!, .kern: 1.6]
     let size = label.size(withAttributes: attrs)
-    let cx: CGFloat = W / 2
-    let gap: CGFloat = 14
-    let lineLen: CGFloat = 60
-    ctx.setStrokeColor(grey); ctx.setLineWidth(1.5); ctx.setLineCap(.round)
-    // left line
-    ctx.move(to: CGPoint(x: cx - size.width/2 - gap - lineLen, y: y)); ctx.addLine(to: CGPoint(x: cx - size.width/2 - gap, y: y)); ctx.strokePath()
-    // right line + arrow head
-    let rx0 = cx + size.width/2 + gap, rx1 = rx0 + lineLen
-    ctx.move(to: CGPoint(x: rx0, y: y)); ctx.addLine(to: CGPoint(x: rx1, y: y)); ctx.strokePath()
-    ctx.move(to: CGPoint(x: rx1 - 8, y: y + 6)); ctx.addLine(to: CGPoint(x: rx1, y: y)); ctx.addLine(to: CGPoint(x: rx1 - 8, y: y - 6)); ctx.strokePath()
-    // label
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
-    label.draw(at: CGPoint(x: cx - size.width/2, y: y - size.height/2 + 1), withAttributes: attrs)
+    label.draw(at: CGPoint(x: W / 2 - size.width / 2, y: 118 - size.height / 2), withAttributes: attrs)
     NSGraphicsContext.restoreGraphicsState()
     return ctx.makeImage()!
 }
