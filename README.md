@@ -1,5 +1,10 @@
 # Batch
 
+<p>
+  <a href="https://github.com/tanujapaunikar487/batch/releases/latest/download/Batch-1.0.0-universal.dmg"><b>⬇ Download Batch for macOS</b></a> — universal (Apple Silicon & Intel), macOS 12+, signed & notarized ·
+  <a href="https://github.com/tanujapaunikar487/batch/releases">all releases</a>
+</p>
+
 > Free and open source (MIT). Everything stays on your Mac — no account, no sync, no tracking.
 
 A tiny macOS menu-bar app for the bits you want to keep while working with
@@ -16,6 +21,10 @@ no tracking, nothing phones home.
 
 Built with **Tauri v2** (Rust) + **React** + **Tailwind CSS**.
 
+Inspired by [Copper](https://shadcn.com/copper) by [shadcn](https://x.com/shadcn) —
+go check it out. Batch is my own take, built from scratch for my own use and
+open-sourced.
+
 <p>
   <img src="docs/screenshots/untitled-light.png" width="240" alt="A folder with sections, light mode">
   <img src="docs/screenshots/prompts-dark.png" width="240" alt="Prompts folder, dark mode">
@@ -24,10 +33,11 @@ Built with **Tauri v2** (Rust) + **React** + **Tailwind CSS**.
 
 ## Install (download)
 
-Grab **`Batch-<version>-universal.dmg`** (Apple Silicon + Intel, macOS 12+) from the
-Releases page (or build it: `bun run dist:mac` → `dist-mac/`). Open the DMG, drag
-**Batch** to **Applications**, launch it — the ✓ mark appears in the menu bar (there's
-no Dock icon by design).
+1. **[Download the DMG](https://github.com/tanujapaunikar487/batch/releases/latest/download/Batch-1.0.0-universal.dmg)** (or pick any version on the [Releases](https://github.com/tanujapaunikar487/batch/releases) page).
+2. Open it and drag **Batch** onto **Applications**.
+3. Launch Batch (Spotlight → "Batch"). The Batch mark appears in the **menu bar** — there's no Dock icon by design.
+
+(To build it yourself: `bun run dist:mac` → `dist-mac/`.)
 
 Releases are signed with a Developer ID and notarized by Apple, so they open
 without any Gatekeeper warning. (If you build the DMG yourself without a
