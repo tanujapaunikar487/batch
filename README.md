@@ -14,12 +14,12 @@ Notes are Markdown, live in **folders**, can be **merged**, **copied as a list**
 is **customisable**. Your notes are one **local JSON file**. No account, no sync,
 no tracking, nothing phones home.
 
-Built with **Tauri v2** (Rust shell) + **React** + **Tailwind v4** + **shadcn/ui**.
+Built with **Tauri v2** (Rust) + **React** + **Tailwind CSS**.
 
 <p>
-  <img src="docs/screenshots/inbox-light.png" width="240" alt="Inbox, light">
-  <img src="docs/screenshots/prompts-dark.png" width="240" alt="Prompts section, dark">
-  <img src="docs/screenshots/search-filters.png" width="240" alt="Search across sections with filters">
+  <img src="docs/screenshots/untitled-light.png" width="240" alt="A folder with sections, light mode">
+  <img src="docs/screenshots/prompts-dark.png" width="240" alt="Prompts folder, dark mode">
+  <img src="docs/screenshots/search-filters.png" width="240" alt="Search across folders with filters">
 </p>
 
 ## Install (download)
@@ -149,7 +149,7 @@ src/
   components/           Header, SectionTabs, CaptureBox, NoteList/NoteRow, Markdown,
                         SearchAndFilters, Footer, SettingsPanel, ShortcutRecorder,
                         HelpSheet, AccessibilityBanner
-  components/ui/        shadcn components
+  components/ui/        UI primitives (Radix-based)
   App.tsx               wiring + all keyboard handling
 src-tauri/
   src/lib.rs            tray, hotkey (re-registrable), positioning, hide-on-blur,

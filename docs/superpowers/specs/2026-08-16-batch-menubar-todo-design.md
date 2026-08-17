@@ -17,12 +17,12 @@ Not a full-window app. No accounts, no sync, no cloud. Local only.
 
 | Option | Pros | Cons |
 | --- | --- | --- |
-| **Tauri v2 + React + Tailwind + shadcn (chosen)** | ~10 MB app, low RAM, native tray + window APIs, shadcn/Tailwind as requested, Rust side is ~100 lines | Needs Rust toolchain (installed via rustup) |
-| Electron + React + Tailwind + shadcn | Zero new toolchains, huge ecosystem (`menubar` pkg) | ~200 MB app, 100–200 MB RAM for a utility that sits in the menu bar all day |
-| Native SwiftUI + MenuBarExtra | Most native, WidgetKit possible later | User explicitly asked for shadcn + Tailwind; those are web-only |
+| **Tauri v2 + React + Tailwind + the UI kit (chosen)** | ~10 MB app, low RAM, native tray + window APIs, the UI kit/Tailwind as requested, Rust side is ~100 lines | Needs Rust toolchain (installed via rustup) |
+| Electron + React + Tailwind + the UI kit | Zero new toolchains, huge ecosystem (`menubar` pkg) | ~200 MB app, 100–200 MB RAM for a utility that sits in the menu bar all day |
+| Native SwiftUI + MenuBarExtra | Most native, WidgetKit possible later | User explicitly asked for Tailwind + a Radix-based UI kit; those are web-only |
 
 Tauri wins on product fit (lightweight, always-resident utility) while still
-letting the UI be built with shadcn + Tailwind exactly as asked. The "widget"
+letting the UI be built with Tailwind + a Radix-based UI kit exactly as asked. The "widget"
 idea (WidgetKit) is out of reach for both Tauri and Electron and is deferred.
 
 ## Architecture
@@ -37,7 +37,7 @@ idea (WidgetKit) is out of reach for both Tauri and Electron and is deferred.
 │        │ tauri (Rust)              │ vibrancy      │ │
 │        │  • tray + placement       │  ┌──────────┐ │ │
 │        │  • global shortcut        │  │ React UI │ │ │
-│        │  • hide on blur (unless   │  │ shadcn + │ │ │
+│        │  • hide on blur (unless   │  │ the UI kit + │ │ │
 │        │    pinned)                │  │ Tailwind │ │ │
 │        │  • Accessory activation   │  └────┬─────┘ │ │
 │        │    (no Dock icon)         │       │ store │ │
@@ -72,7 +72,7 @@ idea (WidgetKit) is out of reach for both Tauri and Electron and is deferred.
 - `store/useTodos.ts` — React hook wrapping the reducer + `@tauri-apps/plugin-store`
   load/save (debounced). Falls back to `localStorage` when not running inside
   Tauri so the UI can be developed/tested in a plain browser.
-- Components (shadcn): `button`, `input`, `checkbox`, `badge`,
+- Components (the UI kit): `button`, `input`, `checkbox`, `badge`,
   `dropdown-menu`, `scroll-area`, `tooltip`, `toggle-group`, `separator`.
 - `App.tsx` — layout: header (drag region, pin toggle, overflow menu),
   capture input + priority segmented control, sectioned list, Done section.
@@ -103,7 +103,7 @@ Item interactions: checkbox toggles done; click the coloured priority dot to
 cycle High → Medium → Low; double-click text to edit inline (Enter saves, Esc
 cancels); hover shows ×. Empty state on first launch: one line of guidance.
 
-Priority colours: High = red-ish, Medium = amber, Low = slate/blue. Use shadcn
+Priority colours: High = red-ish, Medium = amber, Low = slate/blue. Use the UI kit
 tokens for everything else so light/dark follow the system.
 
 Keyboard: `Enter` add · `⌘1/2/3` set priority for the next item · `Esc` clear

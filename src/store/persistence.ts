@@ -151,37 +151,33 @@ function tutorialState(): NotesState {
 function seedState(): NotesState {
   const now = Date.now();
   const H = 3_600_000;
+  const png = (name: string, w: number, h: number, dataUrl: string) => ({ id: `seed-${name}`, name, mime: "image/png", thumb: false, width: w, height: h, dataUrl });
+  const blue = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAwCAIAAAAuKetIAAAAQ0lEQVR42u3PQQkAAAgEsItqOUv6soJfYbACS/W8FgEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQGBqwUyR/VaFprtdQAAAABJRU5ErkJggg==";
+  const amber = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAABACAIAAADTQmMRAAAARElEQVR42u3OMQ0AAAgDsInBvwWE8eCCcDSpgGa6XomQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQ0JUFBfFpS4NV8boAAAAASUVORK5CYII=";
   return {
     version: 2,
     sections: [
       { id: INBOX_ID, name: "Untitled", createdAt: 0 },
       { id: "prompts", name: "Prompts", createdAt: 1 },
-      { id: "links", name: "Links", createdAt: 2 },
+      { id: "research", name: "Research", createdAt: 2 },
     ],
     notes: [
-      { id: "h1", sectionId: INBOX_ID, text: "Today", priority: "medium", done: false, createdAt: now - 31 * H, kind: "heading" },
-      { id: "s1", sectionId: INBOX_ID, text: "Ship the design review", priority: "high", done: false, createdAt: now - 30 * H },
-      { id: "s2", sectionId: INBOX_ID, text: "Ask Claude to **summarise the thread** and pull out action items", priority: "medium", done: false, createdAt: now - 26 * H },
-      { id: "s3", sectionId: INBOX_ID, text: "https://ui.shadcn.com/docs/components/textarea", priority: "low", done: false, createdAt: now - 20 * H },
-      { id: "h2", sectionId: INBOX_ID, text: "Later", priority: "medium", done: false, createdAt: now - 3.5 * H, kind: "heading" },
-      { id: "s4", sectionId: INBOX_ID, text: "Try `bun run app:build` and check the dmg step", priority: "medium", done: false, createdAt: now - 3 * H },
-      { id: "s5", sectionId: INBOX_ID, text: "Renew passport", priority: "high", done: true, createdAt: now - 50 * H, completedAt: now - 2 * H },
-      { id: "s6", sectionId: INBOX_ID, text: "Book dentist", priority: "low", done: true, createdAt: now - 60 * H, completedAt: now - 40 * H },
-      { id: "p1", sectionId: "prompts", text: "Explain the tradeoffs of RSC vs. client components for a dashboard with heavy interactivity", priority: "high", done: false, createdAt: now - 10 * H },
+      { id: "h-today", sectionId: INBOX_ID, text: "Today", priority: "medium", done: false, createdAt: now - 40 * H, kind: "heading" },
+      { id: "u1", sectionId: INBOX_ID, text: "Draft the release notes for 1.1 — mention the new export and the side-panel mode", priority: "high", done: false, createdAt: now - 39 * H },
+      { id: "u2", sectionId: INBOX_ID, text: "Reply to Sam about the API rate limits", priority: "medium", done: true, createdAt: now - 38 * H, completedAt: now - 2 * H },
+      { id: "u3", sectionId: INBOX_ID, text: "Ask Claude to **summarise the thread** and pull out the action items", priority: "medium", done: false, createdAt: now - 30 * H },
+      { id: "h-later", sectionId: INBOX_ID, text: "Later", priority: "medium", done: false, createdAt: now - 20 * H, kind: "heading" },
+      { id: "u4", sectionId: INBOX_ID, text: "Compare Postgres vs. SQLite for the sync layer — write up pros/cons", priority: "low", done: false, createdAt: now - 19 * H },
+      { id: "u5", sectionId: INBOX_ID, text: "Try `bun run dist:mac` on the Intel machine", priority: "medium", done: false, createdAt: now - 3 * H },
+      { id: "u6", sectionId: INBOX_ID, text: "Onboarding card needs more spacing — see the two screenshots", priority: "medium", done: false, createdAt: now - 1 * H, attachments: [png("before.png", 64, 48, blue), png("after.png", 48, 64, amber)] },
+      { id: "p1", sectionId: "prompts", text: "Explain the tradeoffs of server components vs. client components for a dashboard with heavy interactivity", priority: "high", done: false, createdAt: now - 10 * H },
       { id: "p2", sectionId: "prompts", text: "Rewrite this in a calmer tone:\n\n> We MUST ship by Friday or the launch slips.", priority: "medium", done: false, createdAt: now - 9 * H },
-      { id: "p3", sectionId: "prompts", text: "Generate 5 test cases for `parseBinding()`", priority: "medium", done: false, createdAt: now - 8 * H },
-      { id: "l1", sectionId: "links", text: "https://tauri.app/plugin/global-shortcut/", priority: "medium", done: false, createdAt: now - 5 * H },
-      {
-        id: "s7", sectionId: INBOX_ID, text: "Card needs spacing — see the two screenshots", priority: "medium", done: false, createdAt: now - 1 * H,
-        attachments: [
-          { id: "seed-a.png", name: "before.png", mime: "image/png", thumb: false, width: 64, height: 48, dataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAwCAIAAAAuKetIAAAAQ0lEQVR42u3PQQkAAAgEsItqOUv6soJfYbACS/W8FgEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQGBqwUyR/VaFprtdQAAAABJRU5ErkJggg==" },
-          { id: "seed-b.png", name: "after.png", mime: "image/png", thumb: false, width: 48, height: 64, dataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAABACAIAAADTQmMRAAAARElEQVR42u3OMQ0AAAgDsInBvwWE8eCCcDSpgGa6XomQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQ0JUFBfFpS4NV8boAAAAASUVORK5CYII=" },
-        ],
-      },
-      {
-        id: "s8", sectionId: INBOX_ID, text: "", priority: "low", done: false, createdAt: now - 0.5 * H,
-        attachments: [{ id: "seed-c.png", name: "shot.png", mime: "image/png", thumb: false, width: 64, height: 48, dataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAwCAIAAAAuKetIAAAAQ0lEQVR42u3PQQkAAAgEsItqOUv6soJfYbACS/W8FgEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQGBqwUyR/VaFprtdQAAAABJRU5ErkJggg==" }],
-      },
+      { id: "p3", sectionId: "prompts", text: "Generate 5 edge-case tests for `parseBinding()` — layouts, dead keys, numpad", priority: "medium", done: false, createdAt: now - 8 * H },
+      { id: "p4", sectionId: "prompts", text: "Turn these bullet notes into a one-paragraph status update for the team", priority: "low", done: true, createdAt: now - 7 * H, completedAt: now - 5 * H },
+      { id: "r1", sectionId: "research", text: "https://tauri.app/plugin/global-shortcut/", priority: "medium", done: false, createdAt: now - 6 * H },
+      { id: "r2", sectionId: "research", text: "https://developer.apple.com/design/human-interface-guidelines/the-menu-bar", priority: "low", done: false, createdAt: now - 5 * H },
+      { id: "r3", sectionId: "research", text: "Notes from the call: keep the core config declarative; add a TypeScript escape hatch later if needed", priority: "medium", done: false, createdAt: now - 4 * H },
     ],
   };
 }
+
