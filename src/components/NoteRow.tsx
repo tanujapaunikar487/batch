@@ -1,7 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Check, CheckSquare, ChevronDown, ChevronRight, Copy, CornerDownRight, Flag, FolderInput, Heading, ImagePlus, ListOrdered, Merge, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, CheckSquare, ChevronDown, ChevronRight, Copy, CornerDownRight, FolderInput, Heading, ImagePlus, ListOrdered, Merge, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -292,41 +299,81 @@ export function NoteRow({
             )}
           </div>
 
-          {/* Reserved 24px column: priority dot at rest, ⋯ on hover — text never runs under it. */}
-          <div className="relative mt-0.5 flex h-5 w-6 shrink-0 items-center justify-center">
-            {!heading && (
-              <span
+          {/* Reserved column: priority dot (a dropdown) always; ⋯ appears next to it on hover. */}
+          {!heading && (
+            <div className="mt-0.5 flex h-5 w-11 shrink-0 items-center justify-end gap-0.5">
+              <div
                 className={cn(
-                  "size-1.5 rounded-full transition-opacity group-hover:opacity-0 group-focus-within:opacity-0",
-                  ui.dot,
-                  note.done && "opacity-40",
-                  menuOpen && "opacity-0",
+                  "opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
+                  menuOpen && "opacity-100",
                 )}
-                aria-label={`${ui.label} priority`}
-              />
-            )}
-            <div
-              className={cn(
-                "absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
-                menuOpen && "opacity-100",
-              )}
-            >
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                tabIndex={-1}
-                aria-label="Note actions"
-                aria-expanded={menuOpen}
-                className={cn(menuOpen && "bg-foreground/[0.08] text-foreground")}
-                onClick={(e) => {
-                  const r = e.currentTarget.getBoundingClientRect();
-                  openMenuAt(r.left, r.bottom);
-                }}
               >
-                <MoreHorizontal className="size-3.5" />
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  tabIndex={-1}
+                  aria-label="Note actions"
+                  aria-expanded={menuOpen}
+                  className={cn(menuOpen && "bg-foreground/[0.08] text-foreground")}
+                  onClick={(e) => {
+                    const r = e.currentTarget.getBoundingClientRect();
+                    openMenuAt(r.left, r.bottom);
+                  }}
+                >
+                  <MoreHorizontal className="size-3.5" />
+                </Button>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    aria-label={`Priority: ${ui.label}. Change`}
+                    title={`${ui.label} priority`}
+                    className="grid size-5 place-items-center rounded-md hover:bg-foreground/[0.06] aria-expanded:bg-foreground/[0.08]"
+                  >
+                    <span className={cn("size-1.5 rounded-full", ui.dot, note.done && "opacity-40")} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-32">
+                  <DropdownMenuRadioGroup value={note.priority} onValueChange={(v) => onSetPriority([note.id], v as Priority)}>
+                    {PRIORITIES.map((p) => (
+                      <DropdownMenuRadioItem key={p} value={p}>
+                        <span className={cn("mr-1 size-1.5 rounded-full", PRIORITY_UI[p].dot)} />
+                        {PRIORITY_UI[p].label}
+                        <span className="ml-auto pl-3 text-xs text-muted-foreground">{PRIORITIES.indexOf(p) + 1}</span>
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          </div>
+          )}
+          {heading && (
+            <div className="mt-0.5 flex h-5 w-11 shrink-0 items-center justify-end">
+              <div
+                className={cn(
+                  "opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
+                  menuOpen && "opacity-100",
+                )}
+              >
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  tabIndex={-1}
+                  aria-label="Section actions"
+                  aria-expanded={menuOpen}
+                  className={cn(menuOpen && "bg-foreground/[0.08] text-foreground")}
+                  onClick={(e) => {
+                    const r = e.currentTarget.getBoundingClientRect();
+                    openMenuAt(r.left, r.bottom);
+                  }}
+                >
+                  <MoreHorizontal className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
         </li>
       </ContextMenuTrigger>
 
@@ -416,21 +463,6 @@ export function NoteRow({
             </ContextMenuItem>
           </>
         )}
-        <ContextMenuSub>
-          <ContextMenuSubTrigger>
-            <Flag className={cn("size-3.5", ui.text)} /> Priority
-          </ContextMenuSubTrigger>
-          <ContextMenuSubContent>
-            {PRIORITIES.map((p) => (
-              <ContextMenuItem key={p} onSelect={() => onSetPriority(targets, p)}>
-                <span className={cn("size-1.5 rounded-full", PRIORITY_UI[p].dot)} />
-                {PRIORITY_UI[p].label}
-                <ContextMenuShortcut>{PRIORITIES.indexOf(p) + 1}</ContextMenuShortcut>
-                {!many && p === note.priority && <Check className="ml-1 size-3.5" />}
-              </ContextMenuItem>
-            ))}
-          </ContextMenuSubContent>
-        </ContextMenuSub>
         {sections.length > 1 && (
           <ContextMenuSub>
             <ContextMenuSubTrigger>
