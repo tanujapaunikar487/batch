@@ -43,6 +43,10 @@ export const native = {
   requestAccessibility: () => call<boolean>("request_accessibility"),
   /** Restart the app (Input Monitoring grants only apply to a fresh process). */
   relaunch: () => call("relaunch"),
+  /** Grab the frontmost app's selection on ⇧⇧ (needs Accessibility). */
+  setCaptureSelection: (enabled: boolean) => call("set_capture_selection", { enabled }),
+  accessibilityTrusted: () => call<boolean>("accessibility_trusted"),
+  requestAccessibilityPermission: () => call<boolean>("request_accessibility_permission"),
   /** Force the native window appearance (vibrancy follows): "system" | "light" | "dark". */
   setTheme: (theme: "system" | "light" | "dark") => call("set_theme", { theme }),
   /** Open http(s)/mailto links in the default browser. */
@@ -68,6 +72,13 @@ export const native = {
   /** Dev builds only: echo to the `tauri dev` terminal. No-op in production. */
   devLog: (msg: string) => (import.meta.env.DEV ? call("dev_log", { msg }) : Promise.resolve()),
 };
+
+/** Text captured from another app via double-Shift. */
+export async function onCapture(handler: (text: string) => void): Promise<() => void> {
+  if (!isTauri()) return () => {};
+  const { listen } = await import("@tauri-apps/api/event");
+  return listen<string>("batch://capture", (e) => handler(e.payload));
+}
 
 /** Subscribe to the "window was just shown" signal from Rust. */
 export async function onShown(handler: () => void): Promise<() => void> {

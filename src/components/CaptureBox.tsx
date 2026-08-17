@@ -33,6 +33,8 @@ export interface CaptureBoxHandle {
   /** Store + add image files (paste / picker / HTML5 drop). */
   addFiles: (files: File[]) => Promise<void>;
   count: () => number;
+  /** Append text to the draft (captured selection). */
+  insertText: (text: string) => void;
 }
 
 const MAX_ROWS = 6;
@@ -114,6 +116,16 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
     addAttachments,
     addFiles,
     count: () => attsRef.current.length,
+    insertText: (text) => {
+      setValue((v) => (v.trim() ? `${v.replace(/\s+$/, "")}\n\n${text}` : text));
+      requestAnimationFrame(() => {
+        const el = ta.current;
+        if (el) {
+          el.focus();
+          el.setSelectionRange(el.value.length, el.value.length);
+        }
+      });
+    },
   }));
 
   useLayoutEffect(() => {

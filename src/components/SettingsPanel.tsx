@@ -20,6 +20,7 @@ interface Props {
 export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Props) {
   const inTauri = isTauri();
   const [ds, setDs] = useState<{ active: boolean; granted: boolean } | null>(null);
+  const [axTrusted, setAxTrusted] = useState<boolean | null>(null);
   const [autostart, setAutostart] = useState<boolean | null>(null);
   const [notesPath, setNotesPath] = useState<string>("");
 
@@ -29,6 +30,8 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
     const poll = async () => {
       const st = await native.doubleShiftStatus();
       if (alive && st) setDs({ active: st.active, granted: st.granted });
+      const ax = await native.accessibilityTrusted();
+      if (alive && typeof ax === "boolean") setAxTrusted(ax);
     };
     void poll();
     const id = window.setInterval(poll, 2000);
@@ -133,6 +136,32 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
               )}
               <Switch checked={settings.settings.doubleShift} disabled={!inTauri} onCheckedChange={settings.setDoubleShift} />
             </div>
+          </Row>
+          <Row
+            label="Capture selected text on ⇧⇧"
+            hint={
+              !inTauri
+                ? "Available in the Mac app"
+                : axTrusted === false
+                  ? "Needs Accessibility access (to send ⌘C to the other app)"
+                  : "Select text in any app, tap Shift twice — it lands in the box"
+            }
+          >
+            <div className="flex items-center gap-2">
+              {inTauri && axTrusted === false && settings.settings.captureSelection && (
+                <Button size="xs" variant="outline" onClick={() => void native.requestAccessibilityPermission()}>
+                  Grant access
+                </Button>
+              )}
+              <Switch
+                checked={settings.settings.captureSelection}
+                disabled={!inTauri}
+                onCheckedChange={settings.setCaptureSelection}
+              />
+            </div>
+          </Row>
+          <Row label="Copy as List marks notes done" hint="They've been handed off; ⌘Z brings them back">
+            <Switch checked={settings.settings.copyListMarksDone} onCheckedChange={settings.setCopyListMarksDone} />
           </Row>
           <Row label="Toggle hotkey" hint="System-wide; shows or hides Batch">
             <ShortcutRecorder

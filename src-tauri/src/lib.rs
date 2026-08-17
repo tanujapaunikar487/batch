@@ -25,6 +25,7 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_store::StoreExt;
 
 mod attachments;
+mod capture;
 #[cfg(target_os = "macos")]
 mod double_shift;
 mod notes_file;
@@ -95,6 +96,8 @@ struct AppState {
     double_shift_active: Arc<AtomicBool>,
     /// Bumped on every focus change; a deferred blur-hide only fires if it still matches.
     blur_gen: std::sync::atomic::AtomicU64,
+    /// Grab the frontmost app's selection on double-Shift (needs Accessibility).
+    capture_selection: AtomicBool,
     /// Frame to restore when leaving "full screen" (expanded) mode.
     restore_frame: Mutex<Option<(tauri::PhysicalPosition<i32>, tauri::PhysicalSize<u32>)>>,
 }
@@ -276,6 +279,44 @@ fn request_accessibility() -> bool {
         if !ok {
             let _ = std::process::Command::new("open")
                 .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")
+                .spawn();
+        }
+        ok
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        true
+    }
+}
+
+#[tauri::command]
+fn set_capture_selection(state: tauri::State<'_, AppState>, enabled: bool) {
+    state.capture_selection.store(enabled, Ordering::Relaxed);
+}
+
+/// Accessibility (event posting) — separate from Input Monitoring.
+#[tauri::command]
+fn accessibility_trusted() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        ax::trusted()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        true
+    }
+}
+
+#[tauri::command]
+fn request_accessibility_permission() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        let ok = ax::request();
+        if !ok {
+            let _ = std::process::Command::new("open")
+                .arg(
+                    "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
+                )
                 .spawn();
         }
         ok
@@ -488,6 +529,7 @@ fn place_under_tray(app: &AppHandle, w: &WebviewWindow) -> tauri::Result<()> {
 struct StartupSettings {
     binding: String,
     double_shift: bool,
+    capture_selection: bool,
     window: Option<(f64, f64)>,
 }
 
@@ -496,6 +538,7 @@ fn read_settings(app: &AppHandle) -> StartupSettings {
     let mut out = StartupSettings {
         binding: DEFAULT_TOGGLE_BINDING.to_string(),
         double_shift: true,
+        capture_selection: true,
         window: None,
     };
     if let Ok(store) = app.store(SETTINGS_FILE) {
@@ -507,6 +550,9 @@ fn read_settings(app: &AppHandle) -> StartupSettings {
             }
             if let Some(d) = v.get("doubleShift").and_then(|x| x.as_bool()) {
                 out.double_shift = d;
+            }
+            if let Some(c) = v.get("captureSelection").and_then(|x| x.as_bool()) {
+                out.capture_selection = c;
             }
             if let (Some(w), Some(h)) = (
                 v.pointer("/window/width").and_then(|x| x.as_f64()),
@@ -547,7 +593,7 @@ mod mouse {
 }
 
 #[cfg(target_os = "macos")]
-mod ax {
+pub(crate) mod ax {
     use core_foundation::base::TCFType;
     use core_foundation::boolean::CFBoolean;
     use core_foundation::dictionary::{CFDictionary, CFDictionaryRef};
@@ -580,8 +626,7 @@ mod ax {
         unsafe { CGRequestListenEventAccess() }
     }
 
-    /// Accessibility prompt (kept for a future "capture selection" feature that must post events).
-    #[allow(dead_code)]
+    /// Accessibility prompt (needed to post the synthetic ⌘C for "capture selection").
     pub fn request() -> bool {
         unsafe {
             let key = CFString::wrap_under_get_rule(kAXTrustedCheckOptionPrompt);
@@ -635,6 +680,9 @@ pub fn run() {
             request_accessibility,
             double_shift_status,
             relaunch,
+            set_capture_selection,
+            accessibility_trusted,
+            request_accessibility_permission,
             open_url,
             notes_file_path,
             reveal_notes_file,
@@ -822,8 +870,12 @@ pub fn run() {
             let StartupSettings {
                 binding,
                 double_shift: double_shift_on,
+                capture_selection,
                 window: saved_size,
             } = read_settings(app.handle());
+            app.state::<AppState>()
+                .capture_selection
+                .store(capture_selection, Ordering::Relaxed);
             if let Some((w_pt, h_pt)) = saved_size {
                 let _ = window.set_size(tauri::LogicalSize::new(w_pt, h_pt));
             }
@@ -850,9 +902,33 @@ pub fn run() {
                 let handle = app.handle().clone();
                 double_shift::spawn(flag, active, move || {
                     let h = handle.clone();
-                    let _ = handle.run_on_main_thread(move || {
-                        dlog!("[batch] double-shift → toggle");
-                        toggle(&h);
+                    // Decide on a worker thread: capturing blocks ~250ms and must not
+                    // run inside the event-tap callback.
+                    std::thread::spawn(move || {
+                        let focused = main_window(&h)
+                            .and_then(|w| w.is_focused().ok())
+                            .unwrap_or(false);
+                        let want_capture = !focused
+                            && h.state::<AppState>()
+                                .capture_selection
+                                .load(Ordering::Relaxed);
+                        let text = if want_capture {
+                            capture::selected_text()
+                        } else {
+                            None
+                        };
+                        let h2 = h.clone();
+                        let _ = h.run_on_main_thread(move || match text {
+                            Some(t) => {
+                                dlog!("[batch] double-shift → capture {} chars", t.len());
+                                show(&h2);
+                                let _ = h2.emit("batch://capture", t);
+                            }
+                            None => {
+                                dlog!("[batch] double-shift → toggle");
+                                toggle(&h2);
+                            }
+                        });
                     });
                 });
             }

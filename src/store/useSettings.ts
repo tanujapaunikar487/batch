@@ -10,6 +10,10 @@ export interface Settings {
   /** Binding string ("alt+shift+Space"); registered system-wide via Rust. */
   toggleShortcut: string;
   doubleShift: boolean;
+  /** On double-Shift from another app, pull its selected text into the capture box. */
+  captureSelection: boolean;
+  /** "Copy as List" marks the copied notes done. */
+  copyListMarksDone: boolean;
   theme: ThemePref;
   keymap: Partial<Record<ActionId, string>>;
   /** Remembered popover size (logical px); applied by Rust on launch. */
@@ -20,6 +24,8 @@ export const DEFAULT_SETTINGS: Settings = {
   version: 1,
   toggleShortcut: DEFAULT_TOGGLE_SHORTCUT,
   doubleShift: true,
+  captureSelection: true,
+  copyListMarksDone: true,
   theme: "system",
   keymap: {},
 };
@@ -32,6 +38,8 @@ function normalizeSettings(raw: unknown): Settings {
     s.toggleShortcut = normalizeBinding(r.toggleShortcut)!;
   }
   if (typeof r.doubleShift === "boolean") s.doubleShift = r.doubleShift;
+  if (typeof r.captureSelection === "boolean") s.captureSelection = r.captureSelection;
+  if (typeof r.copyListMarksDone === "boolean") s.copyListMarksDone = r.copyListMarksDone;
   if (r.theme === "light" || r.theme === "dark" || r.theme === "system") s.theme = r.theme;
   const w = r.window as { width?: unknown; height?: unknown } | undefined;
   if (w && typeof w.width === "number" && typeof w.height === "number" && w.width >= 320 && w.height >= 360) {
@@ -112,9 +120,29 @@ export function useSettings(store?: KeyValueStore) {
   );
 
   const setTheme = useCallback((theme: ThemePref) => update({ theme }), [update]);
+  const setCaptureSelection = useCallback(
+    (enabled: boolean) => {
+      update({ captureSelection: enabled });
+      void native.setCaptureSelection(enabled);
+    },
+    [update],
+  );
+  const setCopyListMarksDone = useCallback((v: boolean) => update({ copyListMarksDone: v }), [update]);
   const setWindowSize = useCallback((width: number, height: number) => update({ window: { width, height } }), [update]);
 
-  return { settings, keymap, loaded, setBinding, resetKeymap, setToggleShortcut, setDoubleShift, setTheme, setWindowSize };
+  return {
+    settings,
+    keymap,
+    loaded,
+    setBinding,
+    resetKeymap,
+    setToggleShortcut,
+    setDoubleShift,
+    setTheme,
+    setWindowSize,
+    setCaptureSelection,
+    setCopyListMarksDone,
+  };
 }
 
 export type SettingsApi = ReturnType<typeof useSettings>;

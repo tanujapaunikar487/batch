@@ -15,7 +15,7 @@ import { AccessibilityBanner } from "@/components/AccessibilityBanner";
 import { useNotes } from "@/store/useNotes";
 import { useSettings } from "@/store/useSettings";
 import { isTauri } from "@/store/persistence";
-import { native, onShown } from "@/lib/native";
+import { native, onCapture, onShown } from "@/lib/native";
 import { useTheme } from "@/hooks/useSystemTheme";
 import { useListNav } from "@/hooks/useListNav";
 import { useCopy } from "@/hooks/useClipboard";
@@ -157,7 +157,7 @@ export default function App() {
       const ok =
         imageIds.length > 0 && inTauri ? (await native.copyRich(text, imageIds)) !== undefined : await copy(text);
       if (!ok) return showToast("Couldn't copy");
-      const open = picked.filter((n) => !n.done).map((n) => n.id);
+      const open = settings.settings.copyListMarksDone ? picked.filter((n) => !n.done).map((n) => n.id) : [];
       if (open.length) notes.setDone(open, true);
       showToast(
         `✓ Copied as List${imageIds.length ? ` + ${imageIds.length} image${imageIds.length > 1 ? "s" : ""}` : ""}${
@@ -166,7 +166,7 @@ export default function App() {
       );
       nav.clear();
     },
-    [notesById, copy, notes, showToast, nav],
+    [notesById, copy, notes, showToast, nav, settings.settings.copyListMarksDone],
   );
   const copySectionAsList = useCallback(
     (sectionId: string) => {
@@ -250,15 +250,22 @@ export default function App() {
     };
     window.addEventListener("focus", onFocus);
     let off: (() => void) | undefined;
+    let offCapture: (() => void) | undefined;
     onShown(() => {
       setView("list");
       focusCapture();
     }).then((fn) => (off = fn));
+    onCapture((text) => {
+      setView("list");
+      captureRef.current?.insertText(text);
+      showToast("Captured selection · ↩ to save");
+    }).then((fn) => (offCapture = fn));
     return () => {
       window.removeEventListener("focus", onFocus);
       off?.();
+      offCapture?.();
     };
-  }, [focusCapture, view]);
+  }, [focusCapture, view, showToast]);
 
   useEffect(() => {
     const onHide = () => {
