@@ -497,7 +497,22 @@ fn place_under_tray(app: &AppHandle, w: &WebviewWindow) -> tauri::Result<()> {
         return Ok(());
     };
     let Some(rect) = tray.rect()? else {
-        dlog!("[batch] tray rect unavailable; leaving window where it is");
+        // No tray geometry (icon hidden behind the notch / overflow): top-right of the primary display.
+        dlog!("[batch] tray rect unavailable; using top-right of the primary display");
+        if let Ok(Some(m)) = w.primary_monitor() {
+            let scale = m.scale_factor();
+            let area = m.work_area();
+            let win = w.outer_size()?.to_logical::<f64>(scale);
+            let pos = area.position.to_logical::<f64>(scale);
+            let size = area.size.to_logical::<f64>(scale);
+            let x = pos.x + size.width - win.width - 8.0;
+            let y = pos.y + TRAY_GAP;
+            let target = LogicalPosition::new(x, y);
+            if let Ok(mut g) = app.state::<AppState>().last_set_pos.lock() {
+                *g = Some(target.to_physical(scale));
+            }
+            return w.set_position(target);
+        }
         return Ok(());
     };
 

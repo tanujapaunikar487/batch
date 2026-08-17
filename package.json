@@ -12,8 +12,9 @@
     "typecheck": "tsc --noEmit",
     "tauri": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri",
     "app:dev": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri dev",
-    "app:build": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri build",
-    "icons": "swift scripts/render-icons.swift src-tauri/icons/src && PATH=\"$HOME/.cargo/bin:$PATH\" tauri icon src-tauri/icons/src/app-icon.png && cp src-tauri/icons/src/tray.png src-tauri/icons/tray.png && rm -rf src-tauri/icons/android src-tauri/icons/ios"
+    "app:build": "bash scripts/build.sh",
+    "icons": "swift scripts/render-icons.swift src-tauri/icons/src && PATH=\"$HOME/.cargo/bin:$PATH\" tauri icon src-tauri/icons/src/app-icon.png && cp src-tauri/icons/src/tray.png src-tauri/icons/tray.png && rm -rf src-tauri/icons/android src-tauri/icons/ios",
+    "sign:setup": "bash scripts/make-signing-cert.sh"
   },
   "dependencies": {
     "@crabnebula/tauri-plugin-drag": "^2.1.0",
@@ -37,10 +38,12 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^26.2.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "jsdom": "^30.0.1",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",
     "vitest": "^4.1.10"

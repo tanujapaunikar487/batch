@@ -41,6 +41,11 @@ bar (there's no Dock icon by design).
 > if Rust isn't in your shell profile. If you'd rather have `cargo` everywhere:
 > `source ~/.cargo/env`.
 
+**Keep permissions across rebuilds:** run `bun run sign:setup` once. It creates a
+self-signed "Batch Dev" code-signing certificate in your login keychain; `app:build`
+signs with it automatically, so macOS treats every build as the same app and the
+Input Monitoring / Accessibility grants stick.
+
 Web-only preview (no native shell, uses `localStorage`):
 
 ```sh
@@ -69,6 +74,7 @@ after rebuilding if the banner comes back.
 | --- | --- |
 | Show / hide | ⇧⇧ (double-tap Shift) · ⌥⇧Space · click the menu-bar icon · `Esc` when the input is empty · ⌘W |
 | Add a note | capture box at the bottom: type / paste (Markdown, multi-line), ↩ · ⇧↩ for a newline |
+| Capture from another app | select text anywhere, tap ⇧⇧ — it lands in the capture box (needs Accessibility; Settings → *Capture selected text*) |
 | Attach images | ⊕ → *Attach images…*, paste an image (⌘V), or **drag & drop** anywhere on the window — the images land in the capture box so you can add a prompt and press ↩ · accepts files from Finder and images dragged from browsers/apps · up to **10** per note · a note can be images only · thumbnails show above the text (click to open) · ⊕ also has *New folder* |
 | Copy with images | ⌘C / ⋯ → Copy puts the **text and the image files** on the clipboard together — paste once into ChatGPT, Claude, Cursor… (they read the files; text fields get the text) · drag a thumbnail out to drop the note's images into another app |
 | Folders | tabs at the top (the first is "Untitled" until you rename it) · ⌘1…⌘9 switch · ⇧⌘N new · click the active folder's name to rename (or ⋯ → Rename folder, or right-click) · right-click also has Copy as list / Clear done / Delete |
@@ -130,8 +136,17 @@ docs/superpowers/specs/     design specs (v1, v2)
 
 `bun run test` · `bun run typecheck` · debug builds log to `$TMPDIR/batch-dev.log`.
 
+## Data & safety
+
+- Saves are atomic (temp file + rename) and a copy of the previous version is kept
+  once a day in `backups/` (last 7). ⋯ → **Export** writes Markdown or a JSON
+  backup; **Import JSON…** merges one back in (folders matched by name, ⌘Z undoes).
+- If `notes.json` ever can't be read, Batch shows a banner and **pauses saving**
+  instead of overwriting; *Start fresh* moves the old file to `notes.corrupt-….json`.
+- Only one instance runs; launching Batch again just brings it forward.
+- Your unsent draft (text + images) survives hiding and quitting.
+
 ## Not yet (deliberately)
 
 Widget (WidgetKit — needs a Swift extension), sync, updater ("free updates" here
-= rebuild from source), due dates, tags, drag-reorder, capture the current
-selection on double-Shift.
+= rebuild from source), due dates, tags.
