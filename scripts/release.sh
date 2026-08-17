@@ -52,12 +52,26 @@ else
 fi
 
 echo "▸ making dmg…"
-STAGE=$(mktemp -d)
-cp -R "$OUT/Batch.app" "$STAGE/Batch.app"
-ln -s /Applications "$STAGE/Applications"
 DMG="$OUT/Batch-$VERSION-universal.dmg"
-hdiutil create -volname "Batch" -srcfolder "$STAGE" -ov -format UDZO -imagekey zlib-level=9 "$DMG" >/dev/null
-rm -rf "$STAGE"
-if [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then codesign --force --sign "$APPLE_SIGNING_IDENTITY" "$DMG" || true; fi
+# Styled installer window (black background, drag-to-install arrow) via dmgbuild;
+# falls back to a plain hdiutil image if it isn't available.
+if python3 -c "import dmgbuild" >/dev/null 2>&1 || python3 -m pip install --user --quiet dmgbuild >/dev/null 2>&1; then
+  python3 -m dmgbuild -s scripts/dmg-settings.py -D "app=$OUT/Batch.app" "Batch" "$DMG"
+else
+  STAGE=$(mktemp -d)
+  cp -R "$OUT/Batch.app" "$STAGE/Batch.app"
+  ln -s /Applications "$STAGE/Applications"
+  hdiutil create -volname "Batch" -srcfolder "$STAGE" -ov -format UDZO -imagekey zlib-level=9 "$DMG" >/dev/null
+  rm -rf "$STAGE"
+fi
+if [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
+  codesign --force --sign "$APPLE_SIGNING_IDENTITY" "$DMG" || true
+  # Notarize the disk image too (the app inside is already stapled) so it mounts without complaint.
+  if [ "${HAVE_PROFILE:-0}" = 1 ]; then
+    xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait >/dev/null && xcrun stapler staple "$DMG" >/dev/null && echo "▸ dmg notarized + stapled"
+  elif [ -n "${APPLE_ID:-}" ] && [ -n "${APPLE_PASSWORD:-}" ] && [ -n "${APPLE_TEAM_ID:-}" ]; then
+    xcrun notarytool submit "$DMG" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait >/dev/null && xcrun stapler staple "$DMG" >/dev/null && echo "▸ dmg notarized + stapled"
+  fi
+fi
 echo "✓ $DMG"
 ls -la "$OUT"
