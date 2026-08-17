@@ -30,7 +30,7 @@ import {
 } from "@/lib/notes";
 import { type Filter, EMPTY_FILTER, activeFilterCount, applyFilters } from "@/lib/filters";
 import { asList, asNumberedList, asPlainText } from "@/lib/format";
-import { attachmentsDir as loadAttachmentsDir, dragHasImages, dragOut, imagesFromDrop } from "@/store/attachments";
+import { attachmentsDir as loadAttachmentsDir, dragHasImages, dragOut, imagesFromDrop, saveImages } from "@/store/attachments";
 import { allAttachmentIds, normalizeState, HEADING_PREFIX, isHeading, type Attachment } from "@/lib/notes";
 import { type ActionId, matchesEvent } from "@/lib/shortcuts";
 
@@ -64,7 +64,10 @@ export default function App() {
   const [dsStatus, setDsStatus] = useState<{ active: boolean; granted: boolean } | null>(null);
   const [attDir, setAttDir] = useState("");
   const [dropping, setDropping] = useState(false);
+  const [dropRowId, setDropRowId] = useState<string | null>(null);
   const dragDepth = useRef(0);
+  const noteFileInput = useRef<HTMLInputElement>(null);
+  const attachTargetId = useRef<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
@@ -309,6 +312,22 @@ export default function App() {
     // Only once, right after the first successful load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notes.loadOk]);
+  /** Save files and append them to an existing note (respecting the cap). */
+  const attachToNote = useCallback(
+    async (id: string, files: File[]) => {
+      const n = notesById.get(id);
+      if (!n || isHeading(n) || n.done) return;
+      const existing = n.attachments ?? [];
+      const { saved, skipped } = await saveImages(files, existing.length);
+      if (saved.length === 0) return showToast(skipped ? "That note already has 10 images" : "Couldn't save the image");
+      notes.setAttachments(id, [...existing, ...saved]);
+      showToast(`Added ${saved.length} image${saved.length > 1 ? "s" : ""}${skipped ? ` · ${skipped} skipped (max 10)` : ""}`);
+    },
+    [notesById, notes, showToast],
+  );
+  const rowUnder = (target: EventTarget | null): string | null =>
+    target instanceof Element ? (target.closest("[data-note-id]") as HTMLElement | null)?.dataset.noteId ?? null : null;
+
   // Drag & drop (HTML5; Tauri's native interception is off so this also catches
   // images dragged from browsers/apps). Anything dropped anywhere on the window
   // attaches to the capture box, so you can add a prompt and press ↩.
@@ -322,22 +341,36 @@ export default function App() {
     if (!dragHasImages(e.dataTransfer)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "copy";
+    const id = rowUnder(e.target);
+    const n = id ? notesById.get(id) : undefined;
+    const ok = n && !isHeading(n) && !n.done ? id : null;
+    setDropRowId((cur) => (cur === ok ? cur : ok));
   };
   const onDragLeave = (e: React.DragEvent) => {
     if (!dragHasImages(e.dataTransfer)) return;
     dragDepth.current = Math.max(0, dragDepth.current - 1);
-    if (dragDepth.current === 0) setDropping(false);
+    if (dragDepth.current === 0) {
+      setDropping(false);
+      setDropRowId(null);
+    }
   };
   const onDrop = async (e: React.DragEvent) => {
     if (!dragHasImages(e.dataTransfer)) return;
     e.preventDefault();
     dragDepth.current = 0;
     setDropping(false);
+    const targetRow = dropRowId;
+    setDropRowId(null);
     const files = await imagesFromDrop(e.dataTransfer);
     if (files.length === 0) return showToast("Only images can be dropped here");
     setView("list");
-    if (searchOpen) closeSearch();
     void native.focus(); // the source app is frontmost after a cross-app drag
+    if (targetRow) {
+      // Dropped on a note → attach to that note.
+      await attachToNote(targetRow, files);
+      return;
+    }
+    if (searchOpen) closeSearch();
     await captureRef.current?.addFiles(files);
     focusCapture();
   };
@@ -657,9 +690,23 @@ export default function App() {
           onQuit={quit}
         />
 
-        {dropping && (
+        <input
+          ref={noteFileInput}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? []);
+            e.target.value = "";
+            const id = attachTargetId.current;
+            attachTargetId.current = null;
+            if (id && files.length) void attachToNote(id, files);
+          }}
+        />
+        {dropping && !dropRowId && (
           <div className="pointer-events-none absolute inset-0 z-50 grid place-items-center rounded-xl border-2 border-dashed border-ring/60 bg-background/70 text-sm text-foreground">
-            Drop images to attach
+            Drop images to attach — or drop onto a note
           </div>
         )}
         {view === "settings" ? (
@@ -822,6 +869,17 @@ export default function App() {
               bindings={{ copyList: keymap.copySectionAsList, merge: keymap.merge }}
               onContextSelect={(id) => {
                 if (!nav.selected.has(id)) nav.focus(id);
+              }}
+              imageDropRowId={dropRowId}
+              onAttachImages={(id) => {
+                attachTargetId.current = id;
+                noteFileInput.current?.click();
+              }}
+              onRemoveAttachment={(id, aid) => {
+                const n = notesById.get(id);
+                if (!n) return;
+                notes.setAttachments(id, (n.attachments ?? []).filter((a) => a.id !== aid));
+                showToast("Image removed · ⌘Z to undo");
               }}
               reorderable={!searching}
               onReorder={(id, afterId) => {

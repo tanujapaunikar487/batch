@@ -76,6 +76,7 @@ after rebuilding if the banner comes back.
 | Add a note | capture box at the bottom: type / paste (Markdown, multi-line), ↩ · ⇧↩ for a newline |
 | Capture from another app | select text anywhere, tap ⇧⇧ — it lands in the capture box (needs Accessibility; Settings → *Capture selected text*) |
 | Attach images | ⊕ → *Attach images…*, paste an image (⌘V), or **drag & drop** anywhere on the window — the images land in the capture box so you can add a prompt and press ↩ · accepts files from Finder and images dragged from browsers/apps · up to **10** per note · a note can be images only · thumbnails show above the text (click to open) · ⊕ also has *New folder* |
+| Images on an existing note | drop images onto the note, or right-click → *Attach images…* · hover a thumbnail → × removes it (⌘Z undoes) |
 | Copy with images | ⌘C / ⋯ → Copy puts the **text and the image files** on the clipboard together — paste once into ChatGPT, Claude, Cursor… (they read the files; text fields get the text) · drag a thumbnail out to drop the note's images into another app |
 | Folders | tabs at the top (the first is "Untitled" until you rename it) · ⌘1…⌘9 switch · ⇧⌘N new · click the active folder's name to rename (or ⋯ → Rename folder, or right-click) · right-click also has Copy as list / Clear done / Delete |
 | Browse | ↑ from the capture box enters the list (↓ past the last note returns) · ↑↓ move · ⇧↑↓ extend · ⌘A select all · click / ⌘-click / ⇧-click |

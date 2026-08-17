@@ -16,6 +16,7 @@ type RowHandlers = Omit<
   | "onRowDragOver"
   | "onRowDrop"
   | "onRowDragEnd"
+  | "dropTargetRow"
 >;
 
 interface Props extends RowHandlers {
@@ -23,6 +24,8 @@ interface Props extends RowHandlers {
   reorderable?: boolean;
   /** Called with the dragged id and the id it should follow (null = top). */
   onReorder?: (id: string, afterId: string | null) => void;
+  /** Row currently hovered by an external image drag. */
+  imageDropRowId?: string | null;
   open: Note[];
   done: Note[];
   sections: Section[];
@@ -48,6 +51,7 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
     onKeyDown,
     reorderable,
     onReorder,
+    imageDropRowId,
     ...handlers
   },
   ref,
@@ -89,6 +93,7 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
       isSelected={selected.has(n.id)}
       isEditing={editingId === n.id}
       reorderable={canDrag}
+      dropTargetRow={imageDropRowId === n.id}
       dropEdge={dragId && over?.id === n.id && dragId !== n.id ? over.edge : null}
       onRowDragStart={(id) => setDragId(id)}
       onRowDragOver={(id, edge) => setOver((o) => (o?.id === id && o.edge === edge ? o : { id, edge }))}

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Check, CheckSquare, Copy, CornerDownRight, Flag, FolderInput, ListOrdered, Merge, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, CheckSquare, Copy, CornerDownRight, Flag, FolderInput, ImagePlus, ListOrdered, Merge, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,6 +50,11 @@ export interface NoteRowProps {
   onNudge?: (id: string, delta: -1 | 1) => void;
   onOpenAttachment: (a: Attachment) => void;
   onDragAttachments: (e: React.DragEvent, note: Note, a: Attachment) => void;
+  /** Add images to this note (opens the picker). */
+  onAttachImages: (id: string) => void;
+  onRemoveAttachment: (id: string, attachmentId: string) => void;
+  /** A file drag is hovering this row (App owns the drop). */
+  dropTargetRow?: boolean;
   /** For heading rows: open notes under this heading. */
   sectionCount?: number;
   /** Manual reordering (disabled in search results). */
@@ -88,6 +93,9 @@ export function NoteRow({
   onNudge,
   onOpenAttachment,
   onDragAttachments,
+  onAttachImages,
+  onRemoveAttachment,
+  dropTargetRow,
   sectionCount,
   reorderable,
   dropEdge,
@@ -170,6 +178,7 @@ export function NoteRow({
             (isSelected || menuOpen) && "bg-foreground/[0.07] dark:bg-foreground/[0.1] hover:bg-foreground/[0.08]",
             isCursor && "ring-1 ring-ring/40",
             note.done && !isSelected && "opacity-60",
+            dropTargetRow && "ring-2 ring-ring/50 bg-foreground/[0.05]",
             // Drop indicator line while reordering.
             dropEdge === "top" && "before:absolute before:inset-x-2 before:-top-0.5 before:h-0.5 before:rounded-full before:bg-ring",
             dropEdge === "bottom" && "after:absolute after:inset-x-2 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-ring",
@@ -193,6 +202,7 @@ export function NoteRow({
                 size="sm"
                 onOpen={onOpenAttachment}
                 onDragStart={(e, a) => onDragAttachments(e, note, a)}
+                onRemove={note.done ? undefined : (aid) => onRemoveAttachment(note.id, aid)}
                 className={cn("mb-1", note.done && "opacity-70")}
               />
             )}
@@ -321,6 +331,11 @@ export function NoteRow({
           <ContextMenuItem onSelect={() => onStartEdit(note.id)}>
             <Pencil /> Edit
             <ContextMenuShortcut>↩</ContextMenuShortcut>
+          </ContextMenuItem>
+        )}
+        {!many && !note.done && (
+          <ContextMenuItem onSelect={() => onAttachImages(note.id)}>
+            <ImagePlus /> Attach images…
           </ContextMenuItem>
         )}
         {many && (
