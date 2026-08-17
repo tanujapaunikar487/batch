@@ -149,6 +149,36 @@ describe("notes reducer", () => {
     expect(back.notes[0].done).toBe(false);
   });
 
+  it("moving a heading moves its whole section (nudge swaps blocks, drag snaps to block ends)", () => {
+    const h = (id: string, text: string, t: number) => note({ id, text, createdAt: t, kind: "heading" });
+    const s0 = state([
+      note({ id: "x", text: "loose", createdAt: 1 }),
+      h("A", "A", 2), note({ id: "a1", createdAt: 3 }), note({ id: "a2", createdAt: 4 }),
+      h("B", "B", 5), note({ id: "b1", createdAt: 6 }),
+    ]);
+    const ids = (st: NotesState) => notesInSection(st, INBOX_ID).map((n) => n.id);
+    // B up → B block before A block
+    const s1 = reduce(s0, { type: "nudge", id: "B", delta: -1, now: 10 });
+    expect(ids(s1)).toEqual(["x", "B", "b1", "A", "a1", "a2"]);
+    // B up again → before the loose note
+    const s2 = reduce(s1, { type: "nudge", id: "B", delta: -1, now: 11 });
+    expect(ids(s2)).toEqual(["B", "b1", "x", "A", "a1", "a2"]);
+    expect(reduce(s2, { type: "nudge", id: "B", delta: -1, now: 12 })).toBe(s2);
+    // drag A (block) after b1 → A block goes to the end of B's block... which is the end here
+    const s3 = reduce(s0, { type: "reorder", id: "A", afterId: "b1", now: 13 });
+    expect(ids(s3)).toEqual(["x", "B", "b1", "A", "a1", "a2"]);
+    // drag A after "x" → stays where it is (already after x)
+    expect(ids(reduce(s0, { type: "reorder", id: "A", afterId: "x", now: 14 }))).toEqual(ids(s0));
+    // drag A to top
+    expect(ids(reduce(s0, { type: "reorder", id: "A", afterId: null, now: 15 }))).toEqual(["A", "a1", "a2", "x", "B", "b1"]);
+    // dropping into the middle of B's notes snaps to B's end (can't split a section)
+    const s4 = state([h("A", "A", 1), note({ id: "a1", createdAt: 2 }), h("B", "B", 3), note({ id: "b1", createdAt: 4 }), note({ id: "b2", createdAt: 5 })]);
+    expect(ids(reduce(s4, { type: "reorder", id: "A", afterId: "b1", now: 16 }))).toEqual(["B", "b1", "b2", "A", "a1"]);
+    // new notes still append after everything
+    const s5 = reduce(s2, { type: "add", id: "z", sectionId: INBOX_ID, text: "z", now: 99 });
+    expect(ids(s5)[ids(s5).length - 1]).toBe("z");
+  });
+
   it("toggle sets/clears completedAt", () => {
     const s0 = state([note({ id: "a" })]);
     const s1 = reduce(s0, { type: "toggle", id: "a", now: 5 });

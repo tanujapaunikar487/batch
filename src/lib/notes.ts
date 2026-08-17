@@ -235,37 +235,41 @@ export function reduce(state: NotesState, action: Action): NotesState {
     case "reorder": {
       const moving = state.notes.find((n) => n.id === action.id);
       if (!moving || moving.done || action.afterId === action.id) return state;
-      const siblings = state.notes
-        .filter((n) => n.sectionId === moving.sectionId && !n.done && n.id !== action.id)
-        .sort((a, b) => sortKey(a) - sortKey(b));
-      let key: number;
-      if (action.afterId === null) {
-        if (siblings.length === 0) return state;
-        key = sortKey(siblings[0]) - 1000;
-      } else {
-        const i = siblings.findIndex((n) => n.id === action.afterId);
+      const sorted = openSorted(state, moving.sectionId);
+      const block = groupOf(sorted, action.id);
+      const blockIds = new Set(block.map((n) => n.id));
+      if (action.afterId && blockIds.has(action.afterId)) return state;
+      const rest = sorted.filter((n) => !blockIds.has(n.id));
+      let at = 0;
+      if (action.afterId !== null) {
+        let i = rest.findIndex((n) => n.id === action.afterId);
         if (i === -1) return state;
-        const prev = sortKey(siblings[i]);
-        const next = i + 1 < siblings.length ? sortKey(siblings[i + 1]) : null;
-        // Bottom: use "now" so notes added later still append below it.
-        key = next === null ? Math.max(prev + 1, action.now) : (prev + next) / 2;
+        // A section block dropped inside another section snaps to that section's end.
+        if (isHeading(moving)) while (i + 1 < rest.length && !isHeading(rest[i + 1])) i++;
+        at = i + 1;
       }
-      if (key === sortKey(moving)) return state;
-      return mapNotes(state, [action.id], (n) => ({ ...n, order: key }));
+      const seq = [...rest.slice(0, at), ...block, ...rest.slice(at)];
+      return withSequence(state, sorted, seq);
     }
     case "nudge": {
       const moving = state.notes.find((n) => n.id === action.id);
       if (!moving || moving.done) return state;
-      const siblings = state.notes
-        .filter((n) => n.sectionId === moving.sectionId && !n.done)
-        .sort((a, b) => sortKey(a) - sortKey(b));
-      const i = siblings.findIndex((n) => n.id === action.id);
+      const sorted = openSorted(state, moving.sectionId);
+      if (isHeading(moving)) {
+        // Whole section blocks swap places.
+        const blocks = splitBlocks(sorted);
+        const bi = blocks.findIndex((bl) => bl[0].id === action.id);
+        const bj = bi + action.delta;
+        if (bi === -1 || bj < 0 || bj >= blocks.length) return state;
+        [blocks[bi], blocks[bj]] = [blocks[bj], blocks[bi]];
+        return withSequence(state, sorted, blocks.flat());
+      }
+      const i = sorted.findIndex((n) => n.id === action.id);
       const j = i + action.delta;
-      if (i === -1 || j < 0 || j >= siblings.length) return state;
-      // Swap positions with the neighbour by placing after the right anchor.
-      const without = siblings.filter((n) => n.id !== action.id);
-      const afterId = j === 0 ? null : without[j - 1].id;
-      return reduce(state, { type: "reorder", id: action.id, afterId, now: action.now });
+      if (i === -1 || j < 0 || j >= sorted.length) return state;
+      const seq = sorted.slice();
+      [seq[i], seq[j]] = [seq[j], seq[i]];
+      return withSequence(state, sorted, seq);
     }
     case "clearDone": {
       const notes = state.notes.filter(
@@ -317,6 +321,52 @@ export function reduce(state: NotesState, action: Action): NotesState {
     case "replace":
       return action.state;
   }
+}
+
+// ───────────────────────── ordering helpers ─────────────────────────
+
+/** Open notes of a folder in display order. */
+function openSorted(state: NotesState, sectionId: string): Note[] {
+  return state.notes.filter((n) => n.sectionId === sectionId && !n.done).sort((a, b) => sortKey(a) - sortKey(b));
+}
+
+/** A heading + the notes under it (until the next heading); a plain note is its own group. */
+function groupOf(sorted: Note[], id: string): Note[] {
+  const i = sorted.findIndex((n) => n.id === id);
+  if (i === -1) return [];
+  if (!isHeading(sorted[i])) return [sorted[i]];
+  let j = i + 1;
+  while (j < sorted.length && !isHeading(sorted[j])) j++;
+  return sorted.slice(i, j);
+}
+
+/** Split into blocks: a heading + its notes; unheaded notes before the first heading are single-note blocks. */
+function splitBlocks(sorted: Note[]): Note[][] {
+  const blocks: Note[][] = [];
+  for (const n of sorted) {
+    const last = blocks[blocks.length - 1];
+    if (isHeading(n) || !last || !isHeading(last[0])) blocks.push([n]);
+    else last.push(n);
+  }
+  return blocks;
+}
+
+/**
+ * Apply a new display sequence by redistributing the existing sort keys, so the
+ * key range stays timestamp-like and newly created notes still append at the end.
+ */
+function withSequence(state: NotesState, before: Note[], seq: Note[]): NotesState {
+  if (before.length === seq.length && before.every((n, i) => n.id === seq[i].id)) return state;
+  const keys = before.map(sortKey).sort((a, b) => a - b);
+  const keyById = new Map(seq.map((n, i) => [n.id, keys[i]]));
+  return mapNotes(
+    state,
+    seq.map((n) => n.id),
+    (n) => {
+      const k = keyById.get(n.id)!;
+      return sortKey(n) === k && n.order !== undefined ? n : { ...n, order: k };
+    },
+  );
 }
 
 // ───────────────────────── selectors ─────────────────────────
