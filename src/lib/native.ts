@@ -63,6 +63,9 @@ export const native = {
   quarantineNotes: () => call<string>("quarantine_notes"),
   writeTextFile: (path: string, contents: string) => invokeStrict("write_text_file", { path, contents }),
   readTextFile: (path: string) => invokeStrict<string>("read_text_file", { path }),
+  listBackups: () => call<{ name: string; path: string; bytes: number; date: string }[]>("list_backups"),
+  exportBundle: (destDir: string, folderName: string, markdown: string, attachmentIds: string[]) =>
+    invokeStrict<string>("export_bundle", { destDir, folderName, markdown, attachmentIds }),
   // ── attachments ──
   attachmentsDir: () => call<string>("attachments_dir"),
   importAttachments: (paths: string[]) => call<import("@/lib/notes").Attachment[]>("import_attachments", { paths }),

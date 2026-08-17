@@ -52,6 +52,8 @@ export interface Note {
   order?: number;
   /** "heading" = a section title row inside the folder (no checkbox / priority). */
   kind?: "heading";
+  /** Heading only: its notes are hidden in the list. */
+  collapsed?: boolean;
 }
 
 export const isHeading = (n: Pick<Note, "kind">) => n.kind === "heading";
@@ -110,8 +112,11 @@ export type Action =
   | { type: "clearDone"; sectionId?: string }
   /** Move `id` right after `afterId` among the open notes of its folder (null = to the top). */
   | { type: "reorder"; id: string; afterId: string | null; now: number }
-  /** Nudge `id` one step up (-1) or down (+1) among the open notes of its folder. */
+  /** Nudge `id` one step up (-1) or down (+1) within its folder. */
   | { type: "nudge"; id: string; delta: -1 | 1; now: number }
+  /** Move several notes together, keeping their relative order, right after `afterId` (null = top). */
+  | { type: "reorderMany"; ids: string[]; afterId: string | null; now: number }
+  | { type: "toggleCollapse"; id: string }
   | { type: "addSection"; id: string; name: string; now: number }
   | { type: "renameSection"; id: string; name: string }
   | { type: "removeSection"; id: string }
@@ -234,8 +239,8 @@ export function reduce(state: NotesState, action: Action): NotesState {
     }
     case "reorder": {
       const moving = state.notes.find((n) => n.id === action.id);
-      if (!moving || moving.done || action.afterId === action.id) return state;
-      const sorted = openSorted(state, moving.sectionId);
+      if (!moving || action.afterId === action.id) return state;
+      const sorted = folderSorted(state, moving.sectionId);
       const block = groupOf(sorted, action.id);
       const blockIds = new Set(block.map((n) => n.id));
       if (action.afterId && blockIds.has(action.afterId)) return state;
@@ -251,10 +256,28 @@ export function reduce(state: NotesState, action: Action): NotesState {
       const seq = [...rest.slice(0, at), ...block, ...rest.slice(at)];
       return withSequence(state, sorted, seq);
     }
+    case "reorderMany": {
+      const set = new Set(action.ids);
+      const first = state.notes.find((n) => set.has(n.id));
+      if (!first || (action.afterId && set.has(action.afterId))) return state;
+      const sorted = folderSorted(state, first.sectionId);
+      const block = sorted.filter((n) => set.has(n.id) && !isHeading(n));
+      if (block.length === 0) return state;
+      const rest = sorted.filter((n) => !set.has(n.id) || isHeading(n));
+      let at = 0;
+      if (action.afterId !== null) {
+        const i = rest.findIndex((n) => n.id === action.afterId);
+        if (i === -1) return state;
+        at = i + 1;
+      }
+      return withSequence(state, sorted, [...rest.slice(0, at), ...block, ...rest.slice(at)]);
+    }
+    case "toggleCollapse":
+      return mapNotes(state, [action.id], (n) => (isHeading(n) ? { ...n, collapsed: !n.collapsed } : n));
     case "nudge": {
       const moving = state.notes.find((n) => n.id === action.id);
-      if (!moving || moving.done) return state;
-      const sorted = openSorted(state, moving.sectionId);
+      if (!moving) return state;
+      const sorted = folderSorted(state, moving.sectionId);
       if (isHeading(moving)) {
         // Whole section blocks swap places.
         const blocks = splitBlocks(sorted);
@@ -325,9 +348,9 @@ export function reduce(state: NotesState, action: Action): NotesState {
 
 // ───────────────────────── ordering helpers ─────────────────────────
 
-/** Open notes of a folder in display order. */
-function openSorted(state: NotesState, sectionId: string): Note[] {
-  return state.notes.filter((n) => n.sectionId === sectionId && !n.done).sort((a, b) => sortKey(a) - sortKey(b));
+/** All notes of a folder (open and done) in display order — done notes stay in place. */
+function folderSorted(state: NotesState, sectionId: string): Note[] {
+  return state.notes.filter((n) => n.sectionId === sectionId).sort((a, b) => sortKey(a) - sortKey(b));
 }
 
 /** A heading + the notes under it (until the next heading); a plain note is its own group. */
@@ -373,6 +396,11 @@ function withSequence(state: NotesState, before: Note[], seq: Note[]): NotesStat
 
 const byCreated = (a: Note, b: Note) => sortKey(a) - sortKey(b);
 const byCompletedDesc = (a: Note, b: Note) => (b.completedAt ?? 0) - (a.completedAt ?? 0);
+
+/** Every note in a folder in display order (open and done interleaved). */
+export function allInSection(state: NotesState, sectionId: string): Note[] {
+  return folderSorted(state, sectionId);
+}
 
 /** Open notes in a section, oldest first. */
 export function notesInSection(state: NotesState, sectionId: string): Note[] {
@@ -458,6 +486,7 @@ export function normalizeState(raw: unknown): NotesState {
       note.done = false;
       delete note.completedAt;
       delete note.attachments;
+      if (n.collapsed === true) note.collapsed = true;
     }
     notes.push(note);
   }

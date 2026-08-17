@@ -94,6 +94,93 @@ pub fn quarantine_notes(app: AppHandle) -> Result<String, String> {
     Ok(target.display().to_string())
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BackupInfo {
+    pub name: String,
+    pub path: String,
+    pub bytes: u64,
+    /// YYYY-MM-DD taken from the file name.
+    pub date: String,
+}
+
+/// Daily backups, newest first.
+#[tauri::command]
+pub fn list_backups(app: AppHandle) -> Result<Vec<BackupInfo>, String> {
+    let dir = data_dir(&app)?.join("backups");
+    let mut out = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(&dir) {
+        for e in entries.flatten() {
+            let path = e.path();
+            let Some(name) = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .map(|s| s.to_string())
+            else {
+                continue;
+            };
+            if !(name.starts_with("notes-") && name.ends_with(".json")) {
+                continue;
+            }
+            let bytes = e.metadata().map(|m| m.len()).unwrap_or(0);
+            let date = name
+                .trim_start_matches("notes-")
+                .trim_end_matches(".json")
+                .to_string();
+            out.push(BackupInfo {
+                name,
+                path: path.display().to_string(),
+                bytes,
+                date,
+            });
+        }
+    }
+    out.sort_by(|a, b| b.name.cmp(&a.name));
+    Ok(out)
+}
+
+/// Markdown export with images: `<dest>/<folder_name>/notes.md` + `attachments/<id>` copies.
+#[tauri::command]
+pub fn export_bundle(
+    app: AppHandle,
+    dest_dir: String,
+    folder_name: String,
+    markdown: String,
+    attachment_ids: Vec<String>,
+) -> Result<String, String> {
+    let dest = PathBuf::from(&dest_dir);
+    if !dest.is_absolute() {
+        return Err("destination must be absolute".into());
+    }
+    let safe_name: String = folder_name
+        .chars()
+        .map(|c| {
+            if c == '/' || c == ':' || c == '\\' {
+                '-'
+            } else {
+                c
+            }
+        })
+        .collect();
+    let root = dest.join(safe_name.trim());
+    let att_out = root.join("attachments");
+    std::fs::create_dir_all(&att_out).map_err(|e| e.to_string())?;
+    std::fs::write(root.join("notes.md"), markdown).map_err(|e| e.to_string())?;
+    let src = crate::attachments::dir(&app)?;
+    let mut copied = 0;
+    for id in attachment_ids {
+        if id.contains('/') || id.contains('\\') || id.starts_with('.') {
+            continue;
+        }
+        let from = src.join(&id);
+        if from.exists() && std::fs::copy(&from, att_out.join(&id)).is_ok() {
+            copied += 1;
+        }
+    }
+    let _ = copied;
+    Ok(root.display().to_string())
+}
+
 /// Write arbitrary text to a user-chosen path (export). Only absolute paths.
 #[tauri::command]
 pub fn write_text_file(path: String, contents: String) -> Result<(), String> {

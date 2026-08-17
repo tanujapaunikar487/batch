@@ -31,7 +31,7 @@ import {
 import { type Filter, EMPTY_FILTER, activeFilterCount, applyFilters } from "@/lib/filters";
 import { asList, asNumberedList, asPlainText } from "@/lib/format";
 import { attachmentsDir as loadAttachmentsDir, dragHasImages, dragOut, imagesFromDrop, saveImages } from "@/store/attachments";
-import { allAttachmentIds, normalizeState, HEADING_PREFIX, isHeading, type Attachment } from "@/lib/notes";
+import { allAttachmentIds, allInSection, normalizeState, HEADING_PREFIX, isHeading, type Attachment } from "@/lib/notes";
 import { type ActionId, matchesEvent } from "@/lib/shortcuts";
 
 const inTauri = isTauri();
@@ -93,10 +93,8 @@ export default function App() {
       const hits = applyFilters(searchNotes(state, query), filter);
       return { open: hits.filter((n) => !n.done), done: hits.filter((n) => n.done) };
     }
-    return {
-      open: applyFilters(notesInSection(state, activeSection.id), filter),
-      done: applyFilters(doneInSection(state, activeSection.id), filter),
-    };
+    // Folder view: one sequence, done notes stay in place (struck through).
+    return { open: applyFilters(allInSection(state, activeSection.id), filter), done: [] };
   }, [state, searching, query, filter, activeSection.id]);
   const visibleIds = useMemo(() => [...open, ...done].map((n) => n.id), [open, done]);
   const nav = useListNav(visibleIds);
@@ -312,6 +310,23 @@ export default function App() {
     // Only once, right after the first successful load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notes.loadOk]);
+  /** From a search result: open the note's folder with the note focused. */
+  const goToFolder = useCallback(
+    (id: string) => {
+      const n = notesById.get(id);
+      if (!n) return;
+      setSearchOpen(false);
+      setQuery("");
+      setActiveId(n.sectionId);
+      requestAnimationFrame(() => {
+        nav.focus(id);
+        listRef.current?.focus();
+        listRef.current?.querySelector(`[data-note-id="${id}"]`)?.scrollIntoView({ block: "center" });
+      });
+    },
+    [notesById, nav],
+  );
+
   /** Save files and append them to an existing note (respecting the cap). */
   const attachToNote = useCallback(
     async (id: string, files: File[]) => {
@@ -391,9 +406,26 @@ export default function App() {
 
   // ── export / import ──
   const exportAs = useCallback(
-    async (what: "folder-md" | "all-md" | "json") => {
+    async (what: "folder-md" | "all-md" | "json" | "folder-bundle" | "all-bundle") => {
       if (!inTauri) return showToast("Export is available in the Mac app");
-      const { save } = await import("@tauri-apps/plugin-dialog");
+      const { save, open } = await import("@tauri-apps/plugin-dialog");
+      if (what === "folder-bundle" || what === "all-bundle") {
+        // Markdown + the image files, into a new folder inside a chosen destination.
+        const dest = await open({ directory: true, multiple: false, title: "Choose where to save the export" });
+        if (!dest || typeof dest !== "string") return;
+        const whole = what === "all-bundle";
+        const md = whole ? allToMarkdown(state) : folderToMarkdown(state, activeSection);
+        const notesIn = whole ? state.notes : state.notes.filter((n) => n.sectionId === activeSection.id);
+        const ids = notesIn.flatMap((n) => (n.attachments ?? []).map((a) => a.id));
+        const name = `${whole ? "Batch" : activeSection.name} export ${new Date().toISOString().slice(0, 10)}`;
+        try {
+          const path = await native.exportBundle(dest, name, md, ids);
+          showToast(`Exported to ${path.split("/").pop()} ✓`);
+        } catch (e) {
+          showToast(`Export failed: ${String((e as Error)?.message ?? e)}`);
+        }
+        return;
+      }
       const stamp = new Date().toISOString().slice(0, 10);
       const isJson = what === "json";
       const name = what === "folder-md" ? `${activeSection.name}-${stamp}.md` : `batch-${stamp}.${isJson ? "json" : "md"}`;
@@ -412,6 +444,31 @@ export default function App() {
       }
     },
     [state, activeSection, showToast],
+  );
+  const [backups, setBackups] = useState<{ name: string; path: string; bytes: number; date: string }[]>([]);
+  const refreshBackups = useCallback(() => {
+    if (inTauri) void native.listBackups().then((b) => setBackups(b ?? []));
+  }, []);
+  const restoreBackup = useCallback(
+    async (b: { path: string; date: string }) => {
+      const { ask } = await import("@tauri-apps/plugin-dialog");
+      const ok = await ask(`Replace everything with the backup from ${b.date}? Your current notes will be replaced (⌘Z undoes).`, {
+        title: "Restore backup",
+        kind: "warning",
+        okLabel: "Restore",
+        cancelLabel: "Cancel",
+      });
+      if (!ok) return;
+      try {
+        const text = await native.readTextFile(b.path);
+        const restored = normalizeState(parseImport(text));
+        notes.replace(restored);
+        showToast(`Restored backup from ${b.date} · ⌘Z to undo`);
+      } catch (e) {
+        showToast(`Restore failed: ${String((e as Error)?.message ?? e)}`);
+      }
+    },
+    [notes, showToast],
   );
   const importJson = useCallback(async () => {
     if (!inTauri) return showToast("Import is available in the Mac app");
@@ -607,6 +664,7 @@ export default function App() {
       if (e.code === "Space") return void (e.preventDefault(), toggleMany(taskTargets));
       if (e.code === "Enter") {
         e.preventDefault();
+        if (searching) return void goToFolder(nav.cursor);
         const n = notesById.get(nav.cursor);
         if (n && !n.done) setEditingId(nav.cursor);
         return;
@@ -623,7 +681,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [
     keymap, runAction, hide, quit, state.sections, nav, view, editingId, searchOpen, closeSearch,
-    filtersOpen, filter, focusCapture, copyNotes, notes, notesById, removeIds, toggleMany, searching, taskTargets,
+    filtersOpen, filter, focusCapture, copyNotes, notes, notesById, removeIds, toggleMany, searching, taskTargets, goToFolder,
   ]);
 
   // ── render ──
@@ -683,6 +741,9 @@ export default function App() {
           onResetPosition={() => void native.resetPosition()}
           onExport={exportAs}
           onImport={importJson}
+          backups={backups}
+          onOpenBackups={refreshBackups}
+          onRestoreBackup={(b) => void restoreBackup(b)}
           theme={settings.settings.theme}
           onTheme={settings.setTheme}
           onOpenSettings={() => setView("settings")}
@@ -886,6 +947,15 @@ export default function App() {
                 notes.reorder(id, afterId);
                 nav.clear();
               }}
+              onReorderMany={(ids, afterId) => {
+                notes.reorderMany(ids, afterId);
+                showToast(`Moved ${ids.length} notes · ⌘Z to undo`);
+                nav.clear();
+              }}
+              selectionForDrag={(id) => (nav.selected.has(id) ? [...nav.selected] : [id])}
+              dragGroup={(id) => (nav.selected.has(id) ? [...nav.selected].filter((x) => !isHeading(notesById.get(x) ?? {})) : [id])}
+              onToggleCollapse={notes.toggleCollapse}
+              onGoToFolder={goToFolder}
               onNudge={(id, delta) => {
                 notes.nudge(id, delta);
                 nav.focus(id);
@@ -934,8 +1004,8 @@ export default function App() {
               selectedCount={nav.selected.size}
               toast={toast}
               mergeBinding={keymap.merge}
-              done={done.length}
-              total={open.filter((n) => !isHeading(n)).length + done.length}
+              done={[...open, ...done].filter((n) => !isHeading(n) && n.done).length}
+              total={[...open, ...done].filter((n) => !isHeading(n)).length}
             />
           </>
         )}

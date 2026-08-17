@@ -746,6 +746,8 @@ pub fn run() {
             notes_file::quarantine_notes,
             notes_file::write_text_file,
             notes_file::read_text_file,
+            notes_file::list_backups,
+            notes_file::export_bundle,
             dev_log
         ])
         .setup(|app| {

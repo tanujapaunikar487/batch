@@ -6,6 +6,7 @@ import {
   emptyState,
   reduce,
   notesInSection,
+  allInSection,
   doneInSection,
   searchNotes,
   normalizeState,
@@ -177,6 +178,29 @@ describe("notes reducer", () => {
     // new notes still append after everything
     const s5 = reduce(s2, { type: "add", id: "z", sectionId: INBOX_ID, text: "z", now: 99 });
     expect(ids(s5)[ids(s5).length - 1]).toBe("z");
+  });
+
+  it("done notes keep their place; reorderMany moves a block; toggleCollapse flips headings only", () => {
+    const s0 = state([
+      note({ id: "a", createdAt: 1 }),
+      note({ id: "b", createdAt: 2, done: true, completedAt: 5 }),
+      note({ id: "c", createdAt: 3 }),
+      note({ id: "d", createdAt: 4 }),
+    ]);
+    expect(allInSection(s0, INBOX_ID).map((n) => n.id)).toEqual(["a", "b", "c", "d"]);
+    // done note can be nudged like any other
+    expect(allInSection(reduce(s0, { type: "nudge", id: "b", delta: 1, now: 9 }), INBOX_ID).map((n) => n.id)).toEqual(["a", "c", "b", "d"]);
+    // multi-select move: a + d after c, keeping a before d
+    const s1 = reduce(s0, { type: "reorderMany", ids: ["d", "a"], afterId: "c", now: 10 });
+    expect(allInSection(s1, INBOX_ID).map((n) => n.id)).toEqual(["b", "c", "a", "d"]);
+    // to top
+    const s2 = reduce(s1, { type: "reorderMany", ids: ["a", "d"], afterId: null, now: 11 });
+    expect(allInSection(s2, INBOX_ID).map((n) => n.id)).toEqual(["a", "d", "b", "c"]);
+    // collapse
+    const s3 = reduce(state([note({ id: "h", kind: "heading" }), note({ id: "x" })]), { type: "toggleCollapse", id: "h" });
+    expect(s3.notes[0].collapsed).toBe(true);
+    expect(reduce(s3, { type: "toggleCollapse", id: "x" })).toBe(s3);
+    expect(reduce(s3, { type: "toggleCollapse", id: "h" }).notes[0].collapsed).toBe(false);
   });
 
   it("toggle sets/clears completedAt", () => {

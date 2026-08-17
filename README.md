@@ -84,13 +84,13 @@ after rebuilding if the banner comes back.
 | Copy as List | right-click → **Copy as List**, or ⇧⌘C — copies the selection (or the whole folder when nothing is selected) as a **numbered** list and marks those notes **done** (⌘Z undoes) |
 | Right-click menu | Copy · Copy as List · Mark as Done · Edit · Merge Notes · Priority · Move to · Delete — acts on the whole selection when the note is part of it (the ⋯ button opens the same menu) |
 | Merge notes | select 2+ → ⌘M or right-click → Merge Notes (texts joined, earliest note kept, ⌘Z to undo) |
-| Done | Space (or the checkbox); done notes sink below a hairline · ⇧⌘⌫ clears done in the section |
+| Done | Space (or the checkbox); done notes stay where they are, struck through · ⇧⌘⌫ / *Clear done* removes them |
 | Edit | ↩ or double-click · ↩ saves · `Esc` cancels |
 | Priority | 1 / 2 / 3 on the selected notes · hover → ⋯ → Priority · shown as a coloured dot |
 | Move to another folder | ⇧⌘] / ⇧⌘[ · or ⋯ / right-click → Move to |
-| Sections inside a folder | ⊕ → *New section*, or type `# Title` in the box — a heading row you can drag notes under (rename by clicking it; delete keeps its notes) |
-| Reorder | drag a note up or down within its folder (a line shows where it lands) · ⌥↑ / ⌥↓ on the selected note · right-click → Move up / Move down · ⌘Z undoes |
-| Search | ⌘F — searches all sections; results show their section |
+| Sections inside a folder | ⊕ → *New section*, or type `# Title` in the box — a heading row you can drag notes under (rename by clicking it; delete keeps its notes) · chevron collapses/expands it · moving a heading moves its whole section |
+| Reorder | drag a note up or down within its folder (a line shows where it lands) · drag one of several selected notes to move them all · ⌥↑ / ⌥↓ · right-click → Move up / Move down · ⌘Z undoes |
+| Search | ⌘F — searches all folders; results show their folder — click it (or ↩) to jump there with the note focused |
 | Filters | ⇧⌘F — Status (All / Open / Done) · Priority · Type (Links / Code / Text) · When (Today / 7 days) |
 | Undo / redo | ⌘Z / ⇧⌘Z (every note change, 50 steps) |
 | Delete | ⌫ on selected notes · hover → ⋯ → Delete |
@@ -141,8 +141,10 @@ docs/superpowers/specs/     design specs (v1, v2)
 ## Data & safety
 
 - Saves are atomic (temp file + rename) and a copy of the previous version is kept
-  once a day in `backups/` (last 7). ⋯ → **Export** writes Markdown or a JSON
-  backup; **Import JSON…** merges one back in (folders matched by name, ⌘Z undoes).
+  once a day in `backups/` (last 7). ⋯ → **Restore backup** lists them and replaces
+  everything with the chosen day (⌘Z undoes). ⋯ → **Export** writes Markdown (optionally
+  as a folder **with the image files**) or a JSON backup; **Import JSON…** merges one
+  back in (folders matched by name, ⌘Z undoes).
 - If `notes.json` ever can't be read, Batch shows a banner and **pauses saving**
   instead of overwriting; *Start fresh* moves the old file to `notes.corrupt-….json`.
 - Only one instance runs; launching Batch again just brings it forward.

@@ -113,6 +113,8 @@ export function useNotes(store?: KeyValueStore) {
       clearDone: (sectionId?: string) => dispatch({ type: "clearDone", sectionId }),
       reorder: (id: string, afterId: string | null) => dispatch({ type: "reorder", id, afterId, now: Date.now() }),
       nudge: (id: string, delta: -1 | 1) => dispatch({ type: "nudge", id, delta, now: Date.now() }),
+      reorderMany: (ids: string[], afterId: string | null) => dispatch({ type: "reorderMany", ids, afterId, now: Date.now() }),
+      toggleCollapse: (id: string) => dispatch({ type: "toggleCollapse", id }),
       addSection: (name: string) => {
         const id = newId();
         dispatch({ type: "addSection", id, name, now: Date.now() });

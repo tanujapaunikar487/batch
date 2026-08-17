@@ -20,10 +20,14 @@ type RowHandlers = Omit<
 >;
 
 interface Props extends RowHandlers {
-  /** Enable drag-to-reorder of open notes (off in search results). */
+  /** Enable drag-to-reorder (off in search results). */
   reorderable?: boolean;
   /** Called with the dragged id and the id it should follow (null = top). */
   onReorder?: (id: string, afterId: string | null) => void;
+  /** Dragging a note that's part of a multi-selection moves the whole selection. */
+  onReorderMany?: (ids: string[], afterId: string | null) => void;
+  /** Ids to move together when the dragged note is selected. */
+  selectionForDrag?: (id: string) => string[];
   /** Row currently hovered by an external image drag. */
   imageDropRowId?: string | null;
   open: Note[];
@@ -51,6 +55,8 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
     onKeyDown,
     reorderable,
     onReorder,
+    onReorderMany,
+    selectionForDrag,
     imageDropRowId,
     ...handlers
   },
@@ -64,13 +70,28 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
     setDragId(null);
     setOver(null);
     if (!from || from === targetId || !onReorder) return;
-    // Position in the list without the dragged note; "after" = the note that precedes the slot.
-    const ids = open.map((n) => n.id).filter((id) => id !== from);
+    const group = selectionForDrag?.(from) ?? [from];
+    const moving = new Set(group.length > 1 ? group : [from]);
+    if (moving.has(targetId)) return;
+    // Position in the list without the moving notes; "after" = the note that precedes the slot.
+    const ids = open.map((n) => n.id).filter((id) => !moving.has(id));
     const ti = ids.indexOf(targetId);
     if (ti === -1) return;
     const insertAt = edge === "top" ? ti : ti + 1;
-    onReorder(from, insertAt === 0 ? null : ids[insertAt - 1]);
+    const afterId = insertAt === 0 ? null : ids[insertAt - 1];
+    if (moving.size > 1 && onReorderMany) onReorderMany([...moving], afterId);
+    else onReorder(from, afterId);
   };
+
+  // Hide notes under collapsed headings.
+  const visible: Note[] = [];
+  let hiddenUnder: string | null = null;
+  for (const n of open) {
+    if (isHeading(n)) {
+      hiddenUnder = n.collapsed ? n.id : null;
+      visible.push(n);
+    } else if (!hiddenUnder) visible.push(n);
+  }
 
   // Open notes under each heading (until the next heading).
   const headingCounts = new Map<string, number>();
@@ -106,6 +127,7 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
     />
   );
   const empty = open.length === 0 && done.length === 0;
+  const dragging = dragId !== null;
   return (
     <div
       ref={ref}
@@ -120,9 +142,9 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
         <div className="px-2 pt-12 text-center text-sm text-muted-foreground select-none">{emptyMessage}</div>
       ) : (
         <>
-          {open.length > 0 && <ul className="flex flex-col">{open.map((n) => row(n, !!reorderable))}</ul>}
-          {open.length > 0 && done.length > 0 && <div className="my-1.5 border-t border-border/60" />}
+          {visible.length > 0 && <ul className="flex flex-col">{visible.map((n) => row(n, !!reorderable))}</ul>}
           {done.length > 0 && <ul className="flex flex-col">{done.map((n) => row(n, false))}</ul>}
+          {dragging && null}
         </>
       )}
     </div>

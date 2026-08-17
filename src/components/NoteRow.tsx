@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Check, CheckSquare, Copy, CornerDownRight, Flag, FolderInput, ImagePlus, ListOrdered, Merge, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, CheckSquare, ChevronDown, ChevronRight, Copy, CornerDownRight, Flag, FolderInput, ImagePlus, ListOrdered, Merge, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +55,12 @@ export interface NoteRowProps {
   onRemoveAttachment: (id: string, attachmentId: string) => void;
   /** A file drag is hovering this row (App owns the drop). */
   dropTargetRow?: boolean;
+  /** Heading: collapse / expand its notes. */
+  onToggleCollapse?: (id: string) => void;
+  /** Search results: jump to the note's folder. */
+  onGoToFolder?: (id: string) => void;
+  /** Ids that move together if this (selected) note is dragged. */
+  dragGroup?: (id: string) => string[];
   /** For heading rows: open notes under this heading. */
   sectionCount?: number;
   /** Manual reordering (disabled in search results). */
@@ -96,6 +102,9 @@ export function NoteRow({
   onAttachImages,
   onRemoveAttachment,
   dropTargetRow,
+  onToggleCollapse,
+  onGoToFolder,
+  dragGroup,
   sectionCount,
   reorderable,
   dropEdge,
@@ -137,7 +146,7 @@ export function NoteRow({
         <li
           ref={rowRef}
           data-note-id={note.id}
-          draggable={!!reorderable && !note.done && !isEditing}
+          draggable={!!reorderable && !isEditing}
           onDragStart={(e) => {
             if (!reorderable) return;
             if ((e.target as HTMLElement).closest("button,input,textarea,a,img")) {
@@ -146,6 +155,17 @@ export function NoteRow({
             }
             e.dataTransfer.setData("application/x-batch-note", note.id);
             e.dataTransfer.effectAllowed = "move";
+            const group = dragGroup?.(note.id) ?? [note.id];
+            if (group.length > 1) {
+              // Badge-like drag image: "N notes"
+              const ghost = document.createElement("div");
+              ghost.textContent = `${group.length} notes`;
+              ghost.style.cssText =
+                "position:fixed;top:-100px;left:-100px;padding:4px 10px;border-radius:8px;background:#111;color:#fff;font:12px -apple-system,system-ui;";
+              document.body.appendChild(ghost);
+              e.dataTransfer.setDragImage(ghost, 12, 12);
+              requestAnimationFrame(() => ghost.remove());
+            }
             onRowDragStart?.(note.id);
           }}
           onDragOver={(e) => {
@@ -217,6 +237,18 @@ export function NoteRow({
               />
             ) : heading ? (
               <div className="flex items-baseline gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleCollapse?.(note.id);
+                  }}
+                  aria-label={note.collapsed ? "Expand section" : "Collapse section"}
+                  aria-expanded={!note.collapsed}
+                  className="-ml-0.5 grid size-4 shrink-0 place-items-center self-center rounded text-muted-foreground/70 hover:text-foreground"
+                >
+                  {note.collapsed ? <ChevronRight className="size-3" /> : <ChevronDown className="size-3" />}
+                </button>
                 <h3
                   className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
                   onClick={(e) => {
@@ -243,9 +275,17 @@ export function NoteRow({
               </span>
             )}
             {showSection && sectionName && (
-              <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onGoToFolder?.(note.id);
+                }}
+                title="Go to folder"
+                className="mt-0.5 inline-flex items-center gap-1 rounded text-[10px] uppercase tracking-wider text-muted-foreground/70 hover:text-foreground"
+              >
                 <CornerDownRight className="size-2.5" /> {sectionName}
-              </span>
+              </button>
             )}
           </div>
 
@@ -290,6 +330,9 @@ export function NoteRow({
       <ContextMenuContent className="min-w-52">
         {heading ? (
           <>
+            <ContextMenuItem onSelect={() => onToggleCollapse?.(note.id)}>
+              {note.collapsed ? <ChevronDown /> : <ChevronRight />} {note.collapsed ? "Expand section" : "Collapse section"}
+            </ContextMenuItem>
             <ContextMenuItem onSelect={() => onStartEdit(note.id)}>
               <Pencil /> Rename section
               <ContextMenuShortcut>↩</ContextMenuShortcut>
@@ -314,6 +357,15 @@ export function NoteRow({
           </>
         ) : (
           <>
+        {showSection && onGoToFolder && (
+          <>
+            <ContextMenuItem onSelect={() => onGoToFolder(note.id)}>
+              <FolderInput /> Go to folder{sectionName ? ` “${sectionName}”` : ""}
+              <ContextMenuShortcut>↩</ContextMenuShortcut>
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+          </>
+        )}
         <ContextMenuItem onSelect={() => onCopy(targets)}>
           <Copy /> Copy
           <ContextMenuShortcut>⌘C</ContextMenuShortcut>

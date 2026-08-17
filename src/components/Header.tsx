@@ -38,8 +38,11 @@ interface Props {
   onClearDone: () => void;
   onRevealFile: () => void;
   onResetPosition: () => void;
-  onExport: (what: "folder-md" | "all-md" | "json") => void;
+  onExport: (what: "folder-md" | "all-md" | "json" | "folder-bundle" | "all-bundle") => void;
   onImport: () => void;
+  backups: { name: string; path: string; bytes: number; date: string }[];
+  onOpenBackups: () => void;
+  onRestoreBackup: (b: { path: string; date: string }) => void;
   theme: ThemePref;
   onTheme: (t: ThemePref) => void;
   onOpenSettings: () => void;
@@ -168,11 +171,29 @@ export function Header(p: Props) {
                   <DropdownMenuSubTrigger>Export</DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
                     <DropdownMenuItem onSelect={() => p.onExport("folder-md")}>This folder as Markdown…</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => p.onExport("folder-bundle")}>This folder as Markdown + images…</DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={() => p.onExport("all-md")}>Everything as Markdown…</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => p.onExport("all-bundle")}>Everything as Markdown + images…</DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => p.onExport("json")}>Everything as JSON (backup)…</DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
                 <DropdownMenuItem onSelect={p.onImport}>Import JSON…</DropdownMenuItem>
+                <DropdownMenuSub onOpenChange={(o) => o && p.onOpenBackups()}>
+                  <DropdownMenuSubTrigger>Restore backup</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="min-w-48">
+                    {p.backups.length === 0 ? (
+                      <DropdownMenuItem disabled>No backups yet (one is kept per day)</DropdownMenuItem>
+                    ) : (
+                      p.backups.map((b) => (
+                        <DropdownMenuItem key={b.name} onSelect={() => p.onRestoreBackup(b)}>
+                          {b.date}
+                          <DropdownMenuShortcut>{Math.max(1, Math.round(b.bytes / 1024))} KB</DropdownMenuShortcut>
+                        </DropdownMenuItem>
+                      ))
+                    )}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 <DropdownMenuItem onSelect={p.onRevealFile}>Reveal notes file in Finder</DropdownMenuItem>
               </>
             )}
