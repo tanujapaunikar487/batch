@@ -5,6 +5,12 @@
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "@/store/persistence";
 
+/** Like `call` but propagates errors (for saves, where the caller must know). */
+async function invokeStrict<T = void>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  if (!isTauri()) throw new Error("not in tauri");
+  return invoke<T>(cmd, args);
+}
+
 async function call<T = void>(cmd: string, args?: Record<string, unknown>): Promise<T | undefined> {
   if (!isTauri()) return undefined;
   try {
@@ -45,6 +51,12 @@ export const native = {
   revealNotesFile: () => call("reveal_notes_file"),
   /** Absolute path of the notes file (for display). */
   notesFilePath: () => call<string>("notes_file_path"),
+  // ── notes file ──
+  readNotes: () => call<string | null>("read_notes"),
+  writeNotes: (contents: string) => invokeStrict("write_notes", { contents }),
+  quarantineNotes: () => call<string>("quarantine_notes"),
+  writeTextFile: (path: string, contents: string) => invokeStrict("write_text_file", { path, contents }),
+  readTextFile: (path: string) => invokeStrict<string>("read_text_file", { path }),
   // ── attachments ──
   attachmentsDir: () => call<string>("attachments_dir"),
   importAttachments: (paths: string[]) => call<import("@/lib/notes").Attachment[]>("import_attachments", { paths }),

@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import { CornerDownLeft, FolderPlus, ImagePlus, Plus } from "lucide-react";
 import {
   DropdownMenu,
@@ -36,14 +36,47 @@ export interface CaptureBoxHandle {
 }
 
 const MAX_ROWS = 6;
+const DRAFT_KEY = "batch:draft";
+
+/** Attachment ids sitting in an unsent draft (kept out of attachment GC). */
+export function draftAttachmentIds(): string[] {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return [];
+    const d = JSON.parse(raw) as { atts?: Attachment[] };
+    return (d.atts ?? []).map((a) => a.id);
+  } catch {
+    return [];
+  }
+}
 
 export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBox(
   { placeholder, attachmentsDir, onSubmit, onArrowUpOut, onNewFolder, onNotice, dropTarget },
   ref,
 ) {
-  const [value, setValue] = useState("");
-  const [atts, setAtts] = useState<Attachment[]>([]);
+  // Draft survives hide/quit.
+  const [value, setValue] = useState(() => {
+    try {
+      return (JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "{}") as { value?: string }).value ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [atts, setAtts] = useState<Attachment[]>(() => {
+    try {
+      return (JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "{}") as { atts?: Attachment[] }).atts ?? [];
+    } catch {
+      return [];
+    }
+  });
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      if (!value && atts.length === 0) localStorage.removeItem(DRAFT_KEY);
+      else localStorage.setItem(DRAFT_KEY, JSON.stringify({ value, atts }));
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [value, atts]);
   const ta = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const attsRef = useRef(atts);

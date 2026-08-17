@@ -8,7 +8,7 @@ import {
   reduce,
 } from "@/lib/notes";
 import { withHistory } from "@/lib/history";
-import { createStore, loadNotes, NOTES_FILE, type KeyValueStore } from "./persistence";
+import { CorruptStoreError, createNotesStore, loadNotes, type KeyValueStore } from "./persistence";
 import { native } from "@/lib/native";
 
 const SAVE_DEBOUNCE_MS = 250;
@@ -18,16 +18,21 @@ export const newId = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-const { reducer, init } = withHistory<NotesState, Action>(reduce, {
+type UiAction = Action | { type: "replaceUndoable"; state: NotesState };
+const baseReducer = (s: NotesState, a: UiAction): NotesState =>
+  a.type === "replaceUndoable" ? a.state : reduce(s, a);
+const { reducer, init } = withHistory<NotesState, UiAction>(baseReducer, {
   limit: 50,
   skip: (a) => a.type === "replace",
 });
 
 export function useNotes(store?: KeyValueStore) {
-  const kv = useMemo(() => store ?? createStore(NOTES_FILE), [store]);
+  const kv = useMemo(() => store ?? createNotesStore(), [store]);
   const [h, dispatch] = useReducer(reducer, emptyState(), init);
   const [loaded, setLoaded] = useState(false);
   const [loadOk, setLoadOk] = useState(false);
+  const [corrupt, setCorrupt] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const saveTimer = useRef<number | null>(null);
   const latest = useRef<NotesState>(h.present);
   latest.current = h.present;
@@ -43,23 +48,43 @@ export function useNotes(store?: KeyValueStore) {
           `loaded ${state.notes.length} note(s) in ${state.sections.length} section(s)${migrated ? " (migrated from v1)" : ""}`,
         );
       })
-      .catch((err) => console.error("[batch] failed to load notes:", err))
+      .catch((err) => {
+        console.error("[batch] failed to load notes:", err);
+        if (!cancelled && err instanceof CorruptStoreError) setCorrupt(err.detail);
+      })
       .finally(() => !cancelled && setLoaded(true));
     return () => {
       cancelled = true;
     };
   }, [kv]);
 
+  const loadOkRef = useRef(false);
+  loadOkRef.current = loadOk;
   const flush = useCallback(async () => {
     if (saveTimer.current !== null) {
       window.clearTimeout(saveTimer.current);
       saveTimer.current = null;
     }
-    await kv.save(latest.current).catch((err) => console.error("[batch] failed to save notes:", err));
+    // Never write over a file we couldn't read.
+    if (!loadOkRef.current) return;
+    try {
+      await kv.save(latest.current);
+      setSaveError(null);
+    } catch (err) {
+      console.error("[batch] failed to save notes:", err);
+      setSaveError(String((err as Error)?.message ?? err));
+    }
   }, [kv]);
 
+  /** After a quarantine ("start fresh"), allow saving again. */
+  const startFresh = useCallback(() => {
+    setCorrupt(null);
+    setLoadOk(true);
+    dispatch({ type: "replace", state: emptyState() });
+  }, []);
+
   useEffect(() => {
-    if (!loaded) return;
+    if (!loaded || !loadOk) return;
     if (saveTimer.current !== null) window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
       saveTimer.current = null;
@@ -68,7 +93,7 @@ export function useNotes(store?: KeyValueStore) {
     return () => {
       if (saveTimer.current !== null) window.clearTimeout(saveTimer.current);
     };
-  }, [h.present, loaded, flush]);
+  }, [h.present, loaded, loadOk, flush]);
 
   const actions = useMemo(
     () => ({
@@ -87,6 +112,7 @@ export function useNotes(store?: KeyValueStore) {
       merge: (ids: string[]) => dispatch({ type: "merge", ids, now: Date.now() }),
       clearDone: (sectionId?: string) => dispatch({ type: "clearDone", sectionId }),
       reorder: (id: string, afterId: string | null) => dispatch({ type: "reorder", id, afterId, now: Date.now() }),
+      nudge: (id: string, delta: -1 | 1) => dispatch({ type: "nudge", id, delta, now: Date.now() }),
       addSection: (name: string) => {
         const id = newId();
         dispatch({ type: "addSection", id, name, now: Date.now() });
@@ -94,6 +120,8 @@ export function useNotes(store?: KeyValueStore) {
       },
       renameSection: (id: string, name: string) => dispatch({ type: "renameSection", id, name }),
       removeSection: (id: string) => dispatch({ type: "removeSection", id }),
+      /** Wholesale replacement that stays undoable (import). */
+      replace: (state: NotesState) => dispatch({ type: "replaceUndoable", state }),
       undo: () => dispatch({ type: "undo" }),
       redo: () => dispatch({ type: "redo" }),
     }),
@@ -105,8 +133,12 @@ export function useNotes(store?: KeyValueStore) {
     canUndo: h.canUndo,
     canRedo: h.canRedo,
     loaded,
-    /** True only if the store was read successfully (guards attachment GC). */
+    /** True only if the store was read successfully (guards attachment GC + saving). */
     loadOk,
+    /** Set when notes.json exists but couldn't be parsed; saving is paused. */
+    corrupt,
+    saveError,
+    startFresh,
     flush,
     ...actions,
   };

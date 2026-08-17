@@ -37,6 +37,8 @@ interface Props {
   onCopySectionAsList: () => void;
   onClearDone: () => void;
   onRevealFile: () => void;
+  onExport: (what: "folder-md" | "all-md" | "json") => void;
+  onImport: () => void;
   theme: ThemePref;
   onTheme: (t: ThemePref) => void;
   onOpenSettings: () => void;
@@ -163,7 +165,20 @@ export function Header(p: Props) {
                 ))}
               </DropdownMenuSubContent>
             </DropdownMenuSub>
-            {p.isTauri && <DropdownMenuItem onSelect={p.onRevealFile}>Reveal notes file in Finder</DropdownMenuItem>}
+            {p.isTauri && (
+              <>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>Export</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onSelect={() => p.onExport("folder-md")}>This folder as Markdown…</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => p.onExport("all-md")}>Everything as Markdown…</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => p.onExport("json")}>Everything as JSON (backup)…</DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                <DropdownMenuItem onSelect={p.onImport}>Import JSON…</DropdownMenuItem>
+                <DropdownMenuItem onSelect={p.onRevealFile}>Reveal notes file in Finder</DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuItem onSelect={p.onOpenSettings}>
               Settings <DropdownMenuShortcut>{formatBinding(p.keymap.settings)}</DropdownMenuShortcut>
             </DropdownMenuItem>

@@ -124,6 +124,17 @@ describe("notes reducer", () => {
     expect(reduce(s4, { type: "reorder", id: "a", afterId: "a", now: 13 })).toBe(s4);
   });
 
+  it("nudge moves one step and stops at the edges", () => {
+    const s0 = state([note({ id: "a", createdAt: 1 }), note({ id: "b", createdAt: 2 }), note({ id: "c", createdAt: 3 })]);
+    const s1 = reduce(s0, { type: "nudge", id: "c", delta: -1, now: 10 });
+    expect(notesInSection(s1, INBOX_ID).map((n) => n.id)).toEqual(["a", "c", "b"]);
+    const s2 = reduce(s1, { type: "nudge", id: "c", delta: -1, now: 11 });
+    expect(notesInSection(s2, INBOX_ID).map((n) => n.id)).toEqual(["c", "a", "b"]);
+    expect(reduce(s2, { type: "nudge", id: "c", delta: -1, now: 12 })).toBe(s2);
+    const s3 = reduce(s2, { type: "nudge", id: "c", delta: 1, now: 13 });
+    expect(notesInSection(s3, INBOX_ID).map((n) => n.id)).toEqual(["a", "c", "b"]);
+  });
+
   it("toggle sets/clears completedAt", () => {
     const s0 = state([note({ id: "a" })]);
     const s1 = reduce(s0, { type: "toggle", id: "a", now: 5 });

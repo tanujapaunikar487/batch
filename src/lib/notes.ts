@@ -103,6 +103,8 @@ export type Action =
   | { type: "clearDone"; sectionId?: string }
   /** Move `id` right after `afterId` among the open notes of its folder (null = to the top). */
   | { type: "reorder"; id: string; afterId: string | null; now: number }
+  /** Nudge `id` one step up (-1) or down (+1) among the open notes of its folder. */
+  | { type: "nudge"; id: string; delta: -1 | 1; now: number }
   | { type: "addSection"; id: string; name: string; now: number }
   | { type: "renameSection"; id: string; name: string }
   | { type: "removeSection"; id: string }
@@ -237,6 +239,20 @@ export function reduce(state: NotesState, action: Action): NotesState {
       }
       if (key === sortKey(moving)) return state;
       return mapNotes(state, [action.id], (n) => ({ ...n, order: key }));
+    }
+    case "nudge": {
+      const moving = state.notes.find((n) => n.id === action.id);
+      if (!moving || moving.done) return state;
+      const siblings = state.notes
+        .filter((n) => n.sectionId === moving.sectionId && !n.done)
+        .sort((a, b) => sortKey(a) - sortKey(b));
+      const i = siblings.findIndex((n) => n.id === action.id);
+      const j = i + action.delta;
+      if (i === -1 || j < 0 || j >= siblings.length) return state;
+      // Swap positions with the neighbour by placing after the right anchor.
+      const without = siblings.filter((n) => n.id !== action.id);
+      const afterId = j === 0 ? null : without[j - 1].id;
+      return reduce(state, { type: "reorder", id: action.id, afterId, now: action.now });
     }
     case "clearDone": {
       const notes = state.notes.filter(

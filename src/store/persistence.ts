@@ -6,6 +6,14 @@
  */
 
 import { type NotesState, INBOX_ID, emptyState, migrateFromV1, normalizeState } from "@/lib/notes";
+import { native } from "@/lib/native";
+
+/** notes.json exists but can't be understood — never overwrite it. */
+export class CorruptStoreError extends Error {
+  constructor(public readonly detail: string) {
+    super("notes.json could not be read");
+  }
+}
 
 export interface KeyValueStore {
   load(): Promise<unknown>;
@@ -56,6 +64,40 @@ class LocalStore implements KeyValueStore {
 
 export function createStore(file: string): KeyValueStore {
   return isTauri() ? new TauriStore(file) : new LocalStore(file);
+}
+
+/**
+ * Notes live in their own file written by Rust (atomic + daily backups).
+ * `load()` throws CorruptStoreError when the file exists but isn't valid, so
+ * the app can pause saving instead of clobbering it.
+ */
+class TauriNotesStore implements KeyValueStore {
+  async load() {
+    const raw = await native.readNotes();
+    if (raw === null || raw === undefined) return undefined;
+    if (!raw.trim()) return undefined;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      throw new CorruptStoreError(`invalid JSON: ${(e as Error).message}`);
+    }
+    // Older builds wrapped the state as {"state": {...}} (tauri-plugin-store).
+    const inner = parsed && typeof parsed === "object" && "state" in (parsed as object)
+      ? (parsed as { state: unknown }).state
+      : parsed;
+    if (!inner || typeof inner !== "object" || !Array.isArray((inner as { notes?: unknown }).notes)) {
+      throw new CorruptStoreError("unexpected shape");
+    }
+    return inner;
+  }
+  async save(value: unknown) {
+    await native.writeNotes(JSON.stringify(value, null, 2));
+  }
+}
+
+export function createNotesStore(): KeyValueStore {
+  return isTauri() ? new TauriNotesStore() : new LocalStore(NOTES_FILE);
 }
 
 /**

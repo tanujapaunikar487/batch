@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Check, CheckSquare, Copy, CornerDownRight, Flag, FolderInput, ListOrdered, Merge, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, CheckSquare, Copy, CornerDownRight, Flag, FolderInput, ListOrdered, Merge, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +47,7 @@ export interface NoteRowProps {
   onCopy: (ids: string[]) => void;
   onCopyAsList: (ids: string[]) => void;
   onMerge: (ids: string[]) => void;
+  onNudge?: (id: string, delta: -1 | 1) => void;
   onOpenAttachment: (a: Attachment) => void;
   onDragAttachments: (e: React.DragEvent, note: Note, a: Attachment) => void;
   /** Manual reordering (disabled in search results). */
@@ -82,6 +83,7 @@ export function NoteRow({
   onCopy,
   onCopyAsList,
   onMerge,
+  onNudge,
   onOpenAttachment,
   onDragAttachments,
   reorderable,
@@ -275,6 +277,18 @@ export function NoteRow({
             <Merge /> Merge Notes
             <ContextMenuShortcut>{formatBinding(bindings.merge)}</ContextMenuShortcut>
           </ContextMenuItem>
+        )}
+        {!many && !note.done && reorderable && onNudge && (
+          <>
+            <ContextMenuItem onSelect={() => onNudge(note.id, -1)}>
+              <ArrowUp /> Move up
+              <ContextMenuShortcut>⌥↑</ContextMenuShortcut>
+            </ContextMenuItem>
+            <ContextMenuItem onSelect={() => onNudge(note.id, 1)}>
+              <ArrowDown /> Move down
+              <ContextMenuShortcut>⌥↓</ContextMenuShortcut>
+            </ContextMenuItem>
+          </>
         )}
         <ContextMenuSub>
           <ContextMenuSubTrigger>

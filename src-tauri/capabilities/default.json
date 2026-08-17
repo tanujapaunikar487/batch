@@ -13,6 +13,7 @@
     "core:window:allow-scale-factor",
     "store:default",
     "autostart:default",
-    "drag:default"
+    "drag:default",
+    "dialog:default"
   ]
 }

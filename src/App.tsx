@@ -3,7 +3,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Header } from "@/components/Header";
 import { SectionTabs } from "@/components/SectionTabs";
 import { SearchAndFilters } from "@/components/SearchAndFilters";
-import { CaptureBox, type CaptureBoxHandle } from "@/components/CaptureBox";
+import { CaptureBox, type CaptureBoxHandle, draftAttachmentIds } from "@/components/CaptureBox";
+import { DataBanner } from "@/components/DataBanner";
+import { allToMarkdown, folderToMarkdown, mergeImport, parseImport, stateToJson } from "@/lib/export";
+import { newId } from "@/store/useNotes";
 import { NoteList } from "@/components/NoteList";
 import { Footer } from "@/components/Footer";
 import { SettingsPanel } from "@/components/SettingsPanel";
@@ -28,7 +31,7 @@ import {
 import { type Filter, EMPTY_FILTER, activeFilterCount, applyFilters } from "@/lib/filters";
 import { asList, asNumberedList, asPlainText } from "@/lib/format";
 import { attachmentsDir as loadAttachmentsDir, dragHasImages, dragOut, imagesFromDrop } from "@/store/attachments";
-import { allAttachmentIds, type Attachment } from "@/lib/notes";
+import { allAttachmentIds, normalizeState, type Attachment } from "@/lib/notes";
 import { type ActionId, matchesEvent } from "@/lib/shortcuts";
 
 const inTauri = isTauri();
@@ -290,7 +293,7 @@ export default function App() {
   }, []);
   useEffect(() => {
     if (!inTauri || !notes.loadOk) return;
-    void native.gcAttachments(allAttachmentIds(notes.state)).then((n) => {
+    void native.gcAttachments([...allAttachmentIds(notes.state), ...draftAttachmentIds()]).then((n) => {
       if (n) void native.devLog(`gc: removed ${n} orphaned attachment file(s)`);
     });
     // Only once, right after the first successful load.
@@ -342,6 +345,47 @@ export default function App() {
     },
     [attDir],
   );
+
+  // ── export / import ──
+  const exportAs = useCallback(
+    async (what: "folder-md" | "all-md" | "json") => {
+      if (!inTauri) return showToast("Export is available in the Mac app");
+      const { save } = await import("@tauri-apps/plugin-dialog");
+      const stamp = new Date().toISOString().slice(0, 10);
+      const isJson = what === "json";
+      const name = what === "folder-md" ? `${activeSection.name}-${stamp}.md` : `batch-${stamp}.${isJson ? "json" : "md"}`;
+      const path = await save({
+        defaultPath: name,
+        filters: isJson ? [{ name: "JSON", extensions: ["json"] }] : [{ name: "Markdown", extensions: ["md"] }],
+      });
+      if (!path) return;
+      const contents =
+        what === "folder-md" ? folderToMarkdown(state, activeSection) : what === "all-md" ? allToMarkdown(state) : stateToJson(state);
+      try {
+        await native.writeTextFile(path, contents);
+        showToast("Exported ✓");
+      } catch (e) {
+        showToast(`Export failed: ${String((e as Error)?.message ?? e)}`);
+      }
+    },
+    [state, activeSection, showToast],
+  );
+  const importJson = useCallback(async () => {
+    if (!inTauri) return showToast("Import is available in the Mac app");
+    const { open } = await import("@tauri-apps/plugin-dialog");
+    const path = await open({ multiple: false, filters: [{ name: "Batch JSON", extensions: ["json"] }] });
+    if (!path || typeof path !== "string") return;
+    try {
+      const text = await native.readTextFile(path);
+      const incoming = normalizeState(parseImport(text));
+      if (incoming.notes.length === 0) return showToast("Nothing to import in that file");
+      const { state: merged, notes: n, folders } = mergeImport(state, incoming, newId);
+      notes.replace(merged);
+      showToast(`Imported ${n} note${n === 1 ? "" : "s"}${folders ? `, ${folders} new folder${folders === 1 ? "" : "s"}` : ""} · ⌘Z to undo`);
+    } catch (e) {
+      showToast(`Import failed: ${String((e as Error)?.message ?? e)}`);
+    }
+  }, [state, notes, showToast]);
 
   // ── window: full-screen toggle, remembered size, resize grip ──
   const toggleExpand = useCallback(async () => {
@@ -496,6 +540,11 @@ export default function App() {
       // List-mode keys.
       if (meta && e.code === "KeyA") return void (e.preventDefault(), nav.selectAll());
       if (meta && e.code === "KeyC" && nav.targets.length) return void (e.preventDefault(), copyNotes(nav.targets));
+      if (e.altKey && !meta && (e.code === "ArrowUp" || e.code === "ArrowDown") && nav.cursor && !searching) {
+        e.preventDefault();
+        notes.nudge(nav.cursor, e.code === "ArrowUp" ? -1 : 1);
+        return;
+      }
       if (e.code === "ArrowDown") {
         e.preventDefault();
         // Past the last note → back into the capture box below the list.
@@ -531,7 +580,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [
     keymap, runAction, hide, quit, state.sections, nav, view, editingId, searchOpen, closeSearch,
-    filtersOpen, filter, focusCapture, copyNotes, notes, notesById, removeIds, toggleMany,
+    filtersOpen, filter, focusCapture, copyNotes, notes, notesById, removeIds, toggleMany, searching,
   ]);
 
   // ── render ──
@@ -587,6 +636,8 @@ export default function App() {
           onCopySectionAsList={() => copySectionAsList(activeSection.id)}
           onClearDone={() => runAction("clearDone")}
           onRevealFile={() => void native.revealNotesFile()}
+          onExport={exportAs}
+          onImport={importJson}
           theme={settings.settings.theme}
           onTheme={settings.setTheme}
           onOpenSettings={() => setView("settings")}
@@ -621,6 +672,27 @@ export default function App() {
           />
         ) : (
           <>
+            {notes.corrupt && (
+              <DataBanner
+                kind="corrupt"
+                detail={notes.corrupt}
+                onReveal={() => void native.revealNotesFile()}
+                onStartFresh={() =>
+                  void native.quarantineNotes().then((moved) => {
+                    notes.startFresh();
+                    showToast(moved ? "Old file kept as notes.corrupt-….json" : "Started fresh");
+                  })
+                }
+              />
+            )}
+            {notes.saveError && !notes.corrupt && (
+              <DataBanner
+                kind="save-error"
+                detail={notes.saveError}
+                onReveal={() => void native.revealNotesFile()}
+                onRetry={() => void notes.flush()}
+              />
+            )}
             {inTauri && settings.settings.doubleShift && dsStatus && !dsStatus.active && !bannerDismissed && (
               <AccessibilityBanner
                 state={dsStatus.granted ? "needs-relaunch" : "needs-permission"}
@@ -731,6 +803,10 @@ export default function App() {
               onReorder={(id, afterId) => {
                 notes.reorder(id, afterId);
                 nav.clear();
+              }}
+              onNudge={(id, delta) => {
+                notes.nudge(id, delta);
+                nav.focus(id);
               }}
               attachmentsDir={attDir}
               onOpenAttachment={openAttachment}

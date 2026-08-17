@@ -27,6 +27,7 @@ use tauri_plugin_store::StoreExt;
 mod attachments;
 #[cfg(target_os = "macos")]
 mod double_shift;
+mod notes_file;
 
 const MAIN_WINDOW: &str = "main";
 const TRAY_ID: &str = "main-tray";
@@ -62,7 +63,6 @@ macro_rules! dlog {
 /// Default system-wide toggle hotkey (binding syntax as stored in settings.json).
 const DEFAULT_TOGGLE_BINDING: &str = "alt+shift+Space";
 const SETTINGS_FILE: &str = "settings.json";
-const NOTES_FILE: &str = "notes.json";
 
 /// UI binding syntax ("mod+shift+KeyN") → global-hotkey syntax ("Cmd+Shift+KeyN").
 fn binding_to_shortcut(binding: &str) -> Result<Shortcut, String> {
@@ -313,7 +313,7 @@ fn open_url(url: String) -> Result<(), String> {
 }
 
 fn notes_path(app: &AppHandle) -> Option<std::path::PathBuf> {
-    app.path().app_data_dir().ok().map(|d| d.join(NOTES_FILE))
+    notes_file::notes_path(app).ok()
 }
 
 #[tauri::command]
@@ -599,7 +599,12 @@ mod ax {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // Must be first: a second launch just brings the existing instance forward.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            show(app);
+        }))
         .manage(AppState::default())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -640,6 +645,11 @@ pub fn run() {
             attachments::open_attachment,
             attachments::attachment_paths,
             attachments::copy_rich,
+            notes_file::read_notes,
+            notes_file::write_notes,
+            notes_file::quarantine_notes,
+            notes_file::write_text_file,
+            notes_file::read_text_file,
             dev_log
         ])
         .setup(|app| {
