@@ -1,5 +1,7 @@
 # Batch
 
+> Free and open source (MIT). Everything stays on your Mac — no account, no sync, no tracking.
+
 A tiny macOS menu-bar app for the bits you want to keep while working with
 ChatGPT, Claude, Cursor & co: prompts to try next, answers worth saving, links,
 ideas. **Tap Shift twice** (or press ⌥⇧Space) anywhere → Batch drops down with
@@ -174,3 +176,7 @@ docs/superpowers/specs/     design specs (v1, v2)
 
 Widget (WidgetKit — needs a Swift extension), sync, updater ("free updates" here
 = rebuild from source), due dates, tags.
+
+## Contributing
+
+Issues and PRs are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). MIT licensed.
