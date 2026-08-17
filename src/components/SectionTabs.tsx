@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import { type Section, INBOX_ID } from "@/lib/notes";
 
@@ -46,7 +46,6 @@ export function SectionTabs({
   const [over, setOver] = useState<{ id: string; side: "left" | "right" } | null>(null);
   const [adding, setAdding] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
-  const [menuFor, setMenuFor] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
@@ -117,8 +116,8 @@ export function SectionTabs({
         renaming === s.id ? (
           <span key={s.id}>{editor}</span>
         ) : (
-          <DropdownMenu key={s.id} open={menuFor === s.id} onOpenChange={(o) => setMenuFor(o ? s.id : null)}>
-            <DropdownMenuTrigger asChild>
+          <ContextMenu key={s.id}>
+            <ContextMenuTrigger asChild>
               <button
                 ref={s.id === activeId ? activeRef : undefined}
                 role="tab"
@@ -162,7 +161,6 @@ export function SectionTabs({
                       : "right-click for options"
                 }
                 // Click selects; clicking the active folder's name renames it; right-click opens the menu.
-                onPointerDown={(e) => e.preventDefault()}
                 onClick={() => {
                   if (s.id === activeId) {
                     setRenaming(s.id);
@@ -170,10 +168,6 @@ export function SectionTabs({
                   } else {
                     onSelect(s.id);
                   }
-                }}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setMenuFor(s.id);
                 }}
                 className={cn(
                   "relative flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[13px] transition-colors select-none",
@@ -191,28 +185,28 @@ export function SectionTabs({
                   <span className="text-[11px] tabular-nums text-muted-foreground/70">{counts[s.id]}</span>
                 )}
               </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-44">
-              <DropdownMenuItem
+            </ContextMenuTrigger>
+            <ContextMenuContent className="min-w-44">
+              <ContextMenuItem
                 onSelect={() => {
                   setRenaming(s.id);
                   setDraft(s.name);
                 }}
               >
                 Rename
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onCopyAsList(s.id)}>Copy as list</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onClearDone(s.id)}>Clear done</DropdownMenuItem>
+              </ContextMenuItem>
+              <ContextMenuItem onSelect={() => onCopyAsList(s.id)}>Copy as list</ContextMenuItem>
+              <ContextMenuItem onSelect={() => onClearDone(s.id)}>Clear done</ContextMenuItem>
               {s.id !== INBOX_ID && (
                 <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem variant="destructive" onSelect={() => onRemove(s.id)}>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem variant="destructive" onSelect={() => onRemove(s.id)}>
                     Delete folder
-                  </DropdownMenuItem>
+                  </ContextMenuItem>
                 </>
               )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </ContextMenuContent>
+          </ContextMenu>
         ),
       )}
       {adding ? (

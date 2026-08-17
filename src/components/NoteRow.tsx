@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Check, CheckSquare, ChevronsDownUp, ChevronsUpDown, Copy, CornerDownRight, Flag, FolderInput, ListOrdered, Merge, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, CheckSquare, Copy, CornerDownRight, Flag, FolderInput, ListOrdered, Merge, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,9 +19,6 @@ import { PRIORITY_UI } from "@/lib/priority-ui";
 import { formatBinding } from "@/lib/shortcuts";
 import { Markdown } from "./Markdown";
 import { AttachmentStrip } from "./AttachmentStrip";
-
-/** Collapsed body height (6 lines × 20px). */
-const COLLAPSED_PX = 120;
 
 export interface NoteRowProps {
   note: Note;
@@ -100,15 +97,6 @@ export function NoteRow({
   const sectionName = sections.find((s) => s.id === note.sectionId)?.name;
   const rowRef = useRef<HTMLLIElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  // Long notes collapse to ~6 lines until expanded.
-  const bodyRef = useRef<HTMLDivElement>(null);
-  const [overflowing, setOverflowing] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  useLayoutEffect(() => {
-    const el = bodyRef.current;
-    if (!el || isEditing) return;
-    setOverflowing(el.scrollHeight > COLLAPSED_PX + 4);
-  }, [note.text, note.attachments, isEditing]);
   // Snapshot of the targets when the menu opened (selection may change underneath).
   const [targets, setTargets] = useState<string[]>([note.id]);
 
@@ -212,35 +200,10 @@ export function NoteRow({
                 onCancel={onStopEdit}
               />
             ) : note.text ? (
-              <div className="relative">
-                <div
-                  ref={bodyRef}
-                  style={!expanded && overflowing ? { maxHeight: COLLAPSED_PX } : undefined}
-                  className={cn(!expanded && overflowing && "overflow-hidden")}
-                >
-                  <Markdown
-                    text={note.text}
-                    className={cn("text-sm leading-5", note.done && "line-through text-muted-foreground")}
-                  />
-                </div>
-                {overflowing && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setExpanded((v) => !v);
-                    }}
-                    className={cn(
-                      "mt-0.5 flex w-full items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground",
-                      !expanded &&
-                        "before:pointer-events-none before:absolute before:inset-x-0 before:bottom-5 before:h-8 before:bg-gradient-to-t before:from-background/90 before:to-transparent",
-                    )}
-                  >
-                    {expanded ? <ChevronsDownUp className="size-3" /> : <ChevronsUpDown className="size-3" />}
-                    {expanded ? "Show less" : "Show more"}
-                  </button>
-                )}
-              </div>
+              <Markdown
+                text={note.text}
+                className={cn("text-sm leading-5", note.done && "line-through text-muted-foreground")}
+              />
             ) : (
               <span className="text-xs text-muted-foreground/70 select-none">
                 {note.attachments?.length === 1 ? "1 image" : `${note.attachments?.length ?? 0} images`}
@@ -303,11 +266,6 @@ export function NoteRow({
           {allDone ? <Square /> : <CheckSquare />} {allDone ? "Mark as Not Done" : "Mark as Done"}
           <ContextMenuShortcut>Space</ContextMenuShortcut>
         </ContextMenuItem>
-        {!many && overflowing && (
-          <ContextMenuItem onSelect={() => setExpanded((v) => !v)}>
-            {expanded ? <ChevronsDownUp /> : <ChevronsUpDown />} {expanded ? "Collapse" : "Expand"}
-          </ContextMenuItem>
-        )}
         {!many && !note.done && (
           <ContextMenuItem onSelect={() => onStartEdit(note.id)}>
             <Pencil /> Edit
