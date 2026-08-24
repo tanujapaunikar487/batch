@@ -25,3 +25,6 @@ dist-ssr
 
 # release artifacts
 dist-mac
+
+# generated sidecar
+src-tauri/binaries/

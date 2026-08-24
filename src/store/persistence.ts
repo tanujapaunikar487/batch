@@ -105,7 +105,7 @@ export function createNotesStore(): KeyValueStore {
  * exists, import it (into Inbox) and persist.
  */
 export async function loadNotes(store: KeyValueStore): Promise<{ state: NotesState; migrated: boolean }> {
-  if (!isTauri() && new URLSearchParams(location.search).has("seed")) {
+  if (!isTauri() && (new URLSearchParams(location.search).has("seed") || import.meta.env.VITE_DEMO)) {
     return { state: seedState(), migrated: false };
   }
   const raw = await store.load();

@@ -9,6 +9,7 @@ import {
   allInSection,
   doneInSection,
   searchNotes,
+  sectionById,
   normalizeState,
   migrateFromV1,
   cleanText,
@@ -213,6 +214,33 @@ describe("notes reducer", () => {
     expect(allInSection(s3, INBOX_ID).map((n) => n.id)).toEqual(["t", "a", "b", "z"]);
   });
 
+  it("source, outcome, handedOff and folder preamble round-trip", () => {
+    let s = reduce(emptyState(), {
+      type: "add", id: "a", sectionId: INBOX_ID, text: "from arc", now: 1,
+      source: { app: "Arc", title: "GitHub", bundleId: "company.thebrowser.Browser", at: 1 },
+    });
+    expect(s.notes[0].source).toEqual({ app: "Arc", title: "GitHub", bundleId: "company.thebrowser.Browser", at: 1 });
+    s = reduce(s, { type: "setOutcome", id: "a", text: "  Done: added caching.  ", by: "agent", now: 5 });
+    expect(s.notes[0].outcome).toEqual({ text: "Done: added caching.", at: 5, by: "agent" });
+    expect(reduce(s, { type: "setOutcome", id: "a", text: "Done: added caching.", by: "agent", now: 6 })).toBe(s);
+    s = reduce(s, { type: "markHandedOff", ids: ["a"], now: 7 });
+    expect(s.notes[0].handedOff).toBe(7);
+    s = reduce(s, { type: "setPreamble", sectionId: INBOX_ID, text: " Be terse. " });
+    expect(s.sections[0].preamble).toBe("Be terse.");
+    const back = normalizeState(JSON.parse(JSON.stringify(s)));
+    expect(back.notes[0]).toMatchObject({ source: { app: "Arc" }, outcome: { by: "agent" }, handedOff: 7 });
+    expect(back.sections[0].preamble).toBe("Be terse.");
+    // clearing
+    s = reduce(s, { type: "setOutcome", id: "a", text: null, by: "me", now: 8 });
+    expect(s.notes[0].outcome).toBeUndefined();
+    s = reduce(s, { type: "setPreamble", sectionId: INBOX_ID, text: "" });
+    expect(s.sections[0].preamble).toBeUndefined();
+    // headings ignore outcome/handedOff
+    const h = reduce(s, { type: "add", id: "h", sectionId: INBOX_ID, text: "Sec", now: 9, kind: "heading" });
+    expect(reduce(h, { type: "setOutcome", id: "h", text: "x", by: "me", now: 10 })).toBe(h);
+    expect(reduce(h, { type: "markHandedOff", ids: ["h"], now: 10 })).toBe(h);
+  });
+
   it("toggle sets/clears completedAt", () => {
     const s0 = state([note({ id: "a" })]);
     const s1 = reduce(s0, { type: "toggle", id: "a", now: 5 });
@@ -310,6 +338,31 @@ describe("notes reducer", () => {
     const s0 = emptyState();
     expect(reduce(s0, { type: "removeSection", id: INBOX_ID })).toBe(s0);
     expect(reduce(s0, { type: "addSection", id: "x", name: "   ", now: 1 })).toBe(s0);
+  });
+
+  it("source is stored on add and validated on load; outcome/preamble/handedOff round-trip", () => {
+    const src = { app: "Arc", title: "GitHub", bundleId: "company.thebrowser.Browser", at: 5 };
+    let s = reduce(emptyState(), { type: "add", id: "a", sectionId: INBOX_ID, text: "hi", now: 1, source: src });
+    expect(s.notes[0].source).toEqual(src);
+    // headings never carry a source
+    s = reduce(s, { type: "add", id: "h", sectionId: INBOX_ID, text: "Sec", now: 2, kind: "heading", source: src });
+    expect(s.notes[1].source).toBeUndefined();
+    // outcome set / clear
+    s = reduce(s, { type: "setOutcome", id: "a", text: "done via agent", by: "agent", now: 9 });
+    expect(s.notes[0].outcome).toEqual({ text: "done via agent", at: 9, by: "agent" });
+    expect(reduce(s, { type: "setOutcome", id: "a", text: null, by: "me", now: 10 }).notes[0].outcome).toBeUndefined();
+    // markHandedOff + preamble
+    s = reduce(s, { type: "markHandedOff", ids: ["a"], now: 11 });
+    expect(s.notes[0].handedOff).toBe(11);
+    s = reduce(s, { type: "setPreamble", sectionId: INBOX_ID, text: "  Be concise.  " });
+    expect(sectionById(s, INBOX_ID)!.preamble).toBe("Be concise.");
+    expect(reduce(s, { type: "setPreamble", sectionId: INBOX_ID, text: "" }).sections[0].preamble).toBeUndefined();
+    // normalize keeps them
+    const back = normalizeState(s);
+    expect(back.notes[0].handedOff).toBe(11);
+    const withSrc = normalizeState({ version: 2, sections: [], notes: [{ id: "z", sectionId: INBOX_ID, text: "t", priority: "low", done: false, createdAt: 1, source: { app: "Safari", at: 2 }, outcome: { text: "ok", at: 3, by: "agent" } }] });
+    expect(withSrc.notes[0].source).toEqual({ app: "Safari", at: 2 });
+    expect(withSrc.notes[0].outcome).toEqual({ text: "ok", at: 3, by: "agent" });
   });
 
   it("does not mutate input", () => {

@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { type ActionId, DEFAULT_KEYMAP, DEFAULT_TOGGLE_SHORTCUT, normalizeBinding, toTauriShortcut } from "@/lib/shortcuts";
+import {
+  type ActionId,
+  DEFAULT_KEYMAP,
+  DEFAULT_SCREENSHOT_SHORTCUT,
+  DEFAULT_TOGGLE_SHORTCUT,
+  normalizeBinding,
+  toTauriShortcut,
+} from "@/lib/shortcuts";
 import { createStore, SETTINGS_FILE, type KeyValueStore } from "./persistence";
 import { native } from "@/lib/native";
 
@@ -12,6 +19,10 @@ export interface Settings {
   doubleShift: boolean;
   /** On double-Shift from another app, pull its selected text into the capture box. */
   captureSelection: boolean;
+  /** Remember which app/window a ⇧⇧ capture came from. */
+  captureSource: boolean;
+  /** System-wide hotkey that captures a screen region into Batch. */
+  screenshotShortcut: string;
   /** "Copy as List" marks the copied notes done. */
   copyListMarksDone: boolean;
   theme: ThemePref;
@@ -25,6 +36,8 @@ export const DEFAULT_SETTINGS: Settings = {
   toggleShortcut: DEFAULT_TOGGLE_SHORTCUT,
   doubleShift: true,
   captureSelection: true,
+  captureSource: true,
+  screenshotShortcut: DEFAULT_SCREENSHOT_SHORTCUT,
   copyListMarksDone: true,
   theme: "system",
   keymap: {},
@@ -39,6 +52,10 @@ function normalizeSettings(raw: unknown): Settings {
   }
   if (typeof r.doubleShift === "boolean") s.doubleShift = r.doubleShift;
   if (typeof r.captureSelection === "boolean") s.captureSelection = r.captureSelection;
+  if (typeof r.captureSource === "boolean") s.captureSource = r.captureSource;
+  if (typeof r.screenshotShortcut === "string" && normalizeBinding(r.screenshotShortcut)) {
+    s.screenshotShortcut = normalizeBinding(r.screenshotShortcut)!;
+  }
   if (typeof r.copyListMarksDone === "boolean") s.copyListMarksDone = r.copyListMarksDone;
   if (r.theme === "light" || r.theme === "dark" || r.theme === "system") s.theme = r.theme;
   const w = r.window as { width?: unknown; height?: unknown } | undefined;
@@ -129,6 +146,23 @@ export function useSettings(store?: KeyValueStore) {
   );
   const setCopyListMarksDone = useCallback((v: boolean) => update({ copyListMarksDone: v }), [update]);
   const setWindowSize = useCallback((width: number, height: number) => update({ window: { width, height } }), [update]);
+  const setCaptureSource = useCallback(
+    (enabled: boolean) => {
+      update({ captureSource: enabled });
+      void native.setCaptureSource(enabled);
+    },
+    [update],
+  );
+  const setScreenshotShortcut = useCallback(
+    async (binding: string) => {
+      const tauri = toTauriShortcut(binding);
+      if (!tauri) return false;
+      const ok = (await native.setScreenshotShortcut(tauri)) ?? true;
+      if (ok) update({ screenshotShortcut: binding });
+      return ok;
+    },
+    [update],
+  );
 
   return {
     settings,
@@ -142,6 +176,8 @@ export function useSettings(store?: KeyValueStore) {
     setWindowSize,
     setCaptureSelection,
     setCopyListMarksDone,
+    setCaptureSource,
+    setScreenshotShortcut,
   };
 }
 

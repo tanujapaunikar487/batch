@@ -1,6 +1,6 @@
 [package]
 name = "batch"
-version = "1.0.0"
+version = "1.1.0"
 description = "Batch — a tiny menu-bar checklist for macOS"
 authors = ["Tanuja Paunikar"]
 edition = "2021"
@@ -20,6 +20,7 @@ tauri-plugin-autostart = "2"
 tauri-plugin-drag = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-dialog = "2"
+notify = { version = "6", default-features = false, features = ["macos_fsevent"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 uuid = { version = "1", features = ["v4"] }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "tiff"] }

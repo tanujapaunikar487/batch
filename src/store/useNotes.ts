@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import {
   type Action,
   type Attachment,
+  type NoteSource,
   type NotesState,
   type Priority,
   emptyState,
@@ -76,6 +77,22 @@ export function useNotes(store?: KeyValueStore) {
     }
   }, [kv]);
 
+  /**
+   * Re-read notes.json after an external change (e.g. an agent via MCP wrote it).
+   * Skipped while a local save is pending so we never clobber unsaved edits;
+   * uses `replace` so it doesn't land on the undo stack.
+   */
+  const reloadFromDisk = useCallback(async () => {
+    if (saveTimer.current !== null) return;
+    try {
+      const { state } = await loadNotes(kv);
+      dispatch({ type: "replace", state });
+      void native.devLog(`reloaded notes after external change (${state.notes.length} notes)`);
+    } catch (err) {
+      console.error("[batch] external reload failed:", err);
+    }
+  }, [kv]);
+
   /** After a quarantine ("start fresh"), allow saving again. */
   const startFresh = useCallback(() => {
     setCorrupt(null);
@@ -104,12 +121,17 @@ export function useNotes(store?: KeyValueStore) {
         attachments?: Attachment[],
         kind?: "heading",
         insertAfter?: string | null,
+        source?: NoteSource,
       ) => {
         const id = newId();
-        dispatch({ type: "add", id, sectionId, text, now: Date.now(), priority, attachments, kind, insertAfter });
+        dispatch({ type: "add", id, sectionId, text, now: Date.now(), priority, attachments, kind, insertAfter, source });
         return id;
       },
       setAttachments: (id: string, attachments: Attachment[]) => dispatch({ type: "setAttachments", id, attachments }),
+      setOutcome: (id: string, text: string | null, by: "me" | "agent" = "me") =>
+        dispatch({ type: "setOutcome", id, text, by, now: Date.now() }),
+      setPreamble: (sectionId: string, text: string) => dispatch({ type: "setPreamble", sectionId, text }),
+      markHandedOff: (ids: string[]) => dispatch({ type: "markHandedOff", ids, now: Date.now() }),
       toggle: (id: string) => dispatch({ type: "toggle", id, now: Date.now() }),
       setDone: (ids: string[], done: boolean) => dispatch({ type: "setDone", ids, done, now: Date.now() }),
       edit: (id: string, text: string) => dispatch({ type: "edit", id, text }),
@@ -149,6 +171,7 @@ export function useNotes(store?: KeyValueStore) {
     corrupt,
     saveError,
     startFresh,
+    reloadFromDisk,
     flush,
     ...actions,
   };

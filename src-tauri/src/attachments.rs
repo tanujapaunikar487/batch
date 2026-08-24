@@ -95,7 +95,7 @@ fn make_thumb(bytes: &[u8], thumb_path: &Path) -> (u32, u32, bool) {
     }
 }
 
-fn store_bytes(
+pub(crate) fn store_bytes(
     app: &AppHandle,
     bytes: &[u8],
     name: &str,

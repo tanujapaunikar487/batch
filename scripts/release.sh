@@ -26,6 +26,7 @@ rm -rf "$OUT"; mkdir -p "$OUT"
 rustup target add x86_64-apple-darwin aarch64-apple-darwin >/dev/null 2>&1 || true
 
 echo "▸ building universal Batch.app (v$VERSION)…"
+bash "$(dirname "$0")/build-sidecar.sh"
 bunx tauri build --target universal-apple-darwin --bundles app
 APP="src-tauri/target/universal-apple-darwin/release/bundle/macos/Batch.app"
 [ -d "$APP" ] || { echo "build failed: $APP not found"; exit 1; }

@@ -12,6 +12,8 @@ export type ActionId =
   | "search"
   | "filters"
   | "copySectionAsList"
+  | "copyForAgent"
+  | "addOutcome"
   | "merge"
   | "clearDone"
   | "moveNextSection"
@@ -37,6 +39,8 @@ export const ACTIONS: Record<ActionId, { label: string; customizable: boolean }>
   search: { label: "Search", customizable: true },
   filters: { label: "Toggle filters", customizable: true },
   copySectionAsList: { label: "Copy as list (selection, or whole folder)", customizable: true },
+  copyForAgent: { label: "Copy for agent (structured, with sources)", customizable: true },
+  addOutcome: { label: "Add outcome to selected note", customizable: true },
   merge: { label: "Merge selected notes", customizable: true },
   clearDone: { label: "Clear done in folder", customizable: true },
   moveNextSection: { label: "Move note to next folder", customizable: true },
@@ -55,6 +59,8 @@ export const DEFAULT_KEYMAP: Record<ActionId, string> = {
   search: "mod+KeyF",
   filters: "mod+shift+KeyF",
   copySectionAsList: "mod+shift+KeyC",
+  copyForAgent: "mod+alt+KeyC",
+  addOutcome: "mod+shift+KeyO",
   merge: "mod+KeyM",
   clearDone: "mod+shift+Backspace",
   moveNextSection: "mod+shift+BracketRight",
@@ -73,6 +79,8 @@ export const CUSTOMIZABLE_ACTIONS = (Object.keys(ACTIONS) as ActionId[]).filter(
 
 /** Default global (system-wide) toggle hotkey. */
 export const DEFAULT_TOGGLE_SHORTCUT = "alt+shift+Space";
+/** Default global hotkey for capturing a screen region into Batch. */
+export const DEFAULT_SCREENSHOT_SHORTCUT = "alt+shift+KeyS";
 
 const MODS = ["mod", "ctrl", "alt", "shift"] as const;
 const MOD_CODES = new Set([

@@ -29,6 +29,7 @@ mod capture;
 #[cfg(target_os = "macos")]
 mod double_shift;
 mod notes_file;
+mod notes_io;
 
 const MAIN_WINDOW: &str = "main";
 const TRAY_ID: &str = "main-tray";
@@ -104,6 +105,20 @@ struct AppState {
     custom_pos: Mutex<Option<tauri::PhysicalPosition<i32>>>,
     /// Frame to restore when leaving "full screen" (expanded) mode.
     restore_frame: Mutex<Option<(tauri::PhysicalPosition<i32>, tauri::PhysicalSize<u32>)>>,
+    /// Record the source app/window on ⇧⇧ capture.
+    capture_source: AtomicBool,
+    /// Currently registered screen-region capture hotkey (⌥⇧S).
+    screenshot_shortcut: Mutex<Option<Shortcut>>,
+    /// Hash of the last notes.json we wrote, so the watcher ignores our own saves.
+    last_write_hash: std::sync::atomic::AtomicU64,
+}
+
+/// Called by `notes_file::write_notes` so the directory watcher can tell our
+/// own atomic saves apart from an external edit.
+pub(crate) fn note_last_write_hash(app: &AppHandle, hash: u64) {
+    app.state::<AppState>()
+        .last_write_hash
+        .store(hash, Ordering::Relaxed);
 }
 
 // ───────────────────────── commands (called from the UI) ─────────────────────────
@@ -238,6 +253,106 @@ async fn set_toggle_shortcut(app: AppHandle, shortcut: String) -> bool {
             false
         }
     }
+}
+
+#[tauri::command]
+fn set_capture_source(state: tauri::State<'_, AppState>, enabled: bool) {
+    state.capture_source.store(enabled, Ordering::Relaxed);
+}
+
+/// Re-register the system-wide screen-region capture hotkey.
+#[tauri::command]
+async fn set_screenshot_shortcut(app: AppHandle, shortcut: String) -> bool {
+    let parsed = match binding_to_shortcut(&shortcut) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("[batch] bad screenshot shortcut {shortcut:?}: {e}");
+            return false;
+        }
+    };
+    let gs = app.global_shortcut();
+    let previous = app
+        .state::<AppState>()
+        .screenshot_shortcut
+        .lock()
+        .ok()
+        .and_then(|g| *g);
+    if let Some(prev) = previous {
+        let _ = gs.unregister(prev);
+    }
+    match gs.register(parsed) {
+        Ok(()) => {
+            if let Ok(mut g) = app.state::<AppState>().screenshot_shortcut.lock() {
+                *g = Some(parsed);
+            }
+            dlog!("[batch] screenshot hotkey → {shortcut}");
+            true
+        }
+        Err(e) => {
+            eprintln!("[batch] could not register screenshot {shortcut}: {e}");
+            if let Some(prev) = previous {
+                let _ = gs.register(prev);
+            }
+            false
+        }
+    }
+}
+
+/// Interactive screen-region capture → attach the shot and emit batch://capture-image.
+#[tauri::command]
+fn capture_region(app: AppHandle) {
+    std::thread::spawn(move || {
+        run_region_capture(&app);
+    });
+}
+
+#[cfg(target_os = "macos")]
+fn run_region_capture(app: &AppHandle) {
+    // Get out of the way while the user drags a selection.
+    if let Some(w) = main_window(app) {
+        if w.is_visible().unwrap_or(false) {
+            let h = app.clone();
+            let _ = app.run_on_main_thread(move || hide(&h));
+            std::thread::sleep(Duration::from_millis(120));
+        }
+    }
+    let tmp = std::env::temp_dir().join(format!("batch-shot-{}.png", std::process::id()));
+    let status = std::process::Command::new("/usr/sbin/screencapture")
+        .args(["-i", "-s", "-x"])
+        .arg(&tmp)
+        .status();
+    if status.is_err() || !tmp.exists() {
+        return; // Esc/cancel exits 0 with no file
+    }
+    let bytes = match std::fs::read(&tmp) {
+        Ok(b) if !b.is_empty() => b,
+        _ => {
+            let _ = std::fs::remove_file(&tmp);
+            return;
+        }
+    };
+    let _ = std::fs::remove_file(&tmp);
+    match attachments::store_bytes(app, &bytes, "screenshot.png", "image/png") {
+        Ok(att) => {
+            let h = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                show(&h);
+                let _ = h.emit("batch://capture-image", att);
+            });
+        }
+        Err(e) => eprintln!("[batch] region capture: {e}"),
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn run_region_capture(_app: &AppHandle) {}
+
+/// Absolute path of the bundled `batch-mcp` sidecar (next to the main binary), if present.
+#[tauri::command]
+fn mcp_path() -> Option<String> {
+    let exe = std::env::current_exe().ok()?;
+    let cand = exe.parent()?.join("batch-mcp");
+    cand.exists().then(|| cand.display().to_string())
 }
 
 /// "system" | "light" | "dark" — sets NSAppearance on the window so the vibrancy
@@ -582,8 +697,10 @@ fn place_under_tray(app: &AppHandle, w: &WebviewWindow) -> tauri::Result<()> {
 
 struct StartupSettings {
     binding: String,
+    screenshot_binding: String,
     double_shift: bool,
     capture_selection: bool,
+    capture_source: bool,
     window: Option<(f64, f64)>,
 }
 
@@ -591,8 +708,10 @@ struct StartupSettings {
 fn read_settings(app: &AppHandle) -> StartupSettings {
     let mut out = StartupSettings {
         binding: DEFAULT_TOGGLE_BINDING.to_string(),
+        screenshot_binding: "alt+shift+KeyS".to_string(),
         double_shift: true,
         capture_selection: true,
+        capture_source: true,
         window: None,
     };
     if let Ok(store) = app.store(SETTINGS_FILE) {
@@ -607,6 +726,14 @@ fn read_settings(app: &AppHandle) -> StartupSettings {
             }
             if let Some(c) = v.get("captureSelection").and_then(|x| x.as_bool()) {
                 out.capture_selection = c;
+            }
+            if let Some(c) = v.get("captureSource").and_then(|x| x.as_bool()) {
+                out.capture_source = c;
+            }
+            if let Some(sb) = v.get("screenshotShortcut").and_then(|x| x.as_str()) {
+                if !sb.is_empty() {
+                    out.screenshot_binding = sb.to_string();
+                }
             }
             if let (Some(w), Some(h)) = (
                 v.pointer("/window/width").and_then(|x| x.as_f64()),
@@ -693,6 +820,54 @@ pub(crate) mod ax {
     }
 }
 
+/// Emit `batch://notes-changed` when notes.json is modified by something other
+/// than our own atomic save (compared by content hash).
+fn watch_notes(app: AppHandle) {
+    use notify::{RecursiveMode, Watcher};
+    let Ok(dir) = notes_file::data_dir(&app) else {
+        return;
+    };
+    let (tx, rx) = std::sync::mpsc::channel();
+    let mut watcher = match notify::recommended_watcher(move |res| {
+        let _ = tx.send(res);
+    }) {
+        Ok(w) => w,
+        Err(e) => {
+            eprintln!("[batch] notes watcher unavailable: {e}");
+            return;
+        }
+    };
+    // Watch the directory: atomic writes rename a temp file over notes.json,
+    // which invalidates a file-level watch.
+    if let Err(e) = watcher.watch(&dir, RecursiveMode::NonRecursive) {
+        eprintln!("[batch] cannot watch {}: {e}", dir.display());
+        return;
+    }
+    dlog!("[batch] watching {} for external note edits", dir.display());
+    let mut last_seen: u64 = 0;
+    loop {
+        // Block for an event, then coalesce a short burst.
+        if rx.recv().is_err() {
+            break;
+        }
+        while rx.recv_timeout(Duration::from_millis(200)).is_ok() {}
+        let Ok(Some(contents)) = notes_io::read_notes(&dir) else {
+            continue;
+        };
+        let h = notes_io::hash(&contents);
+        let ours = app
+            .state::<AppState>()
+            .last_write_hash
+            .load(Ordering::Relaxed);
+        if h == ours || h == last_seen {
+            continue; // our own save, or a duplicate event
+        }
+        last_seen = h;
+        dlog!("[batch] notes.json changed externally → reload");
+        let _ = app.emit("batch://notes-changed", ());
+    }
+}
+
 // ───────────────────────── app ─────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -712,9 +887,22 @@ pub fn run() {
         .plugin(tauri_plugin_drag::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(|app, _shortcut, event| {
-                    // Only one shortcut is ever registered: the toggle.
-                    if event.state == ShortcutState::Pressed {
+                .with_handler(|app, shortcut, event| {
+                    if event.state != ShortcutState::Pressed {
+                        return;
+                    }
+                    let st = app.state::<AppState>();
+                    let is_shot = st
+                        .screenshot_shortcut
+                        .lock()
+                        .ok()
+                        .and_then(|g| *g)
+                        .map(|s| s == *shortcut)
+                        .unwrap_or(false);
+                    if is_shot {
+                        let app = app.clone();
+                        std::thread::spawn(move || run_region_capture(&app));
+                    } else {
                         toggle(app);
                     }
                 })
@@ -736,6 +924,10 @@ pub fn run() {
             double_shift_status,
             relaunch,
             set_capture_selection,
+            set_capture_source,
+            set_screenshot_shortcut,
+            capture_region,
+            mcp_path,
             accessibility_trusted,
             request_accessibility_permission,
             open_url,
@@ -947,13 +1139,29 @@ pub fn run() {
             // ── settings (hotkey, double-shift flag, remembered window size) ──
             let StartupSettings {
                 binding,
+                screenshot_binding,
                 double_shift: double_shift_on,
                 capture_selection,
+                capture_source,
                 window: saved_size,
             } = read_settings(app.handle());
             app.state::<AppState>()
                 .capture_selection
                 .store(capture_selection, Ordering::Relaxed);
+            app.state::<AppState>()
+                .capture_source
+                .store(capture_source, Ordering::Relaxed);
+            if let Ok(sc) = binding_to_shortcut(&screenshot_binding) {
+                match app.global_shortcut().register(sc) {
+                    Ok(()) => {
+                        if let Ok(mut g) = app.state::<AppState>().screenshot_shortcut.lock() {
+                            *g = Some(sc);
+                        }
+                        dlog!("[batch] screenshot hotkey registered: {screenshot_binding}");
+                    }
+                    Err(e) => eprintln!("[batch] could not register screenshot hotkey: {e}"),
+                }
+            }
             if let Some((w_pt, h_pt)) = saved_size {
                 let _ = window.set_size(tauri::LogicalSize::new(w_pt, h_pt));
             }
@@ -986,21 +1194,22 @@ pub fn run() {
                         let focused = main_window(&h)
                             .and_then(|w| w.is_focused().ok())
                             .unwrap_or(false);
-                        let want_capture = !focused
-                            && h.state::<AppState>()
-                                .capture_selection
-                                .load(Ordering::Relaxed);
-                        let text = if want_capture {
-                            capture::selected_text()
+                        let st = h.state::<AppState>();
+                        let want_capture = !focused && st.capture_selection.load(Ordering::Relaxed);
+                        let want_source = st.capture_source.load(Ordering::Relaxed);
+                        let cap = if want_capture {
+                            capture::capture_selection(want_source)
                         } else {
-                            None
+                            capture::Capture::default()
                         };
                         let h2 = h.clone();
-                        let _ = h.run_on_main_thread(move || match text {
-                            Some(t) => {
-                                dlog!("[batch] double-shift → capture {} chars", t.len());
+                        let _ = h.run_on_main_thread(move || match cap.text {
+                            Some(text) => {
+                                dlog!("[batch] double-shift → capture {} chars", text.len());
                                 show(&h2);
-                                let _ = h2.emit("batch://capture", t);
+                                let payload =
+                                    serde_json::json!({ "text": text, "source": cap.source });
+                                let _ = h2.emit("batch://capture", payload);
                             }
                             None => {
                                 dlog!("[batch] double-shift → toggle");
@@ -1009,6 +1218,12 @@ pub fn run() {
                         });
                     });
                 });
+            }
+
+            // ── watch notes.json for external edits (e.g. the MCP server) ──
+            {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || watch_notes(handle));
             }
 
             // In dev builds pop the window straight away so `tauri dev` is useful.

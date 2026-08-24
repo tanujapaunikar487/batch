@@ -47,6 +47,14 @@ export const native = {
   relaunch: () => call("relaunch"),
   /** Grab the frontmost app's selection on ⇧⇧ (needs Accessibility). */
   setCaptureSelection: (enabled: boolean) => call("set_capture_selection", { enabled }),
+  /** Remember the source app/window of a ⇧⇧ capture. */
+  setCaptureSource: (enabled: boolean) => call("set_capture_source", { enabled }),
+  /** Re-register the system-wide screen-region capture hotkey. */
+  setScreenshotShortcut: (shortcut: string) => call<boolean>("set_screenshot_shortcut", { shortcut }),
+  /** Start an interactive screen-region capture (result arrives via onCaptureImage). */
+  captureRegion: () => call("capture_region"),
+  /** Absolute path of the bundled `batch-mcp` server, if present. */
+  mcpPath: () => call<string | null>("mcp_path"),
   accessibilityTrusted: () => call<boolean>("accessibility_trusted"),
   requestAccessibilityPermission: () => call<boolean>("request_accessibility_permission"),
   /** Force the native window appearance (vibrancy follows): "system" | "light" | "dark". */
@@ -78,11 +86,32 @@ export const native = {
   devLog: (msg: string) => (import.meta.env.DEV ? call("dev_log", { msg }) : Promise.resolve()),
 };
 
-/** Text captured from another app via double-Shift. */
-export async function onCapture(handler: (text: string) => void): Promise<() => void> {
+export interface CapturePayload {
+  text: string;
+  source?: { app: string; title?: string; bundleId?: string; at: number };
+}
+
+/** Text captured from another app via double-Shift (with where it came from). */
+export async function onCapture(handler: (p: CapturePayload) => void): Promise<() => void> {
   if (!isTauri()) return () => {};
   const { listen } = await import("@tauri-apps/api/event");
-  return listen<string>("batch://capture", (e) => handler(e.payload));
+  return listen<CapturePayload>("batch://capture", (e) => handler(e.payload));
+}
+
+/** A screen-region capture finished (⌥⇧S / ⊕ menu). */
+export async function onCaptureImage(
+  handler: (a: import("@/lib/notes").Attachment) => void,
+): Promise<() => void> {
+  if (!isTauri()) return () => {};
+  const { listen } = await import("@tauri-apps/api/event");
+  return listen<import("@/lib/notes").Attachment>("batch://capture-image", (e) => handler(e.payload));
+}
+
+/** notes.json was changed by something else (the MCP server, a text editor…). */
+export async function onNotesChanged(handler: () => void): Promise<() => void> {
+  if (!isTauri()) return () => {};
+  const { listen } = await import("@tauri-apps/api/event");
+  return listen("batch://notes-changed", () => handler());
 }
 
 /** Subscribe to the "window was just shown" signal from Rust. */

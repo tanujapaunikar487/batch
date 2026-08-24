@@ -35,6 +35,8 @@ interface Props {
   onRedo: () => void;
   onRenameFolder: () => void;
   onCopySectionAsList: () => void;
+  onCopyFolderForAgent: () => void;
+  onEditPreamble: () => void;
   onClearDone: () => void;
   onRevealFile: () => void;
   onResetPosition: () => void;
@@ -139,6 +141,11 @@ export function Header(p: Props) {
               </>
             )}
             <DropdownMenuItem onSelect={p.onRenameFolder}>Rename folder</DropdownMenuItem>
+            <DropdownMenuItem onSelect={p.onCopyFolderForAgent}>
+              Copy folder for agent
+              <DropdownMenuShortcut>{formatBinding(p.keymap.copyForAgent)}</DropdownMenuShortcut>
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={p.onEditPreamble}>Agent instructions for this folder…</DropdownMenuItem>
             <DropdownMenuItem onSelect={p.onCopySectionAsList}>
               Copy folder as list
               <DropdownMenuShortcut>{formatBinding(p.keymap.copySectionAsList)}</DropdownMenuShortcut>

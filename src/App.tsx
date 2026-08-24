@@ -15,7 +15,7 @@ import { AccessibilityBanner } from "@/components/AccessibilityBanner";
 import { useNotes } from "@/store/useNotes";
 import { useSettings } from "@/store/useSettings";
 import { isTauri } from "@/store/persistence";
-import { native, onCapture, onShown } from "@/lib/native";
+import { native, onCapture, onCaptureImage, onNotesChanged, onShown } from "@/lib/native";
 import { useTheme } from "@/hooks/useSystemTheme";
 import { useListNav } from "@/hooks/useListNav";
 import { useCopy } from "@/hooks/useClipboard";
@@ -28,9 +28,9 @@ import {
   sectionById,
 } from "@/lib/notes";
 import { type Filter, EMPTY_FILTER, activeFilterCount, applyFilters } from "@/lib/filters";
-import { asList, asNumberedList, asPlainText } from "@/lib/format";
+import { asList, asNumberedList, asPlainText, forAgent } from "@/lib/format";
 import { attachmentsDir as loadAttachmentsDir, dragHasImages, dragOut, imagesFromDrop, saveImages } from "@/store/attachments";
-import { allAttachmentIds, allInSection, normalizeState, HEADING_PREFIX, isHeading, type Attachment } from "@/lib/notes";
+import { allAttachmentIds, allInSection, normalizeState, HEADING_PREFIX, isHeading, type Attachment, type NoteSource } from "@/lib/notes";
 import { type ActionId, matchesEvent } from "@/lib/shortcuts";
 
 const inTauri = isTauri();
@@ -122,6 +122,34 @@ export default function App() {
       listRef.current?.focus();
     },
     [visibleIds, nav],
+  );
+
+  // Source of the current capture-box draft (⇧⇧), attached to the note on submit.
+  const draftSourceRef = useRef<NoteSource | undefined>(undefined);
+  const [pendingSource, setPendingSource] = useState<NoteSource | undefined>(undefined);
+  const [editingPreamble, setEditingPreamble] = useState(false);
+
+  /** "Copy for agent": structured Markdown (folder + preamble + sources), images too. */
+  const copyForAgent = useCallback(
+    async (ids: string[]) => {
+      const picked = ids
+        .map((id) => notesById.get(id))
+        .filter((n): n is NonNullable<typeof n> => !!n && !isHeading(n));
+      if (picked.length === 0) return showToast("Nothing to copy");
+      const md = forAgent(activeSection, picked);
+      const imageIds = picked.flatMap((n) => (n.attachments ?? []).map((a) => a.id));
+      const ok =
+        imageIds.length > 0 && inTauri ? (await native.copyRich(md, imageIds)) !== undefined : await copy(md);
+      if (!ok) return showToast("Couldn't copy");
+      notes.markHandedOff(picked.map((n) => n.id));
+      const open = settings.settings.copyListMarksDone ? picked.filter((n) => !n.done).map((n) => n.id) : [];
+      if (open.length) notes.setDone(open, true);
+      showToast(
+        `Copied for agent · ${picked.length} item${picked.length > 1 ? "s" : ""}${imageIds.length ? ` + ${imageIds.length} image${imageIds.length > 1 ? "s" : ""}` : ""}`,
+      );
+      nav.clear();
+    },
+    [notesById, activeSection, copy, notes, nav, showToast, settings.settings.copyListMarksDone],
   );
 
   const copyNotes = useCallback(
@@ -258,17 +286,30 @@ export default function App() {
       setView("list");
       focusCapture();
     }).then((fn) => (off = fn));
-    onCapture((text) => {
+    let offCaptureImg: (() => void) | undefined;
+    let offNotes: (() => void) | undefined;
+    onCapture((p) => {
       setView("list");
-      captureRef.current?.insertText(text);
+      draftSourceRef.current = p.source;
+      setPendingSource(p.source);
+      captureRef.current?.insertText(p.text);
       showToast("Captured selection · ↩ to save");
     }).then((fn) => (offCapture = fn));
+    onCaptureImage((att) => {
+      setView("list");
+      captureRef.current?.addAttachments([att]);
+      focusCapture();
+      showToast("Screenshot captured · ↩ to save");
+    }).then((fn) => (offCaptureImg = fn));
+    onNotesChanged(() => void notes.reloadFromDisk()).then((fn) => (offNotes = fn));
     return () => {
       window.removeEventListener("focus", onFocus);
       off?.();
       offCapture?.();
+      offCaptureImg?.();
+      offNotes?.();
     };
-  }, [focusCapture, view, showToast]);
+  }, [focusCapture, view, showToast, notes.reloadFromDisk]);
 
   useEffect(() => {
     const onHide = () => {
@@ -574,6 +615,9 @@ export default function App() {
           if (taskTargets.length > 0) void copyAsList(taskTargets);
           else copySectionAsList(activeSection.id);
           break;
+        case "copyForAgent":
+          void copyForAgent(taskTargets.length > 0 ? taskTargets : allInSection(state, activeSection.id).map((n) => n.id));
+          break;
         case "merge":
           mergeSelected();
           break;
@@ -610,7 +654,7 @@ export default function App() {
           break;
       }
     },
-    [searchOpen, closeSearch, openSearch, copySectionAsList, copyAsList, taskTargets, activeSection.id, mergeSelected, state, notes, showToast, moveBySection, togglePin, toggleExpand, addSectionHeading],
+    [searchOpen, closeSearch, openSearch, copySectionAsList, copyAsList, copyForAgent, taskTargets, activeSection, activeSection.id, mergeSelected, state, notes, showToast, moveBySection, togglePin, toggleExpand, addSectionHeading],
   );
 
   useEffect(() => {
@@ -759,6 +803,8 @@ export default function App() {
             setRenameRequest((n) => n + 1);
           }}
           onCopySectionAsList={() => copySectionAsList(activeSection.id)}
+          onCopyFolderForAgent={() => void copyForAgent(allInSection(state, activeSection.id).map((n) => n.id))}
+          onEditPreamble={() => setEditingPreamble(true)}
           onClearDone={() => runAction("clearDone")}
           onRevealFile={() => void native.revealNotesFile()}
           onResetPosition={() => void native.resetPosition()}
@@ -941,6 +987,8 @@ export default function App() {
               }}
               onCopy={(ids) => void copyNotes(ids)}
               onCopyAsList={(ids) => void copyAsList(ids)}
+              onCopyForAgent={(ids) => void copyForAgent(ids)}
+              onSetOutcome={(id, text) => notes.setOutcome(id, text, "me")}
               onMerge={(ids) => {
                 if (ids.length < 2) return;
                 notes.merge(ids);
@@ -950,7 +998,7 @@ export default function App() {
               onToggleMany={toggleMany}
               targetsFor={targetsFor}
               allDoneFor={allDoneFor}
-              bindings={{ copyList: keymap.copySectionAsList, merge: keymap.merge }}
+              bindings={{ copyList: keymap.copySectionAsList, merge: keymap.merge, copyForAgent: keymap.copyForAgent }}
               onContextSelect={(id) => {
                 if (!nav.selected.has(id)) nav.focus(id);
               }}
@@ -989,6 +1037,62 @@ export default function App() {
               onOpenAttachment={openAttachment}
               onDragAttachments={dragAttachments}
             />
+            {!searchOpen && (editingPreamble || activeSection.preamble) && (
+              <div className="mx-5 mb-1 rounded-md border border-border/60 bg-foreground/[0.03] px-2 py-1.5">
+                <div className="mb-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  Agent instructions · {activeSection.name}
+                </div>
+                {editingPreamble ? (
+                  <textarea
+                    autoFocus
+                    defaultValue={activeSection.preamble ?? ""}
+                    onBlur={(e) => {
+                      notes.setPreamble(activeSection.id, e.target.value);
+                      setEditingPreamble(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        e.preventDefault();
+                        setEditingPreamble(false);
+                      } else if (e.key === "Enter" && e.metaKey) {
+                        e.preventDefault();
+                        (e.target as HTMLTextAreaElement).blur();
+                      }
+                    }}
+                    rows={2}
+                    placeholder="e.g. You are reviewing the onboarding flow. Keep answers short."
+                    className="block w-full resize-none bg-transparent text-xs leading-5 outline-none"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEditingPreamble(true)}
+                    className="block w-full text-left text-xs leading-5 text-muted-foreground hover:text-foreground"
+                  >
+                    {activeSection.preamble}
+                  </button>
+                )}
+              </div>
+            )}
+            {!searchOpen && pendingSource && (
+              <div className="mx-5 mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="rounded bg-foreground/[0.06] px-1.5 py-0.5">
+                  from {pendingSource.app}
+                  {pendingSource.title ? ` · ${pendingSource.title}` : ""}
+                </span>
+                <button
+                  type="button"
+                  className="hover:text-foreground"
+                  onClick={() => {
+                    draftSourceRef.current = undefined;
+                    setPendingSource(undefined);
+                  }}
+                  aria-label="Drop source"
+                >
+                  ×
+                </button>
+              </div>
+            )}
             {!searchOpen && (
               // Composer-style: the capture box sits under the list.
               <CaptureBox
@@ -999,11 +1103,22 @@ export default function App() {
                 onNotice={showToast}
                 dropTarget={dropping}
                 onNewSection={() => addSectionHeading()}
+                onCaptureRegion={inTauri ? () => void native.captureRegion() : undefined}
                 onSubmit={(text, attachments) => {
                   if (!text.trim() && attachments.length === 0) return false;
                   const single = text.trim().split("\n").length === 1;
                   const isHeadingText = single && attachments.length === 0 && HEADING_PREFIX.test(text.trim());
-                  const id = notes.add(activeSection.id, text, undefined, attachments, isHeadingText ? "heading" : undefined);
+                  const id = notes.add(
+                    activeSection.id,
+                    text,
+                    undefined,
+                    attachments,
+                    isHeadingText ? "heading" : undefined,
+                    undefined,
+                    draftSourceRef.current,
+                  );
+                  draftSourceRef.current = undefined;
+                  setPendingSource(undefined);
                   nav.clear();
                   // New note lands at the bottom of the open list, right above the box.
                   requestAnimationFrame(() =>

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, ExternalLink, Monitor, Moon, Sun } from "lucide-react";
+import { ArrowLeft, Check, Copy, ExternalLink, Monitor, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { type ActionId, ACTIONS, CUSTOMIZABLE_ACTIONS, DEFAULT_KEYMAP, DEFAULT_TOGGLE_SHORTCUT } from "@/lib/shortcuts";
+import { type ActionId, ACTIONS, CUSTOMIZABLE_ACTIONS, DEFAULT_KEYMAP, DEFAULT_SCREENSHOT_SHORTCUT, DEFAULT_TOGGLE_SHORTCUT } from "@/lib/shortcuts";
 import { type SettingsApi, type ThemePref } from "@/store/useSettings";
 import { native } from "@/lib/native";
 import { isTauri } from "@/store/persistence";
@@ -23,6 +23,8 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
   const [axTrusted, setAxTrusted] = useState<boolean | null>(null);
   const [autostart, setAutostart] = useState<boolean | null>(null);
   const [notesPath, setNotesPath] = useState<string>("");
+  const [mcpPath, setMcpPath] = useState<string | null>(null);
+  const [copiedMcp, setCopiedMcp] = useState(false);
 
   useEffect(() => {
     if (!inTauri) return;
@@ -36,6 +38,7 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
     void poll();
     const id = window.setInterval(poll, 2000);
     void native.notesFilePath().then((p) => alive && setNotesPath(p ?? ""));
+    void native.mcpPath().then((p) => alive && setMcpPath(p ?? null));
     import("@tauri-apps/plugin-autostart")
       .then((m) => m.isEnabled())
       .then((v) => alive && setAutostart(v))
@@ -160,6 +163,26 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
               />
             </div>
           </Row>
+          <Row label="Remember where a ⇧⇧ capture came from" hint="Shows the app/window on the note">
+            <Switch
+              checked={settings.settings.captureSource}
+              disabled={!inTauri}
+              onCheckedChange={settings.setCaptureSource}
+            />
+          </Row>
+          <Row label="Screen-region hotkey" hint="Drag a box; the shot lands in the capture box">
+            <ShortcutRecorder
+              value={settings.settings.screenshotShortcut}
+              defaultValue={DEFAULT_SCREENSHOT_SHORTCUT}
+              requireModifier
+              onChange={async (b) => {
+                if (duplicateOf(b, "toggle")) return "Used in-app";
+                const ok = await settings.setScreenshotShortcut(b);
+                return ok ? null : "Taken by another app";
+              }}
+              onReset={() => void settings.setScreenshotShortcut(DEFAULT_SCREENSHOT_SHORTCUT)}
+            />
+          </Row>
           <Row label="Copy as List marks notes done" hint="They've been handed off; ⌘Z brings them back">
             <Switch checked={settings.settings.copyListMarksDone} onCheckedChange={settings.setCopyListMarksDone} />
           </Row>
@@ -208,6 +231,41 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
             Fixed: ⌘1–9 sections · ↑↓ browse · Space done · ↩ edit · ⌫ delete · 1/2/3 priority · ⌘A · ⌘C · ⌘Z · ⌘, · ⌘/
           </p>
         </Group>
+
+        {inTauri && (
+          <Group title="Agents (MCP)">
+            <p className="text-xs leading-5 text-muted-foreground">
+              Let Claude Code, Cursor or Codex read and tick off your notes. They talk to a local
+              server that edits the same file — nothing leaves your Mac.
+            </p>
+            {mcpPath ? (
+              <div className="mt-1.5 flex items-center gap-2">
+                <code className="min-w-0 flex-1 truncate rounded bg-foreground/[0.05] px-1.5 py-1 text-[10px]" title={`claude mcp add batch -- ${mcpPath}`}>
+                  claude mcp add batch -- {mcpPath}
+                </code>
+                <Button
+                  size="xs"
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(`claude mcp add batch -- ${mcpPath}`);
+                      setCopiedMcp(true);
+                      window.setTimeout(() => setCopiedMcp(false), 1200);
+                    } catch {
+                      /* ignore */
+                    }
+                  }}
+                >
+                  {copiedMcp ? <Check className="size-3" /> : <Copy className="size-3" />} Copy
+                </Button>
+              </div>
+            ) : (
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                The bundled <code>batch-mcp</code> server wasn’t found (dev build?). It ships inside the released app.
+              </p>
+            )}
+          </Group>
+        )}
 
         <Group title="Your data">
           <p className="text-xs leading-5 text-muted-foreground">

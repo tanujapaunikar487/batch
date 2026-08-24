@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Check, CheckSquare, ChevronDown, ChevronRight, Copy, CornerDownRight, FolderInput, Heading, ImagePlus, ListOrdered, Merge, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Bot, Check, CheckSquare, ChevronDown, ChevronRight, Copy, CornerDownRight, FolderInput, Heading, ImagePlus, ListOrdered, Merge, MessageSquare, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,7 +39,7 @@ export interface NoteRowProps {
   /** Ids the menu acts on: the selection if this note is part of it, else just this note. */
   targetsFor: (id: string) => string[];
   allDoneFor: (ids: string[]) => boolean;
-  bindings: { copyList: string; merge: string };
+  bindings: { copyList: string; merge: string; copyForAgent: string };
   onPointerSelect: (id: string, e: React.MouseEvent) => void;
   /** Right-click: make sure the note is selected before the menu opens. */
   onContextSelect: (id: string) => void;
@@ -53,6 +53,8 @@ export interface NoteRowProps {
   onMove: (ids: string[], sectionId: string) => void;
   onCopy: (ids: string[]) => void;
   onCopyAsList: (ids: string[]) => void;
+  onCopyForAgent: (ids: string[]) => void;
+  onSetOutcome: (id: string, text: string | null) => void;
   onMerge: (ids: string[]) => void;
   onNudge?: (id: string, delta: -1 | 1) => void;
   onOpenAttachment: (a: Attachment) => void;
@@ -104,6 +106,8 @@ export function NoteRow({
   onMove,
   onCopy,
   onCopyAsList,
+  onCopyForAgent,
+  onSetOutcome,
   onMerge,
   onNudge,
   onOpenAttachment,
@@ -130,6 +134,7 @@ export function NoteRow({
   const [menuOpen, setMenuOpen] = useState(false);
   // Snapshot of the targets when the menu opened (selection may change underneath).
   const [targets, setTargets] = useState<string[]>([note.id]);
+  const [editingOutcome, setEditingOutcome] = useState(false);
 
   useEffect(() => {
     if (isCursor) rowRef.current?.scrollIntoView({ block: "nearest" });
@@ -288,6 +293,35 @@ export function NoteRow({
                 {note.attachments?.length === 1 ? "1 image" : `${note.attachments?.length ?? 0} images`}
               </span>
             )}
+            {note.source && !isEditing && (
+              <div
+                className="mt-0.5 truncate text-[11px] text-muted-foreground"
+                title={`${note.source.app}${note.source.title ? " · " + note.source.title : ""}`}
+              >
+                from {note.source.app}
+                {note.source.title ? ` · ${note.source.title}` : ""}
+              </div>
+            )}
+            {(note.outcome || editingOutcome) && (
+              <div className="mt-1.5 rounded-md border-l-2 border-foreground/15 bg-foreground/[0.03] px-2 py-1">
+                <div className="mb-0.5 flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <MessageSquare className="size-3" />
+                  {note.outcome ? `Outcome${note.outcome.by === "agent" ? " · agent" : ""}` : "Outcome"}
+                </div>
+                {editingOutcome ? (
+                  <OutcomeEditor
+                    initial={note.outcome?.text ?? ""}
+                    onCommit={(t) => {
+                      setEditingOutcome(false);
+                      onSetOutcome(note.id, t.trim() ? t : null);
+                    }}
+                    onCancel={() => setEditingOutcome(false)}
+                  />
+                ) : (
+                  <Markdown text={note.outcome!.text} className="text-xs leading-5 text-muted-foreground" />
+                )}
+              </div>
+            )}
             {showSection && sectionName && (
               <button
                 type="button"
@@ -424,6 +458,10 @@ export function NoteRow({
           <Copy /> Copy
           <ContextMenuShortcut>⌘C</ContextMenuShortcut>
         </ContextMenuItem>
+        <ContextMenuItem onSelect={() => onCopyForAgent(targets)}>
+          <Bot /> Copy for agent
+          <ContextMenuShortcut>{formatBinding(bindings.copyForAgent)}</ContextMenuShortcut>
+        </ContextMenuItem>
         <ContextMenuItem onSelect={() => onCopyAsList(targets)}>
           <ListOrdered /> Copy as List
           <ContextMenuShortcut>{formatBinding(bindings.copyList)}</ContextMenuShortcut>
@@ -487,6 +525,11 @@ export function NoteRow({
           </ContextMenuSub>
         )}
         <ContextMenuSeparator />
+        {!many && (
+          <ContextMenuItem onSelect={() => setEditingOutcome(true)}>
+            <MessageSquare /> {note.outcome ? "Edit outcome…" : "Add outcome…"}
+          </ContextMenuItem>
+        )}
         <ContextMenuItem variant="destructive" onSelect={() => onRemove(targets)}>
           <Trash2 /> Delete{many ? ` ${targets.length} notes` : ""}
           <ContextMenuShortcut>⌫</ContextMenuShortcut>
@@ -543,6 +586,51 @@ function InlineEditor({
       rows={1}
       className="block w-full resize-none bg-transparent text-sm leading-5 outline-none"
       aria-label="Edit note"
+    />
+  );
+}
+
+function OutcomeEditor({
+  initial,
+  onCommit,
+  onCancel,
+}: {
+  initial: string;
+  onCommit: (text: string) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState(initial);
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = el.scrollHeight + "px";
+  }, [value]);
+  useEffect(() => {
+    ref.current?.focus();
+    ref.current?.setSelectionRange(value.length, value.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={() => onCommit(value)}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === "Enter" && (e.metaKey || (!e.shiftKey && !e.nativeEvent.isComposing))) {
+          e.preventDefault();
+          onCommit(value);
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          onCancel();
+        }
+      }}
+      rows={1}
+      placeholder="What came back…"
+      className="block w-full resize-none bg-transparent text-xs leading-5 text-foreground outline-none"
     />
   );
 }

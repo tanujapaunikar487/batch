@@ -19,6 +19,23 @@ export interface Section {
   id: string;
   name: string;
   createdAt: number;
+  /** Instructions emitted at the top of "Copy for agent" output. */
+  preamble?: string;
+}
+
+/** Where a captured note came from (⇧⇧ capture). */
+export interface NoteSource {
+  app: string;
+  title?: string;
+  bundleId?: string;
+  at: number;
+}
+
+/** What came back after handing the note to a person or an agent. */
+export interface NoteOutcome {
+  text: string;
+  at: number;
+  by: "me" | "agent";
 }
 
 /** Max images per note. */
@@ -54,6 +71,12 @@ export interface Note {
   kind?: "heading";
   /** Heading only: its notes are hidden in the list. */
   collapsed?: boolean;
+  /** Set on ⇧⇧ capture: which app/window the text came from. */
+  source?: NoteSource;
+  /** Result pasted back (by you) or written by an agent via MCP. */
+  outcome?: NoteOutcome;
+  /** Last time this note was copied/pulled to an agent. */
+  handedOff?: number;
 }
 
 export const isHeading = (n: Pick<Note, "kind">) => n.kind === "heading";
@@ -102,8 +125,12 @@ export type Action =
       kind?: "heading";
       /** Place the new note right after this id (null = top) instead of at the end. */
       insertAfter?: string | null;
+      source?: NoteSource;
     }
   | { type: "setAttachments"; id: string; attachments: Attachment[] }
+  | { type: "setOutcome"; id: string; text: string | null; by: "me" | "agent"; now: number }
+  | { type: "setPreamble"; sectionId: string; text: string }
+  | { type: "markHandedOff"; ids: string[]; now: number }
   | { type: "toggle"; id: string; now: number }
   | { type: "setDone"; ids: string[]; done: boolean; now: number }
   | { type: "edit"; id: string; text: string }
@@ -162,7 +189,10 @@ export function reduce(state: NotesState, action: Action): NotesState {
         note.kind = "heading";
         note.text = text.split("\n")[0].replace(/^#{1,3}\s+/, "");
         delete note.attachments;
-      } else if (attachments.length) note.attachments = attachments;
+      } else {
+        if (attachments.length) note.attachments = attachments;
+        if (action.source && action.source.app) note.source = action.source;
+      }
       const next = { ...state, notes: [...state.notes, note] };
       if (action.insertAfter === undefined) return next;
       // Position it: raw insertion (no section snapping) so "add section above X" lands exactly there.
@@ -287,6 +317,32 @@ export function reduce(state: NotesState, action: Action): NotesState {
     }
     case "toggleCollapse":
       return mapNotes(state, [action.id], (n) => (isHeading(n) ? { ...n, collapsed: !n.collapsed } : n));
+    case "setOutcome": {
+      const text = action.text === null ? "" : cleanText(action.text);
+      return mapNotes(state, [action.id], (n) => {
+        if (isHeading(n)) return n;
+        if (!text) {
+          if (!n.outcome) return n;
+          const { outcome: _drop, ...rest } = n;
+          return rest;
+        }
+        if (n.outcome && n.outcome.text === text && n.outcome.by === action.by) return n;
+        return { ...n, outcome: { text, at: action.now, by: action.by } };
+      });
+    }
+    case "markHandedOff":
+      return mapNotes(state, action.ids, (n) => (isHeading(n) ? n : { ...n, handedOff: action.now }));
+    case "setPreamble": {
+      const text = cleanText(action.text);
+      let changed = false;
+      const sections = state.sections.map((s) => {
+        if (s.id !== action.sectionId || (s.preamble ?? "") === text) return s;
+        changed = true;
+        const { preamble: _drop, ...rest } = s;
+        return text ? { ...rest, preamble: text } : rest;
+      });
+      return changed ? { ...state, sections } : state;
+    }
     case "nudge": {
       const moving = state.notes.find((n) => n.id === action.id);
       if (!moving) return state;
@@ -459,12 +515,14 @@ export function normalizeState(raw: unknown): NotesState {
     const name = cleanName(s.name);
     if (!name || seen.has(s.id)) continue;
     seen.add(s.id);
-    sections.push({
+    const section: Section = {
       id: s.id,
       // "Inbox" was the pre-folders default name; show it as "Untitled" now.
       name: s.id === INBOX_ID && name === "Inbox" ? DEFAULT_FOLDER_NAME : name,
       createdAt: typeof s.createdAt === "number" ? s.createdAt : 0,
-    });
+    };
+    if (typeof s.preamble === "string" && cleanText(s.preamble)) section.preamble = cleanText(s.preamble);
+    sections.push(section);
   }
   // The default folder must exist (it's where notes go when a folder is deleted),
   // but the user may order folders however they like.
@@ -500,6 +558,25 @@ export function normalizeState(raw: unknown): NotesState {
       delete note.completedAt;
       delete note.attachments;
       if (n.collapsed === true) note.collapsed = true;
+    } else {
+      const src = n.source as Record<string, unknown> | undefined;
+      if (src && typeof src === "object" && typeof src.app === "string" && src.app) {
+        note.source = {
+          app: src.app,
+          at: typeof src.at === "number" ? src.at : createdAt,
+        };
+        if (typeof src.title === "string" && src.title) note.source.title = src.title;
+        if (typeof src.bundleId === "string" && src.bundleId) note.source.bundleId = src.bundleId;
+      }
+      const oc = n.outcome as Record<string, unknown> | undefined;
+      if (oc && typeof oc === "object" && typeof oc.text === "string" && cleanText(oc.text)) {
+        note.outcome = {
+          text: cleanText(oc.text),
+          at: typeof oc.at === "number" ? oc.at : createdAt,
+          by: oc.by === "agent" ? "agent" : "me",
+        };
+      }
+      if (typeof n.handedOff === "number") note.handedOff = n.handedOff;
     }
     notes.push(note);
   }
