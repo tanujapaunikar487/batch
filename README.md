@@ -1,11 +1,13 @@
 # Batch
 
 <p>
-  <a href="https://github.com/tanujapaunikar487/batch/releases/latest/download/Batch-1.0.0-universal.dmg"><b>⬇ Download Batch for macOS</b></a> — universal (Apple Silicon & Intel), macOS 12+, signed & notarized ·
+  <a href="https://github.com/tanujapaunikar487/batch/releases/latest/download/Batch-1.1.0-universal.dmg"><b>⬇ Download Batch for macOS</b></a> — universal (Apple Silicon & Intel), macOS 12+, signed & notarized ·
   <a href="https://github.com/tanujapaunikar487/batch/releases">all releases</a>
 </p>
 
 > Free and open source (MIT). Your notes are stored locally, in one file on your Mac. No account, no sync, no tracking.
+
+**Your scratchpad for AI work.** · [Try it in your browser →](https://tanujapaunikar487.github.io/batch/)
 
 Batch is a small macOS menu-bar notepad. It's for the things you'd otherwise
 lose while you're busy in ChatGPT, Claude, Cursor or a terminal: a prompt you
@@ -35,7 +37,7 @@ open-sourced.
 
 ## Install (download)
 
-1. **[Download the DMG](https://github.com/tanujapaunikar487/batch/releases/latest/download/Batch-1.0.0-universal.dmg)** (or pick any version on the [Releases](https://github.com/tanujapaunikar487/batch/releases) page).
+1. **[Download the DMG](https://github.com/tanujapaunikar487/batch/releases/latest/download/Batch-1.1.0-universal.dmg)** (or pick any version on the [Releases](https://github.com/tanujapaunikar487/batch/releases) page).
 2. Open it and drag **Batch** onto **Applications**.
 3. Launch Batch (Spotlight → "Batch"). The Batch mark appears in the **menu bar** — there's no Dock icon by design.
 
@@ -55,6 +57,44 @@ when a "Developer ID Application" certificate is in the Keychain and a
 Pushing a `v*` tag runs the GitHub workflow, which attaches an (unsigned unless the
 `APPLE_*` secrets are set) DMG to the release; upload the notarized one with
 `gh release upload vX.Y.Z dist-mac/*.dmg --clobber`.
+
+## Use it with your AI agents
+
+Batch ships a tiny local server (`batch-mcp`) that speaks the **Model Context
+Protocol**, so Claude Code, Cursor or Codex can read and tick off your notes
+directly. It edits the same `notes.json` the app uses and the app refreshes
+live — nothing leaves your Mac.
+
+Add it to Claude Code (Settings → **Agents (MCP)** in Batch shows the exact line
+with a Copy button):
+
+```sh
+claude mcp add batch -- /Applications/Batch.app/Contents/MacOS/batch-mcp
+```
+
+Then, from the agent: *"list my Batch prompts and work through them, marking
+each done."* Tools: `list_folders`, `list_notes`, `add_note`, `mark_done`,
+`mark_open`, `reply` (writes an **outcome** shown under the note), `get_note`.
+
+Two more things that make hand-off clean:
+
+- **Copy for agent** (right-click a note or ⌥⌘C) copies a structured block —
+  folder title, optional per-folder **instructions**, numbered items tagged by
+  priority, plus where each came from and any image filenames. One paste and the
+  agent has the context, not just the text.
+- **⇧⇧ remembers the source.** Select text in ChatGPT/Claude/Cursor, tap Shift
+  twice, and the note keeps a *"from Arc · <window title>"* chip.
+- **⌥⇧S** grabs a screen region into the capture box — visual feedback for any
+  Mac app, not just web pages.
+
+## Best practices
+
+- Queue the next prompts in Batch while the current one is still running, then
+  send them in a batch with **Copy for agent** into a fresh chat.
+- One **folder per project**; add **Agent instructions** (⋯ menu) so every
+  hand-off carries the same context.
+- Let the agent tick items off and **reply** with the outcome — Batch updates in
+  place, so your list is the shared to-do between you and your AI.
 
 ## Run it
 
