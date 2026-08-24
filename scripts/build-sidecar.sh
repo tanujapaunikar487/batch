@@ -20,4 +20,5 @@ lipo -create \
   -output binaries/batch-mcp-universal-apple-darwin
 cp -f binaries/batch-mcp-universal-apple-darwin binaries/batch-mcp-aarch64-apple-darwin
 cp -f binaries/batch-mcp-universal-apple-darwin binaries/batch-mcp-x86_64-apple-darwin
+chmod +x binaries/batch-mcp-*
 echo "✓ sidecar → src-tauri/binaries/  ($(lipo -archs binaries/batch-mcp-universal-apple-darwin))"
