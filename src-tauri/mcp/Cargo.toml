@@ -1,0 +1,13 @@
+[package]
+name = "batch-mcp"
+version = "1.1.0"
+edition = "2021"
+description = "Local MCP server for Batch"
+
+[[bin]]
+name = "batch-mcp"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }

@@ -12,8 +12,8 @@ for t in universal-apple-darwin aarch64-apple-darwin x86_64-apple-darwin; do
   [ -s "binaries/batch-mcp-$t" ] || : > "binaries/batch-mcp-$t"
 done
 echo "▸ building batch-mcp (arm64 + x86_64)…"
-cargo build --release --bin batch-mcp --target aarch64-apple-darwin
-cargo build --release --bin batch-mcp --target x86_64-apple-darwin
+cargo build --release -p batch-mcp --target aarch64-apple-darwin
+cargo build --release -p batch-mcp --target x86_64-apple-darwin
 lipo -create \
   target/aarch64-apple-darwin/release/batch-mcp \
   target/x86_64-apple-darwin/release/batch-mcp \

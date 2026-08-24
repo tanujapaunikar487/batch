@@ -11,7 +11,7 @@ use std::path::PathBuf;
 
 use serde_json::{json, Value};
 
-#[path = "../notes_io.rs"]
+#[path = "../../src/notes_io.rs"]
 mod notes_io;
 
 const PROTOCOL: &str = "2024-11-05";

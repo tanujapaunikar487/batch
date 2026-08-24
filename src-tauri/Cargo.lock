@@ -263,6 +263,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "batch-mcp"
+version = "1.1.0"
+dependencies = [
+ "chrono",
+ "serde_json",
+]
+
+[[package]]
 name = "bit-set"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
