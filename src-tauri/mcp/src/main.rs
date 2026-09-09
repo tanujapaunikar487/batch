@@ -93,6 +93,48 @@ fn note_summary(state: &Value, n: &Value) -> Value {
     })
 }
 
+/// Most images embedded in one get_note response.
+const MAX_EMBED: usize = 6;
+
+/// Image bytes for an attachment, base64: the original file if it is small
+/// enough and a type agents accept, else its PNG thumbnail.
+fn read_image_b64(a: &Value) -> Option<(String, String)> {
+    let id = a["id"].as_str()?;
+    if id.is_empty() || id.contains('/') || id.contains("..") {
+        return None;
+    }
+    let dir = data_dir().join("attachments");
+    const MAX_BYTES: u64 = 1_500_000;
+    const ACCEPTED: [&str; 4] = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+    let mime = a["mime"].as_str().unwrap_or("");
+    let original = dir.join(id);
+    let use_original = ACCEPTED.contains(&mime)
+        && std::fs::metadata(&original).map(|m| m.len() <= MAX_BYTES).unwrap_or(false);
+    let (path, mime) = if use_original {
+        (original, mime.to_string())
+    } else {
+        (dir.join("thumbs").join(format!("{id}.png")), "image/png".to_string())
+    };
+    let bytes = std::fs::read(path).ok()?;
+    Some((b64(&bytes), mime))
+}
+
+/// Standard base64 (no deps — this crate stays serde_json + chrono only).
+fn b64(bytes: &[u8]) -> String {
+    const T: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let n = (u32::from(chunk[0]) << 16)
+            | (u32::from(chunk.get(1).copied().unwrap_or(0)) << 8)
+            | u32::from(chunk.get(2).copied().unwrap_or(0));
+        out.push(T[(n >> 18) as usize & 63] as char);
+        out.push(T[(n >> 12) as usize & 63] as char);
+        out.push(if chunk.len() > 1 { T[(n >> 6) as usize & 63] as char } else { '=' });
+        out.push(if chunk.len() > 2 { T[n as usize & 63] as char } else { '=' });
+    }
+    out
+}
+
 // ───────────────────────── tools ─────────────────────────
 
 fn tool_defs() -> Value {
@@ -103,7 +145,7 @@ fn tool_defs() -> Value {
           "inputSchema": { "type": "object", "properties": {
             "folder": { "type": "string", "description": "Folder id or name (default: all folders)" },
             "status": { "type": "string", "enum": ["all","open","done"], "description": "default open" } } } },
-        { "name": "get_note", "description": "Get one note by id.",
+        { "name": "get_note", "description": "Get one note by id: full text, source app/window, and its attached images — returned as actual images, with any numbered pins (x/y as % of the image, left/top).",
           "inputSchema": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] } },
         { "name": "add_note", "description": "Add a note to a folder.",
           "inputSchema": { "type": "object", "properties": {
@@ -186,9 +228,53 @@ fn call_tool(name: &str, args: &Value) -> Result<Value, String> {
             let id = args["id"].as_str().ok_or("id required")?;
             let notes = state["notes"].as_array().cloned().unwrap_or_default();
             let n = notes.iter().find(|n| n["id"] == id).ok_or("no such note")?;
-            Ok(text_result(
-                serde_json::to_string_pretty(&note_summary(&state, n)).unwrap_or_default(),
-            ))
+            let mut detail = note_summary(&state, n);
+            if let Some(src) = n.get("source") {
+                detail["source"] = src.clone();
+            }
+            let mut image_blocks: Vec<Value> = Vec::new();
+            let mut images_meta: Vec<Value> = Vec::new();
+            if let Some(atts) = n["attachments"].as_array() {
+                for a in atts {
+                    let mut meta = json!({
+                        "name": a["name"], "width": a["width"], "height": a["height"],
+                    });
+                    if let Some(pins) = a["pins"].as_array() {
+                        let pct = |v: &Value| {
+                            format!("{}%", (v.as_f64().unwrap_or(0.0) * 100.0).round() as i64)
+                        };
+                        let out: Vec<Value> = pins
+                            .iter()
+                            .enumerate()
+                            .map(|(i, p)| {
+                                json!({ "pin": i + 1, "x": pct(&p["x"]), "y": pct(&p["y"]), "note": p["text"] })
+                            })
+                            .collect();
+                        meta["pins"] = json!(out);
+                    }
+                    // Embed at most MAX_EMBED images so one note can't blow up the response.
+                    if image_blocks.len() < MAX_EMBED {
+                        match read_image_b64(a) {
+                            Some((data, mime)) => {
+                                image_blocks.push(json!({ "type": "image", "data": data, "mimeType": mime }))
+                            }
+                            None => meta["unavailable"] = json!("file not found on disk"),
+                        }
+                    } else {
+                        meta["unavailable"] = json!("not embedded (too many images); listed only");
+                    }
+                    images_meta.push(meta);
+                }
+            }
+            if !images_meta.is_empty() {
+                detail["images"] = json!(images_meta);
+            }
+            let mut content = vec![json!({
+                "type": "text",
+                "text": serde_json::to_string_pretty(&detail).unwrap_or_default()
+            })];
+            content.extend(image_blocks);
+            Ok(json!({ "content": content }))
         }
         "add_note" => {
             let text = args["text"]

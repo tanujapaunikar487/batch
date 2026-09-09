@@ -433,6 +433,38 @@ describe("normalizeState", () => {
   });
 });
 
+describe("normalizePins (via normalizeState)", () => {
+  const withPins = (pins: unknown) =>
+    normalizeState({
+      version: 2,
+      sections: [{ id: INBOX_ID, name: "Untitled", createdAt: 0 }],
+      notes: [{
+        id: "a", sectionId: INBOX_ID, text: "t", priority: "medium", done: false, createdAt: 1,
+        attachments: [{ id: "img.png", name: "img.png", mime: "image/png", thumb: true, width: 100, height: 50, pins }],
+      }],
+    }).notes[0].attachments![0].pins;
+
+  it("keeps valid pins and clamps coordinates to 0-1", () => {
+    expect(withPins([{ x: 0.25, y: 1.7, text: "hi" }, { x: -3, y: 0.5, text: "" }])).toEqual([
+      { x: 0.25, y: 1, text: "hi" },
+      { x: 0, y: 0.5, text: "" },
+    ]);
+  });
+  it("drops pins with missing or non-finite coordinates, defaults text", () => {
+    expect(withPins([{ x: NaN, y: 0 }, { y: 0.5 }, "junk", { x: 0.1, y: 0.2, text: 7 }])).toEqual([
+      { x: 0.1, y: 0.2, text: "" },
+    ]);
+  });
+  it("omits the field entirely when there are no pins", () => {
+    expect(withPins([])).toBeUndefined();
+    expect(withPins(undefined)).toBeUndefined();
+  });
+  it("caps at MAX_PINS", () => {
+    const many = Array.from({ length: 30 }, (_, i) => ({ x: 0.5, y: 0.5, text: String(i) }));
+    expect(withPins(many)).toHaveLength(20);
+  });
+});
+
 describe("migrateFromV1", () => {
   it("puts v1 todos into Inbox keeping priority/done", () => {
     const s = migrateFromV1({

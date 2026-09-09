@@ -44,6 +44,29 @@ describe("forAgent", () => {
     expect(md).toContain("2. Write tests\n   for parseBinding\n   — images: before.png");
     expect(md).not.toContain("Heading");
   });
+  it("emits per-image pin lines when any image has pins", () => {
+    const note: Note = {
+      ...n("Fix header", 1),
+      attachments: [
+        { id: "a.png", name: "shot.png", mime: "image/png", thumb: true, width: 800, height: 600,
+          pins: [{ x: 0.34, y: 0.62, text: "heading wraps" }, { x: 0.05, y: 0.88, text: "" }] },
+        { id: "b.png", name: "other.png", mime: "image/png", thumb: true, width: 1, height: 1 },
+      ],
+    };
+    const md = forAgent({ name: "Bugs" }, [note]);
+    expect(md).toContain("— image: shot.png (2 pins)");
+    expect(md).toContain("pin 1 @ (34%, 62%): heading wraps");
+    expect(md).toContain("pin 2 @ (5%, 88%)");
+    expect(md).not.toContain("pin 2 @ (5%, 88%):");
+    expect(md).toContain("— image: other.png");
+  });
+  it("keeps the compact images line when no image has pins", () => {
+    const note: Note = {
+      ...n("x", 1),
+      attachments: [{ id: "a.png", name: "a.png", mime: "image/png", thumb: true, width: 1, height: 1 }],
+    };
+    expect(forAgent({ name: "F" }, [note])).toContain("— images: a.png");
+  });
   it("stamp formats local time", () => {
     expect(stamp(new Date(2026, 0, 5, 9, 7).getTime())).toBe("2026-01-05 09:07");
   });

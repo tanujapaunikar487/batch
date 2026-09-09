@@ -41,6 +41,16 @@ export interface NoteOutcome {
 /** Max images per note. */
 export const MAX_ATTACHMENTS = 10;
 
+/** Max pins per image. */
+export const MAX_PINS = 20;
+
+/** A numbered feedback marker on an attachment; x/y are fractions (0-1) of the image. */
+export interface Pin {
+  x: number;
+  y: number;
+  text: string;
+}
+
 export interface Attachment {
   /** File name inside the attachments dir (uuid + ext). */
   id: string;
@@ -53,6 +63,8 @@ export interface Attachment {
   height: number;
   /** Browser-only fallback (dev): inline data URL instead of a file. */
   dataUrl?: string;
+  /** Numbered feedback markers; pin n = index + 1. */
+  pins?: Pin[];
 }
 
 export interface Note {
@@ -599,8 +611,26 @@ function normalizeAttachments(raw: unknown): Attachment[] {
       height: typeof a.height === "number" ? a.height : 0,
     };
     if (typeof a.dataUrl === "string" && a.dataUrl.startsWith("data:")) att.dataUrl = a.dataUrl;
+    const pins = normalizePins(a.pins);
+    if (pins.length) att.pins = pins;
     out.push(att);
     if (out.length >= MAX_ATTACHMENTS) break;
+  }
+  return out;
+}
+
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
+function normalizePins(raw: unknown): Pin[] {
+  if (!Array.isArray(raw)) return [];
+  const out: Pin[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const p = item as Record<string, unknown>;
+    if (typeof p.x !== "number" || !Number.isFinite(p.x)) continue;
+    if (typeof p.y !== "number" || !Number.isFinite(p.y)) continue;
+    out.push({ x: clamp01(p.x), y: clamp01(p.y), text: typeof p.text === "string" ? p.text : "" });
+    if (out.length >= MAX_PINS) break;
   }
   return out;
 }

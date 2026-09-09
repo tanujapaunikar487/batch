@@ -34,6 +34,9 @@ export function mergeText(notes: Note[]): string {
     .join("\n\n");
 }
 
+/** 0.34 → "34%" — pin coordinates as fractions of the image, left/top. */
+const pct = (f: number) => `${Math.round(f * 100)}%`;
+
 const pad = (n: number) => String(n).padStart(2, "0");
 /** 2026-08-18 10:32 (local time) */
 export function stamp(ms: number): string {
@@ -61,7 +64,19 @@ export function forAgent(folder: Pick<Section, "name" | "preamble">, notes: Note
       const where = [n.source.app, n.source.title ? `“${n.source.title}”` : ""].filter(Boolean).join(" · ");
       lines.push(`${indent}— source: ${where} · ${stamp(n.source.at)}`);
     }
-    if (n.attachments?.length) lines.push(`${indent}— images: ${n.attachments.map((a) => a.name).join(", ")}`);
+    if (n.attachments?.length) {
+      if (n.attachments.some((a) => a.pins?.length)) {
+        for (const a of n.attachments) {
+          const count = a.pins?.length ?? 0;
+          lines.push(`${indent}— image: ${a.name}${count ? ` (${count} pin${count === 1 ? "" : "s"})` : ""}`);
+          a.pins?.forEach((p, pi) =>
+            lines.push(`${indent}    pin ${pi + 1} @ (${pct(p.x)}, ${pct(p.y)})${p.text ? `: ${p.text}` : ""}`),
+          );
+        }
+      } else {
+        lines.push(`${indent}— images: ${n.attachments.map((a) => a.name).join(", ")}`);
+      }
+    }
   });
   return lines.join("\n");
 }
