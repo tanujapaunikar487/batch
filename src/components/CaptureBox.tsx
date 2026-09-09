@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { type Attachment, MAX_ATTACHMENTS } from "@/lib/notes";
 import { imagesFromDataTransfer, saveImages } from "@/store/attachments";
 import { AttachmentStrip } from "./AttachmentStrip";
+import { PinEditor } from "./PinEditor";
 
 interface Props {
   placeholder: string;
@@ -75,6 +76,7 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
     }
   });
   const [busy, setBusy] = useState(false);
+  const [pinAttId, setPinAttId] = useState<string | null>(null);
   useEffect(() => {
     const t = window.setTimeout(() => {
       if (!value && atts.length === 0) localStorage.removeItem(DRAFT_KEY);
@@ -166,6 +168,7 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
             dir={attachmentsDir}
             size="md"
             onRemove={(id) => setAtts((cur) => cur.filter((a) => a.id !== id))}
+            onOpen={(a) => setPinAttId(a.id)}
             className="px-2 pt-2"
           />
         )}
@@ -260,6 +263,27 @@ export const CaptureBox = forwardRef<CaptureBoxHandle, Props>(function CaptureBo
           </button>
         </div>
       </div>
+      {pinAttId &&
+        (() => {
+          const att = atts.find((a) => a.id === pinAttId);
+          if (!att) return null;
+          return (
+            <PinEditor
+              attachment={att}
+              dir={attachmentsDir}
+              onSave={(pins) =>
+                setAtts((cur) =>
+                  cur.map((a) => {
+                    if (a.id !== pinAttId) return a;
+                    const { pins: _old, ...rest } = a;
+                    return pins.length ? { ...rest, pins } : rest;
+                  }),
+                )
+              }
+              onClose={() => setPinAttId(null)}
+            />
+          );
+        })()}
     </div>
   );
 });

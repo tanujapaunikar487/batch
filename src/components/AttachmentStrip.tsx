@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { MapPin, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type Attachment } from "@/lib/notes";
 import { attachmentSrc } from "@/store/attachments";
@@ -34,6 +34,15 @@ export function AttachmentStrip({ attachments, dir, size = "md", onRemove, onOpe
             className={cn("size-full object-cover", onOpen && "cursor-zoom-in")}
             loading="lazy"
           />
+          {(a.pins?.length ?? 0) > 0 && (
+            <span
+              aria-label={`${a.pins!.length} pins`}
+              className="absolute bottom-0.5 left-0.5 flex h-3.5 items-center gap-px rounded-full bg-orange-600/95 pl-0.5 pr-1 text-[9px] font-semibold text-white shadow-sm"
+            >
+              <MapPin className="size-2" />
+              {a.pins!.length}
+            </span>
+          )}
           {onRemove && (
             <button
               type="button"

@@ -30,7 +30,8 @@ import {
 import { type Filter, EMPTY_FILTER, activeFilterCount, applyFilters } from "@/lib/filters";
 import { asList, asNumberedList, asPlainText, forAgent } from "@/lib/format";
 import { attachmentsDir as loadAttachmentsDir, dragHasImages, dragOut, imagesFromDrop, saveImages } from "@/store/attachments";
-import { allAttachmentIds, allInSection, normalizeState, HEADING_PREFIX, isHeading, type Attachment, type NoteSource } from "@/lib/notes";
+import { allAttachmentIds, allInSection, normalizeState, HEADING_PREFIX, isHeading, type Attachment, type NoteSource, type Pin } from "@/lib/notes";
+import { PinEditor } from "@/components/PinEditor";
 import { type ActionId, matchesEvent } from "@/lib/shortcuts";
 
 const inTauri = isTauri();
@@ -455,6 +456,29 @@ export default function App() {
     if (inTauri) void native.openAttachment(a.id);
     else if (a.dataUrl) window.open(a.dataUrl, "_blank");
   }, []);
+  // Clicking a note's thumbnail opens the pin editor (the file itself opens from there).
+  const [pinEdit, setPinEdit] = useState<{ noteId: string; attId: string } | null>(null);
+  const openPinEditor = useCallback((noteId: string, a: Attachment) => setPinEdit({ noteId, attId: a.id }), []);
+  const savePins = useCallback(
+    (pins: Pin[]) => {
+      if (!pinEdit) return;
+      const n = notesById.get(pinEdit.noteId);
+      if (!n) return;
+      notes.setAttachments(
+        pinEdit.noteId,
+        (n.attachments ?? []).map((a) => {
+          if (a.id !== pinEdit.attId) return a;
+          const { pins: _old, ...rest } = a;
+          return pins.length ? { ...rest, pins } : rest;
+        }),
+      );
+      showToast(`${pins.length ? "Pins saved" : "Pins cleared"} · ⌘Z to undo`);
+    },
+    [pinEdit, notesById, notes, showToast],
+  );
+  const pinAtt = pinEdit
+    ? (notesById.get(pinEdit.noteId)?.attachments ?? []).find((a) => a.id === pinEdit.attId)
+    : undefined;
   const dragAttachments = useCallback(
     (e: React.DragEvent, note: { attachments?: Attachment[] }, a: Attachment) => {
       if (!inTauri) return; // browser: default image drag
@@ -1034,7 +1058,7 @@ export default function App() {
                 nav.focus(id);
               }}
               attachmentsDir={attDir}
-              onOpenAttachment={openAttachment}
+              onOpenAttachment={openPinEditor}
               onDragAttachments={dragAttachments}
             />
             {!searchOpen && (editingPreamble || activeSection.preamble) && (
@@ -1137,6 +1161,15 @@ export default function App() {
               total={[...open, ...done].filter((n) => !isHeading(n)).length}
             />
           </>
+        )}
+        {pinEdit && pinAtt && (
+          <PinEditor
+            attachment={pinAtt}
+            dir={attDir}
+            onSave={savePins}
+            onClose={() => setPinEdit(null)}
+            onOpenFile={inTauri || pinAtt.dataUrl ? () => openAttachment(pinAtt) : undefined}
+          />
         )}
         {inTauri && !expanded && (
           <div

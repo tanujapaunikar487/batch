@@ -22,6 +22,7 @@ export function HelpSheet({ keymap, toggleShortcut, doubleShift, onBack }: Props
     ["Delete", "⌫"],
     ["Priority", "1 · 2 · 3"],
     ["Move note up / down", "⌥↑ · ⌥↓  ·  drag"],
+    ["Pin feedback on an image", "click a thumbnail · click the image to add pins"],
     ["Switch folder", "⌘1 … ⌘9"],
     ["New section (heading)", "⇧⌘H · ⊕ · + Add section · right-click → Add section above · type “# Title”"],
     ...(Object.keys(ACTIONS) as ActionId[]).map((a) => [ACTIONS[a].label, formatBinding(keymap[a])] as [string, string]),

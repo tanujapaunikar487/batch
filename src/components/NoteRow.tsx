@@ -57,7 +57,7 @@ export interface NoteRowProps {
   onSetOutcome: (id: string, text: string | null) => void;
   onMerge: (ids: string[]) => void;
   onNudge?: (id: string, delta: -1 | 1) => void;
-  onOpenAttachment: (a: Attachment) => void;
+  onOpenAttachment: (noteId: string, a: Attachment) => void;
   onDragAttachments: (e: React.DragEvent, note: Note, a: Attachment) => void;
   /** Add images to this note (opens the picker). */
   onAttachImages: (id: string) => void;
@@ -239,7 +239,7 @@ export function NoteRow({
                 attachments={note.attachments!}
                 dir={attachmentsDir}
                 size="sm"
-                onOpen={onOpenAttachment}
+                onOpen={(a) => onOpenAttachment(note.id, a)}
                 onDragStart={(e, a) => onDragAttachments(e, note, a)}
                 onRemove={note.done ? undefined : (aid) => onRemoveAttachment(note.id, aid)}
                 className={cn("mb-1", note.done && "opacity-70")}

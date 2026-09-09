@@ -74,9 +74,12 @@ claude mcp add batch -- /Applications/Batch.app/Contents/MacOS/batch-mcp
 
 Then, from the agent: *"list my Batch prompts and work through them, marking
 each done."* Tools: `list_folders`, `list_notes`, `add_note`, `mark_done`,
-`mark_open`, `reply` (writes an **outcome** shown under the note), `get_note`.
+`mark_open`, `reply` (writes an **outcome** shown under the note), and
+`get_note` — which returns the note's **images themselves** (agents with vision
+see exactly what you captured) along with any **pins**, as percentages of the
+image with your note per pin.
 
-Two more things that make hand-off clean:
+Three more things that make hand-off clean:
 
 - **Copy for agent** (right-click a note or ⌥⌘C) copies a structured block —
   folder title, optional per-folder **instructions**, numbered items tagged by
@@ -84,8 +87,12 @@ Two more things that make hand-off clean:
   agent has the context, not just the text.
 - **⇧⇧ remembers the source.** Select text in ChatGPT/Claude/Cursor, tap Shift
   twice, and the note keeps a *"from Arc · <window title>"* chip.
-- **⌥⇧S** grabs a screen region into the capture box — visual feedback for any
-  Mac app, not just web pages.
+- **⌥⇧S** grabs a screen region into the capture box.
+- **Pins.** Click any thumbnail and click the image to drop numbered pins with a
+  note each — "pin 1 @ (34%, 62%): heading wraps". Pins ride along in Copy for
+  agent and over MCP. Visual feedback for agents that works on your whole Mac —
+  native apps, PDFs, terminals, other people's sites — not just a web page you
+  own.
 
 ## Best practices
 
@@ -155,8 +162,9 @@ build shares one identity.
 | Show / hide | ⇧⇧ (double-tap Shift) · ⌥⇧Space · click the menu-bar icon · `Esc` when the input is empty · ⌘W |
 | Add a note | capture box at the bottom: type / paste (Markdown, multi-line), ↩ · ⇧↩ for a newline |
 | Capture from another app | select text anywhere, tap ⇧⇧ — it lands in the capture box (needs Accessibility; Settings → *Capture selected text*) |
-| Attach images | ⊕ → *Attach images…*, paste an image (⌘V), or **drag & drop** anywhere on the window — the images land in the capture box so you can add a prompt and press ↩ · accepts files from Finder and images dragged from browsers/apps · up to **10** per note · a note can be images only · thumbnails show above the text (click to open) · ⊕ also has *New folder* |
+| Attach images | ⊕ → *Attach images…*, paste an image (⌘V), or **drag & drop** anywhere on the window — the images land in the capture box so you can add a prompt and press ↩ · accepts files from Finder and images dragged from browsers/apps · up to **10** per note · a note can be images only · thumbnails show above the text (click to view + pin) · ⊕ also has *New folder* |
 | Images on an existing note | drop images onto the note, or right-click → *Attach images…* · hover a thumbnail → × removes it (⌘Z undoes) |
+| Pin feedback on an image | click a thumbnail (in a note or the capture box) → the image opens with a crosshair: click to drop numbered pins, type a note per pin · `Esc` saves · ↗ opens the file itself · thumbnails show a pin count · pins go with the image in Copy for agent and `get_note` |
 | Copy with images | ⌘C / ⋯ → Copy puts the **text and the image files** on the clipboard together — paste once into ChatGPT, Claude, Cursor… (they read the files; text fields get the text) · drag a thumbnail out to drop the note's images into another app |
 | Folders | tabs at the top (the first is "Untitled" until you rename it) · ⌘1…⌘9 switch · ⇧⌘N new · click the active folder's name to rename (or ⋯ → Rename folder, or right-click) · right-click also has Copy as list / Clear done / Delete |
 | Browse | ↑ from the capture box enters the list (↓ past the last note returns) · ↑↓ move · ⇧↑↓ extend · ⌘A select all · click / ⌘-click / ⇧-click |
@@ -203,8 +211,8 @@ src/
   store/useSettings.ts  hotkey, double-shift, keymap
   hooks/useListNav.ts   cursor + multi-selection model
   components/           Header, SectionTabs, CaptureBox, NoteList/NoteRow, Markdown,
-                        SearchAndFilters, Footer, SettingsPanel, ShortcutRecorder,
-                        HelpSheet, AccessibilityBanner
+                        PinEditor, SearchAndFilters, Footer, SettingsPanel,
+                        ShortcutRecorder, HelpSheet, AccessibilityBanner
   components/ui/        UI primitives (Radix-based)
   App.tsx               wiring + all keyboard handling
 src-tauri/

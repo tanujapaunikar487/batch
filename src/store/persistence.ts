@@ -169,7 +169,7 @@ function seedState(): NotesState {
       { id: "h-later", sectionId: INBOX_ID, text: "Later", priority: "medium", done: false, createdAt: now - 20 * H, kind: "heading" },
       { id: "u4", sectionId: INBOX_ID, text: "Compare Postgres vs. SQLite for the sync layer — write up pros/cons", priority: "low", done: false, createdAt: now - 19 * H },
       { id: "u5", sectionId: INBOX_ID, text: "Try `bun run dist:mac` on the Intel machine", priority: "medium", done: false, createdAt: now - 3 * H },
-      { id: "u6", sectionId: INBOX_ID, text: "Onboarding card needs more spacing — see the two screenshots", priority: "medium", done: false, createdAt: now - 1 * H, attachments: [png("before.png", 64, 48, blue), png("after.png", 48, 64, amber)] },
+      { id: "u6", sectionId: INBOX_ID, text: "Onboarding card needs more spacing — see the two screenshots", priority: "medium", done: false, createdAt: now - 1 * H, attachments: [{ ...png("before.png", 64, 48, blue), pins: [{ x: 0.3, y: 0.25, text: "too tight against the title" }, { x: 0.72, y: 0.7, text: "button overlaps the edge" }] }, png("after.png", 48, 64, amber)] },
       { id: "p1", sectionId: "prompts", text: "Explain the tradeoffs of server components vs. client components for a dashboard with heavy interactivity", priority: "high", done: false, createdAt: now - 10 * H },
       { id: "p2", sectionId: "prompts", text: "Rewrite this in a calmer tone:\n\n> We MUST ship by Friday or the launch slips.", priority: "medium", done: false, createdAt: now - 9 * H },
       { id: "p3", sectionId: "prompts", text: "Generate 5 edge-case tests for `parseBinding()` — layouts, dead keys, numpad", priority: "medium", done: false, createdAt: now - 8 * H },
