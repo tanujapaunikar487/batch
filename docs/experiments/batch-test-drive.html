@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Batch Test Drive</title>
+<style>
+  /* One deliberate light theme for both views. */
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    color:#3A3D42; font:15px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:0 16px 90px;
+  }
+  body.view-ship{background:#F2F1EE}
+  body.view-clear{background:#FDFDFC}
+  button{font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer}
+  button:focus-visible, input:focus-visible, textarea:focus-visible{outline:2px solid #C9A25E; outline-offset:2px; border-radius:6px}
+  .mono{font-family:"SF Mono", ui-monospace, Menlo, monospace}
+
+  /* top bar */
+  .topbar{
+    position:sticky; top:0; z-index:30; width:100%; display:flex; justify-content:center;
+    padding:12px 0 10px; backdrop-filter:blur(10px);
+  }
+  body.view-ship .topbar{background:rgba(242,241,238,.85)}
+  body.view-clear .topbar{background:rgba(253,253,252,.85)}
+  .topin{width:100%; max-width:560px; display:flex; align-items:center; gap:10px}
+  .seg{display:flex; background:#E9E8E4; border-radius:999px; padding:3px}
+  .seg button{font-size:13px; font-weight:600; color:#8A8D92; border-radius:999px; padding:5px 14px}
+  .seg button[aria-pressed="true"]{background:#FFFFFF; color:#2E3136; box-shadow:0 1px 3px rgba(40,42,45,.12)}
+  .topin .sp{flex:1}
+  .quiet{font-size:12px; color:#A9ACB1}
+  .quiet:hover{color:#5A5E64}
+  .quiet + .quiet{margin-left:10px}
+
+  .findrow{width:100%; max-width:560px; margin:6px auto 0; display:flex; justify-content:center}
+  .findrow[hidden]{display:none}
+  .findrow input{width:300px; border:1px solid #E4E3DF; border-radius:999px; background:#fff; outline:none; padding:6px 16px; font:14px inherit; color:#3A3D42; text-align:center}
+  mark{background:#F7EFC9; border-radius:3px; padding:0 1px}
+
+  .wrap{width:100%; max-width:560px}
+
+  /* intro card */
+  .intro{
+    background:#FFFDF4; border:1px solid #EFE6C8; border-radius:14px; padding:14px 18px; margin:16px 0 4px;
+    font-size:13.5px; color:#6B6244;
+  }
+  .intro b{color:#4A431F}
+  .intro .dismiss{display:block; margin-top:8px; color:#A99B62; text-decoration:underline; font-size:12.5px}
+
+  /* ═══ CLEAR view ═══ */
+  .clear-only{display:none} body.view-clear .clear-only{display:block}
+  .ship-only{display:none} body.view-ship .ship-only{display:block}
+
+  .c-head{text-align:center; margin:26px 0 0}
+  .c-head h1{font-size:34px; font-weight:400; letter-spacing:-.02em; margin:0 0 4px; color:#2E3136}
+  .c-status{color:#9A9EA4; font-size:15px; margin:0 0 28px; min-height:24px}
+  .c-status b{color:#3E9B63; font-weight:600}
+  .c-status .cl{color:#667BAE; font-weight:600}
+
+  .c-capture{
+    display:flex; align-items:center; gap:10px; background:#FFFFFF; border:1px solid #ECEBE8;
+    border-radius:18px; padding:6px 8px 6px 20px; box-shadow:0 1px 2px rgba(60,63,68,.04), 0 10px 30px rgba(60,63,68,.05);
+  }
+  .c-capture:focus-within{border-color:#D8DAD4}
+  .c-capture input{flex:1; min-width:0; border:0; outline:none; background:none; color:#2E3136; font:17px/1.5 inherit; padding:10px 0}
+  .c-capture input::placeholder{color:#B4B7BC}
+  .c-capture .go{flex:none; width:38px; height:38px; border-radius:13px; background:#F2F1EE; color:#7A7E84; display:grid; place-items:center; font-size:16px}
+  .c-capture .go:hover{background:#E9F2EC; color:#3E9B63}
+  .c-sub{text-align:center; font-size:12.5px; color:#C2C5C9; margin:8px 0 26px}
+
+  .grouplabel{font-size:12px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#C2C5C9; margin:24px 4px 10px}
+  .cards{display:flex; flex-direction:column; gap:12px}
+  .card{
+    background:#FFFFFF; border:1px solid #EFEEEB; border-radius:16px; padding:15px 18px;
+    box-shadow:0 1px 2px rgba(60,63,68,.03), 0 6px 22px rgba(60,63,68,.04); position:relative;
+    transition:opacity .3s, transform .3s;
+  }
+  .card.leaving{opacity:0; transform:scale(.96) translateY(4px)}
+  .card.dimmed{opacity:.35}
+  .card .t{font-size:16px; color:#2E3136; overflow-wrap:break-word; padding-right:26px}
+  .card .from{font-size:12px; color:#B4B7BC; margin-top:4px}
+  .card .star{position:absolute; top:13px; right:14px; color:#E6E4DF; font-size:15px}
+  .card .star[aria-pressed="true"]{color:#E8A93D}
+  .card:hover .star{color:#D8D5CE}
+  .card:hover .star[aria-pressed="true"]{color:#E8A93D}
+  .edit-in{width:100%; border:1px solid #ECEBE8; border-radius:10px; font:15px/1.5 inherit; color:#2E3136; padding:6px 10px; outline:none; background:#FBFBFA}
+
+  .photo{margin-top:10px; position:relative; display:inline-block; max-width:100%; border:0; padding:0; cursor:pointer}
+  .photo img{display:block; max-width:220px; max-height:130px; border-radius:10px; border:1px solid #EFEEEB; background:#fff}
+  .pinb{position:absolute; width:18px; height:18px; transform:translate(-50%,-50%); border-radius:99px; background:#E8A93D; color:#fff; font:700 10px -apple-system,sans-serif; display:grid; place-items:center; box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .pincap{font-size:13px; color:#9A9EA4; margin-top:6px}
+  .pincap b{color:#E8A93D; font-size:11px}
+
+  .verbs{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap}
+  .verb{font-size:13.5px; font-weight:550; border-radius:999px; padding:6px 14px}
+  .verb.claude{background:#EEF1F8; color:#667BAE}
+  .verb.claude:hover{background:#E3E9F5}
+  .verb.done{background:#F4F3F0; color:#7A7E84}
+  .verb.done:hover{background:#E9F2EC; color:#3E9B63}
+  .verb.quiet{color:#B4B7BC; padding:6px 8px}
+  .verb.quiet:hover{color:#7A7E84}
+
+  .withc{display:flex; align-items:center; gap:8px; margin-top:12px; color:#667BAE; font-size:14px}
+  .withc .dot{width:8px; height:8px; border-radius:99px; background:#667BAE; animation:breathe 2.2s ease-in-out infinite}
+  @keyframes breathe{50%{opacity:.25; transform:scale(.8)}}
+
+  .answer{margin-top:12px; background:#F6FAF7; border:1px solid #E3EFE7; border-radius:12px; padding:10px 14px; font-size:14.5px; color:#3A5A46; white-space:pre-wrap}
+  .answer b{display:block; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#3E9B63; margin-bottom:2px}
+  .answer-in{width:100%; margin-top:10px; border:1px solid #DDE3F0; border-radius:10px; font:14px/1.5 inherit; color:#2E3136; padding:8px 10px; outline:none; background:#FBFCFE; min-height:60px; resize:vertical}
+
+  .handall{text-align:center; margin:16px 0 0}
+  .handall button{color:#667BAE; font-size:14px; text-decoration:underline; text-decoration-color:#DDE3F0}
+  .empty{text-align:center; padding:56px 0 24px; color:#C2C5C9}
+  .empty .big{font-size:23px; color:#9A9EA4; margin-bottom:6px}
+  .handled{margin-top:36px; text-align:center}
+  .handled > button{color:#C2C5C9; font-size:13px}
+  .handled .cards{margin-top:12px; text-align:left}
+  .handled .card{opacity:.75}
+  .handled .card .t{color:#9A9EA4}
+
+  /* ═══ SHIPPED view ═══ */
+  .s-head{text-align:center; margin:24px 0 18px}
+  .s-head h1{font-size:26px; font-weight:700; letter-spacing:-.02em; margin:0 0 2px; color:#1C1D1F}
+  .s-head p{color:#8A8D92; font-size:13.5px; margin:0}
+  .folders{display:flex; flex-direction:column; gap:12px}
+  .folder{background:#FFFFFF; border:1px solid #E4E3DF; border-radius:14px; overflow:hidden; box-shadow:0 1px 2px rgba(28,29,31,.05), 0 8px 26px rgba(28,29,31,.06)}
+  .f-head{display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px dashed #E4E3DF}
+  .f-name{font-weight:650; font-size:13.5px; color:#1C1D1F; background:none; border:0; outline:none; min-width:0; width:150px}
+  .f-name:focus{border-bottom:1px dashed #C9C7C2}
+  .f-count{margin-left:auto; font-size:12px; color:#8A8D92; font-variant-numeric:tabular-nums; white-space:nowrap}
+  .waylink{font-size:11px; color:#8A8D92; text-decoration:underline; text-decoration-color:#E4E3DF}
+  .waylink:hover{color:#1C1D1F}
+  .f-x{color:#B4B7BC; font-size:13px} .f-x:hover{color:#B3402F}
+
+  .items{padding:6px 8px 4px}
+  .item{display:flex; gap:9px; padding:6px; border-radius:8px; align-items:flex-start}
+  .item:hover{background:#F4F3F0}
+  .item .dot{width:14px; height:14px; border-radius:99px; flex:none; margin-top:4px; border:1.5px solid #8A8D92}
+  .item.st-claude .dot{border-color:#667BAE; background:radial-gradient(circle at center, #667BAE 40%, transparent 44%)}
+  .item.st-done .dot{border-color:#2E7D46; background:#2E7D46}
+  .item.st-done .t2{color:#9A9EA4; text-decoration:line-through}
+  .stamp{
+    flex:none; width:58px; text-align:center; font-size:8px; font-weight:800; letter-spacing:.08em;
+    border:1.5px solid; border-radius:3px; padding:1px 0; transform:rotate(-6deg); margin-top:4px; user-select:none;
+  }
+  .stamp.hi{color:#B3402F; border-color:#B3402F; background:#F7E3DF}
+  .stamp.lo{color:#5B7A9D; border-color:#5B7A9D; opacity:.85}
+  .stamp.md{color:#B4B7BC; border-color:#E4E3DF; opacity:0}
+  .item:hover .stamp.md{opacity:.6}
+  .item .t2{flex:1; min-width:0; font-size:14px; color:#1C1D1F; overflow-wrap:break-word}
+  .item .src{display:inline-block; font-size:10.5px; color:#8A8D92; background:#F4F3F0; border-radius:5px; padding:0 5px; margin-left:6px}
+  .item .rm{color:#B4B7BC; font-size:13px; opacity:0}
+  .item:hover .rm{opacity:1}
+  .item .rm:hover{color:#B3402F}
+  .thumbrow{margin:2px 0 2px 60px}
+  .thumb{position:relative; width:72px; height:48px; border:1px solid #E4E3DF; border-radius:6px; overflow:hidden; background:#fff; padding:0; cursor:pointer}
+  .thumb img{width:100%; height:100%; object-fit:cover; display:block}
+  .thumb .pc{position:absolute; bottom:2px; left:2px; background:#B3402F; color:#fff; font-size:8.5px; font-weight:700; border-radius:99px; padding:0 4px}
+  .s-withc{margin:0 6px 2px 60px; color:#667BAE; font-size:12px}
+  .s-answer{margin:2px 6px 6px 60px; padding:6px 10px; border-left:2px solid #2E7D46; background:#E5F1E8; border-radius:0 7px 7px 0; font-size:12.5px; color:#2C4A36; white-space:pre-wrap}
+  .s-answer b{display:block; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:#2E7D46}
+  .s-ansbtn{margin:0 0 4px 60px; font-size:12px; color:#667BAE; text-decoration:underline; text-decoration-color:#DDE3F0}
+
+  .f-cap{display:flex; gap:8px; padding:4px 10px 10px}
+  .f-cap input{flex:1; min-width:0; background:#F7F6F4; border:1px solid #E4E3DF; border-radius:9px; padding:7px 11px; font:14px inherit; color:#1C1D1F; outline:none}
+  .f-cap input::placeholder{color:#B4B7BC}
+  .ship{
+    margin:0 10px 12px; width:calc(100% - 20px); background:#1C1D1F; color:#fff; border-radius:9px;
+    padding:8px 12px; font-weight:650; font-size:13.5px; text-align:center;
+  }
+  .ship:disabled{opacity:.3}
+  .ship .kbd{opacity:.6; font-weight:500; font-size:12px; margin-left:6px}
+  .newfolder{align-self:flex-start; margin-top:12px; font-size:12.5px; font-weight:600; color:#8A8D92; border:1px dashed #D8D6D1; border-radius:999px; padding:5px 13px}
+  .newfolder:hover{color:#1C1D1F; border-color:#8A8D92}
+  .s-donewrap{margin-top:6px; padding:0 14px 10px}
+  .s-donewrap > button{font-size:12px; color:#B4B7BC}
+  .s-donewrap > button:hover{color:#8A8D92}
+
+  /* overlays */
+  .overlay{position:fixed; inset:0; z-index:50; background:rgba(40,42,45,.35); display:flex; align-items:center; justify-content:center; padding:20px}
+  .overlay[hidden]{display:none}
+  .box{background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(40,42,45,.25); max-width:500px; width:100%; max-height:86vh; overflow-y:auto; padding:18px 20px}
+  .box h3{margin:0 0 4px; font-size:16px; font-weight:600; color:#2E3136}
+  .box .sub{font-size:13px; color:#9A9EA4; margin:0 0 12px}
+  .box .imgwrap{position:relative; display:inline-block; max-width:100%}
+  .box .imgwrap img{display:block; max-width:100%; max-height:46vh; border-radius:10px; border:1px solid #EFEEEB; background:#fff; cursor:crosshair}
+  .box .pinrow{display:flex; gap:8px; align-items:center; margin-top:6px}
+  .box .pinrow .pn{width:17px; height:17px; flex:none; border-radius:99px; background:#E8A93D; color:#fff; font:700 10px -apple-system,sans-serif; display:grid; place-items:center}
+  .box .pinrow input{flex:1; min-width:0; border:1px solid #ECEBE8; border-radius:8px; font:14px inherit; color:#3A3D42; padding:5px 10px; outline:none}
+  .box .pinrow .del{color:#C2C5C9} .box .pinrow .del:hover{color:#B3402F}
+  .box pre{background:#F7F6F4; border:1px solid #ECEBE8; border-radius:10px; padding:12px 14px; overflow:auto; font-size:12px; line-height:1.6; white-space:pre-wrap}
+  .box .close{margin-top:14px; background:#F4F3F0; border-radius:999px; padding:7px 18px; font-size:13.5px; font-weight:550; color:#7A7E84}
+
+  .toast{
+    position:fixed; left:50%; bottom:30px; transform:translateX(-50%); background:#FFFFFF; color:#3E9B63;
+    border:1px solid #E3EFE7; font-size:14px; font-weight:550; border-radius:999px; padding:8px 20px;
+    box-shadow:0 6px 24px rgba(60,63,68,.12); z-index:60; max-width:90vw; text-align:center;
+  }
+  .toast[hidden]{display:none}
+
+  @media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important} }
+</style>
+</head>
+<body class="view-clear">
+
+<div class="topbar"><div class="topin">
+  <div class="seg" role="tablist" aria-label="View">
+    <button id="tab-ship" role="tab" aria-pressed="false" type="button">Shipped</button>
+    <button id="tab-clear" role="tab" aria-pressed="true" type="button">Clear</button>
+  </div>
+  <span class="quiet">⌘1 / ⌘2 to switch · same notes in both</span>
+  <span class="sp"></span>
+  <button class="quiet" id="backup" type="button">Back up</button>
+  <button class="quiet" id="restore" type="button">Restore</button>
+  <input id="restorefile" type="file" accept="application/json" hidden>
+</div></div>
+<div class="findrow" id="findrow" hidden><input id="q" placeholder="find a note…" aria-label="Find"></div>
+
+<div class="wrap">
+  <div class="intro" id="intro" hidden>
+    <b>How this test drive works.</b> This is your real tool for a few days — no simulated agent.
+    <b>Hand off</b> copies a ready-to-paste block to your clipboard; paste it into Claude, Cursor or ChatGPT.
+    When the answer comes back, use <b>“add the answer”</b> on the note, then mark it done.
+    Try one view per day (⌘1 Shipped · ⌘2 Clear) on the same notes, and notice which one you reach for.
+    Notes live in this browser — <b>Back up</b> saves a JSON file any time.
+    <button class="dismiss" id="dismiss" type="button">Got it — hide this</button>
+  </div>
+
+  <!-- CLEAR -->
+  <div class="clear-only">
+    <div class="c-head"><h1>Off your mind.</h1><p class="c-status" id="c-status"></p></div>
+    <div class="c-capture">
+      <input id="c-cap" placeholder="What's on your mind? Put it down." aria-label="Put a thought down">
+      <button class="go" id="c-go" aria-label="Put it down">↓</button>
+    </div>
+    <p class="c-sub">press ↩ · drop or paste a screenshot · ⌘F to find</p>
+    <div id="c-lists"></div>
+    <div class="handled" id="c-handled"></div>
+  </div>
+
+  <!-- SHIPPED -->
+  <div class="ship-only">
+    <div class="s-head"><h1>Batch</h1><p>fill a folder · Ship copies the block for Claude · paste answers back</p></div>
+    <div class="folders" id="s-folders"></div>
+    <button class="newfolder" id="s-newfolder" type="button">＋ New folder</button>
+  </div>
+</div>
+
+<div class="overlay" id="ov-pin" hidden>
+  <div class="box" role="dialog" aria-label="Photo">
+    <h3>Point at what matters</h3>
+    <p class="sub">Click the picture to drop a marker, then say why. Markers travel in the hand-off block.</p>
+    <div class="imgwrap" id="lb-wrap"><img id="lb-img" alt=""></div>
+    <div id="lb-pins"></div>
+    <button class="close" id="lb-close" type="button">Done</button>
+  </div>
+</div>
+<div class="overlay" id="ov-way" hidden>
+  <div class="box" role="dialog" aria-label="Hand-off block">
+    <h3>What gets copied</h3>
+    <p class="sub">This exact text goes to the clipboard when you ship / hand off.</p>
+    <pre class="mono" id="way-body"></pre>
+    <button class="close" type="button" id="way-close">Close</button>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  const KEY = "batch-testdrive-v1";
+  const RELIEF = ["One less thing.", "Off your plate.", "Handled.", "That's done with."];
+
+  // note: {id, t, state:"open"|"claude"|"done", pri:"hi"|"md"|"lo", folder, src?, img?{u,pins[]}, r?, at, answering?}
+  const seed = () => ({ notes: [], folders: ["Untitled"], view: "clear", intro: true, showHandled: false, doneOpen: {} });
+  let state;
+  try { state = JSON.parse(localStorage.getItem(KEY)) || seed(); } catch { state = seed(); }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); localStorage.setItem(KEY + "-mirror", JSON.stringify(state)); } catch {} };
+
+  const undoStack = [];
+  const snap = () => { undoStack.push(JSON.stringify(state)); if (undoStack.length > 60) undoStack.shift(); };
+  const undo = () => { const s = undoStack.pop(); if (s) { state = JSON.parse(s); save(); render(); toast("Undone"); } };
+
+  let query = "", editing = null, lbNote = null;
+  const uid = () => "n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+  const toastEl = document.getElementById("toast");
+  let toastT;
+  const toast = (m) => { toastEl.textContent = m; toastEl.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => toastEl.hidden = true, 2400); };
+  const pct = (f) => Math.round(f * 100) + "%";
+  const CYCLE = { md: "hi", hi: "lo", lo: "md" };
+
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.append(ta); ta.select();
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch {}
+      ta.remove(); return ok;
+    }
+  }
+
+  function handoffBlock(notes, title) {
+    const L = ["# " + (title || "Batch") + " — hand-off from Batch", "",
+      "Work through these and reply with a short, numbered result for each:", ""];
+    notes.forEach((n, i) => {
+      L.push(`${i + 1}. ${n.pri === "hi" ? "[high] " : n.pri === "lo" ? "[low] " : ""}${n.t}`);
+      if (n.src) L.push(`   — source: ${n.src}`);
+      if (n.img) {
+        L.push(`   — screenshot attached in Batch${n.img.pins.length ? `, ${n.img.pins.length} marker${n.img.pins.length === 1 ? "" : "s"}:` : ""}`);
+        n.img.pins.forEach((p, pi) => L.push(`       marker ${pi + 1} @ (${pct(p.x)}, ${pct(p.y)})${p.t ? `: ${p.t}` : ""}`));
+      }
+    });
+    return L.join("\n");
+  }
+
+  async function handOff(notes, title) {
+    if (!notes.length) return;
+    snap();
+    const ok = await copyText(handoffBlock(notes, title));
+    notes.forEach((n) => { n.state = "claude"; });
+    save(); render();
+    toast(ok ? "Copied for Claude — paste it into any chat" : "Couldn't reach the clipboard — use the preview to copy");
+  }
+
+  const openNotes = () => state.notes.filter((n) => n.state === "open");
+  const match = (n) => !query || n.t.toLowerCase().includes(query);
+
+  function txt(n, cls) {
+    const s = el("span", cls);
+    if (query && n.t.toLowerCase().includes(query)) {
+      const at = n.t.toLowerCase().indexOf(query);
+      s.append(document.createTextNode(n.t.slice(0, at)));
+      s.append(el("mark", null, n.t.slice(at, at + query.length)));
+      s.append(document.createTextNode(n.t.slice(at + query.length)));
+    } else s.append(document.createTextNode(n.t));
+    return s;
+  }
+
+  const leave = (node, then) => {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches || !node) return then();
+    node.classList.add("leaving"); setTimeout(then, 280);
+  };
+
+  function answerUI(n, container, cls) {
+    if (n.r) {
+      const a = el("div", cls);
+      a.append(el("b", null, "Answer"));
+      a.append(document.createTextNode(n.r));
+      container.append(a);
+    } else if (n.answering) {
+      const ta = el("textarea", "answer-in");
+      ta.placeholder = "Paste the answer here, then click away";
+      ta.onblur = () => {
+        const v = ta.value.trim();
+        n.answering = false;
+        if (v) { snap(); n.r = v; }
+        save(); render();
+      };
+      ta.onkeydown = (e) => { if (e.key === "Escape") { n.answering = false; render(); } };
+      container.append(ta);
+      setTimeout(() => ta.focus(), 0);
+    }
+  }
+
+  // ═══ CLEAR view ═══
+  function clearCard(n) {
+    const c = el("div", "card" + (query && !match(n) ? " dimmed" : ""));
+    if (n.state !== "done") {
+      const star = el("button", "star", "★");
+      star.setAttribute("aria-label", "This one matters");
+      star.setAttribute("aria-pressed", String(n.pri === "hi"));
+      star.onclick = () => { n.pri = n.pri === "hi" ? "md" : "hi"; save(); render(); };
+      c.append(star);
+    }
+    const t = txt(n, "t");
+    if (n.state === "open") t.ondblclick = () => { editing = n.id; render(); };
+    if (editing === n.id) {
+      t.textContent = "";
+      const inp = el("input", "edit-in"); inp.value = n.t;
+      const commit = () => { snap(); n.t = inp.value.trim() || n.t; editing = null; save(); render(); };
+      inp.onkeydown = (e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") { editing = null; render(); } };
+      inp.onblur = commit;
+      t.append(inp); setTimeout(() => inp.focus(), 0);
+    }
+    c.append(t);
+    if (n.src) c.append(el("div", "from", "from " + n.src));
+    if (n.img) {
+      const ph = el("button", "photo"); ph.setAttribute("aria-label", "Open the picture");
+      const im = el("img"); im.src = n.img.u; im.alt = "";
+      ph.append(im);
+      n.img.pins.forEach((p, pi) => { const d = el("span", "pinb", String(pi + 1)); d.style.left = pct(p.x); d.style.top = pct(p.y); ph.append(d); });
+      ph.onclick = () => { lbNote = n; renderLb(); document.getElementById("ov-pin").hidden = false; };
+      c.append(ph);
+      if (n.img.pins.some((p) => p.t)) {
+        const cap = el("div", "pincap");
+        n.img.pins.forEach((p, pi) => { if (p.t) { cap.append(el("b", null, pi + 1 + " ")); cap.append(document.createTextNode(p.t + "   ")); } });
+        c.append(cap);
+      }
+    }
+    if (n.state === "claude" && !n.r) {
+      const w = el("div", "withc");
+      w.append(el("span", "dot"));
+      w.append(document.createTextNode("With Claude — paste the block, come back with the answer"));
+      c.append(w);
+    }
+    answerUI(n, c, "answer");
+
+    const verbs = el("div", "verbs");
+    if (n.state === "open") {
+      const h = el("button", "verb claude", "Let Claude handle it");
+      h.onclick = () => handOff([n], "One thing");
+      verbs.append(h);
+      const d = el("button", "verb done", "Done with it");
+      d.onclick = () => leave(c, () => { snap(); n.state = "done"; save(); render(); toast(RELIEF[Math.floor(Math.random() * RELIEF.length)]); });
+      verbs.append(d);
+      const rm = el("button", "verb quiet", "clear");
+      rm.onclick = () => leave(c, () => { snap(); state.notes.splice(state.notes.indexOf(n), 1); save(); render(); toast("Gone · ⌘Z brings it back"); });
+      verbs.append(rm);
+    } else if (n.state === "claude") {
+      if (!n.r && !n.answering) {
+        const a = el("button", "verb claude", "add the answer");
+        a.onclick = () => { n.answering = true; render(); };
+        verbs.append(a);
+        const rc = el("button", "verb quiet", "copy the block again");
+        rc.onclick = async () => { await copyText(handoffBlock([n], "One thing")); toast("Copied again"); };
+        verbs.append(rc);
+      }
+      const d = el("button", "verb done", n.r ? "Great — done with it" : "Done with it");
+      d.onclick = () => leave(c, () => { snap(); n.state = "done"; save(); render(); toast(RELIEF[Math.floor(Math.random() * RELIEF.length)]); });
+      verbs.append(d);
+      const back = el("button", "verb quiet", "back to me");
+      back.onclick = () => { snap(); n.state = "open"; save(); render(); };
+      verbs.append(back);
+    } else {
+      const back = el("button", "verb quiet", "bring it back");
+      back.onclick = () => { snap(); n.state = "open"; save(); render(); };
+      verbs.append(back);
+    }
+    c.append(verbs);
+    return c;
+  }
+
+  function renderClear() {
+    const open = state.notes.filter((n) => n.state === "open").sort((a, z) => ((z.pri === "hi") - (a.pri === "hi")) || (a.at - z.at));
+    const withC = state.notes.filter((n) => n.state === "claude");
+    const done = state.notes.filter((n) => n.state === "done");
+
+    const st = document.getElementById("c-status");
+    st.textContent = "";
+    if (!open.length && !withC.length) st.append("Nothing on your mind. Enjoy it.");
+    else {
+      if (open.length) { st.append(el("b", null, open.length + (open.length === 1 ? " thing" : " things"))); st.append(" on your mind"); }
+      if (open.length && withC.length) st.append(" · ");
+      if (withC.length) st.append(el("span", "cl", withC.length + " with Claude"));
+    }
+
+    const lists = document.getElementById("c-lists");
+    lists.textContent = "";
+    if (!open.length && !withC.length) {
+      const e = el("div", "empty");
+      e.append(el("div", "big", "Nothing on your mind."));
+      e.append(el("div", null, "That's the whole point."));
+      lists.append(e);
+    }
+    if (open.length) {
+      lists.append(el("div", "grouplabel", "On your mind"));
+      const cs = el("div", "cards"); open.forEach((n) => cs.append(clearCard(n))); lists.append(cs);
+      if (open.length > 1) {
+        const ha = el("div", "handall");
+        const b = el("button", null, "hand everything over to Claude");
+        b.onclick = () => handOff(open, "Everything on my mind");
+        ha.append(b); lists.append(ha);
+      }
+    }
+    if (withC.length) {
+      lists.append(el("div", "grouplabel", "With Claude"));
+      const cs = el("div", "cards"); withC.forEach((n) => cs.append(clearCard(n))); lists.append(cs);
+    }
+    const hw = document.getElementById("c-handled");
+    hw.textContent = "";
+    if (done.length) {
+      const tog = el("button", null, (state.showHandled ? "hide" : "show") + " what's been handled (" + done.length + ")");
+      tog.onclick = () => { state.showHandled = !state.showHandled; save(); render(); };
+      hw.append(tog);
+      if (state.showHandled) { const cs = el("div", "cards"); done.forEach((n) => cs.append(clearCard(n))); hw.append(cs); }
+    }
+  }
+
+  // ═══ SHIPPED view ═══
+  function shipItem(n) {
+    const wrap = el("div");
+    const row = el("div", "item st-" + n.state + (query && !match(n) ? " dimmed" : ""));
+    const dot = el("button", "dot");
+    dot.setAttribute("aria-label", n.state === "done" ? "Reopen" : "Mark done");
+    dot.onclick = () => { snap(); n.state = n.state === "done" ? "open" : "done"; save(); render(); };
+    row.append(dot);
+    const st = el("button", "stamp " + n.pri, n.pri === "hi" ? "EXPRESS" : n.pri === "lo" ? "ECONOMY" : "STANDARD");
+    st.title = "Priority — click to cycle";
+    st.onclick = () => { n.pri = CYCLE[n.pri]; save(); render(); };
+    row.append(st);
+    const t = txt(n, "t2");
+    t.ondblclick = () => { editing = n.id; render(); };
+    if (editing === n.id) {
+      t.textContent = "";
+      const inp = el("input", "edit-in"); inp.value = n.t;
+      const commit = () => { snap(); n.t = inp.value.trim() || n.t; editing = null; save(); render(); };
+      inp.onkeydown = (e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") { editing = null; render(); } };
+      inp.onblur = commit;
+      t.append(inp); setTimeout(() => inp.focus(), 0);
+    } else if (n.src) t.append(el("span", "src", "from " + n.src));
+    row.append(t);
+    const rm = el("button", "rm", "×"); rm.setAttribute("aria-label", "Remove");
+    rm.onclick = () => { snap(); state.notes.splice(state.notes.indexOf(n), 1); save(); render(); toast("Removed · ⌘Z to undo"); };
+    row.append(rm);
+    wrap.append(row);
+    if (n.img) {
+      const tr = el("div", "thumbrow");
+      const tb = el("button", "thumb"); tb.setAttribute("aria-label", "Open image");
+      const im = el("img"); im.src = n.img.u; im.alt = ""; tb.append(im);
+      if (n.img.pins.length) tb.append(el("span", "pc", "📍" + n.img.pins.length));
+      tb.onclick = () => { lbNote = n; renderLb(); document.getElementById("ov-pin").hidden = false; };
+      tr.append(tb); wrap.append(tr);
+    }
+    if (n.state === "claude" && !n.r && !n.answering) {
+      wrap.append(el("div", "s-withc", "● with Claude — paste the block into a chat"));
+      const ab = el("button", "s-ansbtn", "add the answer");
+      ab.onclick = () => { n.answering = true; render(); };
+      wrap.append(ab);
+    }
+    const ansWrap = el("div"); ansWrap.style.margin = "0 6px 0 60px";
+    answerUI(n, ansWrap, "s-answer");
+    if (ansWrap.childNodes.length) wrap.append(ansWrap);
+    return wrap;
+  }
+
+  function renderShip() {
+    const cont = document.getElementById("s-folders");
+    cont.textContent = "";
+    state.folders.forEach((f) => {
+      const notes = state.notes.filter((n) => n.folder === f);
+      const open = notes.filter((n) => n.state === "open");
+      const withC = notes.filter((n) => n.state === "claude");
+      const done = notes.filter((n) => n.state === "done");
+      const card = el("div", "folder");
+      const h = el("div", "f-head");
+      const nm = el("input", "f-name"); nm.value = f; nm.setAttribute("aria-label", "Folder name");
+      nm.onchange = () => {
+        const nv = nm.value.trim() || f;
+        snap();
+        state.folders[state.folders.indexOf(f)] = nv;
+        notes.forEach((n) => { n.folder = nv; });
+        save(); render();
+      };
+      h.append(nm);
+      const wl = el("button", "waylink", "preview the block");
+      wl.onclick = () => {
+        document.getElementById("way-body").textContent = handoffBlock(open.length ? open : notes, f);
+        document.getElementById("ov-way").hidden = false;
+      };
+      h.append(wl);
+      h.append(el("span", "f-count", `${done.length}/${notes.length}` + (withC.length ? ` · ${withC.length} with Claude` : "")));
+      if (!notes.length && state.folders.length > 1) {
+        const x = el("button", "f-x", "×"); x.setAttribute("aria-label", "Remove folder");
+        x.onclick = () => { snap(); state.folders.splice(state.folders.indexOf(f), 1); save(); render(); };
+        h.append(x);
+      }
+      card.append(h);
+      const items = el("div", "items");
+      [...open, ...withC].forEach((n) => items.append(shipItem(n)));
+      card.append(items);
+      const cap = el("div", "f-cap");
+      const inp = el("input");
+      inp.placeholder = "Type it, press ↩ — it lands in this folder";
+      inp.setAttribute("aria-label", "Add to " + f);
+      inp.dataset.folder = f;
+      inp.onkeydown = (e) => {
+        if (e.key === "Enter" && !e.metaKey && inp.value.trim()) {
+          state.notes.push({ id: uid(), t: inp.value.trim(), state: "open", pri: "md", folder: f, at: Date.now() });
+          save(); render();
+          document.querySelector(`input[data-folder="${CSS.escape(f)}"]`)?.focus();
+        }
+      };
+      cap.append(inp); card.append(cap);
+      const ship = el("button", "ship");
+      ship.append(document.createTextNode("Ship to Claude"), el("span", "kbd", "⌘↩"));
+      ship.disabled = !open.length;
+      ship.onclick = () => handOff(open, f);
+      card.append(ship);
+      if (done.length) {
+        const dw = el("div", "s-donewrap");
+        const tog = el("button", null, (state.doneOpen[f] ? "hide" : "show") + " done (" + done.length + ")");
+        tog.onclick = () => { state.doneOpen[f] = !state.doneOpen[f]; save(); render(); };
+        dw.append(tog);
+        if (state.doneOpen[f]) done.forEach((n) => dw.append(shipItem(n)));
+        card.append(dw);
+      }
+      cont.append(card);
+    });
+  }
+
+  // ═══ shared chrome ═══
+  function render() {
+    document.body.className = "view-" + state.view;
+    document.getElementById("tab-ship").setAttribute("aria-pressed", String(state.view === "ship"));
+    document.getElementById("tab-clear").setAttribute("aria-pressed", String(state.view === "clear"));
+    document.getElementById("intro").hidden = !state.intro;
+    if (state.view === "clear") renderClear(); else renderShip();
+  }
+  document.getElementById("tab-ship").onclick = () => { state.view = "ship"; save(); render(); };
+  document.getElementById("tab-clear").onclick = () => { state.view = "clear"; save(); render(); };
+  document.getElementById("dismiss").onclick = () => { state.intro = false; save(); render(); };
+
+  const cap = document.getElementById("c-cap");
+  function put() {
+    const v = cap.value.trim();
+    if (!v) return;
+    if (!state.folders.length) state.folders = ["Untitled"];
+    state.notes.unshift({ id: uid(), t: v, state: "open", pri: "md", folder: state.folders[0], at: Date.now() });
+    cap.value = ""; save(); render(); cap.focus();
+  }
+  cap.onkeydown = (e) => { if (e.key === "Enter") put(); };
+  document.getElementById("c-go").onclick = put;
+  document.getElementById("s-newfolder").onclick = () => {
+    snap();
+    let i = state.folders.length + 1, name = "Folder " + i;
+    while (state.folders.includes(name)) name = "Folder " + (++i);
+    state.folders.push(name); save(); render();
+  };
+
+  // pin editor
+  function renderLb() {
+    const wrap = document.getElementById("lb-wrap");
+    const img = document.getElementById("lb-img");
+    img.src = lbNote.img.u;
+    wrap.querySelectorAll(".pinb").forEach((p) => p.remove());
+    lbNote.img.pins.forEach((p, i) => { const d = el("span", "pinb", String(i + 1)); d.style.left = pct(p.x); d.style.top = pct(p.y); wrap.append(d); });
+    img.onclick = (e) => {
+      if (lbNote.img.pins.length >= 20) return;
+      const r = img.getBoundingClientRect();
+      lbNote.img.pins.push({ x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height, t: "" });
+      save(); renderLb(); render();
+      const rows = document.querySelectorAll("#lb-pins input");
+      rows[rows.length - 1]?.focus();
+    };
+    const rows = document.getElementById("lb-pins");
+    rows.textContent = "";
+    lbNote.img.pins.forEach((p, i) => {
+      const r = el("div", "pinrow");
+      r.append(el("span", "pn", String(i + 1)));
+      const inp = el("input"); inp.value = p.t; inp.placeholder = "why this spot?";
+      inp.oninput = () => { p.t = inp.value; save(); };
+      r.append(inp);
+      const d = el("button", "del", "×"); d.setAttribute("aria-label", "Remove marker");
+      d.onclick = () => { lbNote.img.pins.splice(i, 1); save(); renderLb(); render(); };
+      r.append(d);
+      rows.append(r);
+    });
+  }
+  document.getElementById("lb-close").onclick = () => { document.getElementById("ov-pin").hidden = true; lbNote = null; render(); };
+  document.getElementById("way-close").onclick = () => { document.getElementById("ov-way").hidden = true; };
+  document.querySelectorAll(".overlay").forEach((ov) => { ov.onclick = (e) => { if (e.target === ov) { ov.hidden = true; lbNote = null; render(); } }; });
+
+  // backup / restore
+  document.getElementById("backup").onclick = () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "batch-notes-" + new Date().toISOString().slice(0, 10) + ".json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast("Backup saved to Downloads");
+  };
+  document.getElementById("restore").onclick = () => document.getElementById("restorefile").click();
+  document.getElementById("restorefile").onchange = (e) => {
+    const f = e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const s = JSON.parse(String(r.result));
+        if (!Array.isArray(s.notes) || !Array.isArray(s.folders)) throw 0;
+        snap(); state = s; save(); render(); toast("Restored");
+      } catch { toast("That file doesn't look like a Batch backup"); }
+    };
+    r.readAsText(f);
+  };
+
+  // images
+  const addImage = (file) => {
+    const rd = new FileReader();
+    rd.onload = () => {
+      state.notes.unshift({ id: uid(), t: file.name.replace(/\.[a-z]+$/i, ""), state: "open", pri: "md", folder: state.folders[0] || "Untitled", at: Date.now(), img: { u: String(rd.result), pins: [] } });
+      save(); render(); toast("Got it — click the picture to point at what matters");
+    };
+    rd.readAsDataURL(file);
+  };
+  document.addEventListener("dragover", (e) => e.preventDefault());
+  document.addEventListener("drop", (e) => { e.preventDefault(); [...e.dataTransfer.files].filter((f) => f.type.startsWith("image/")).slice(0, 5).forEach(addImage); });
+  document.addEventListener("paste", (e) => {
+    const files = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith("image/"));
+    if (!files.length) return;
+    if (/input|textarea/i.test(document.activeElement?.tagName || "")) return;
+    files.slice(0, 5).forEach(addImage);
+  });
+
+  // keys
+  const findrow = document.getElementById("findrow");
+  document.getElementById("q").oninput = (e) => { query = e.target.value.trim().toLowerCase(); render(); };
+  document.addEventListener("keydown", (e) => {
+    if (e.metaKey && e.key === "1") { e.preventDefault(); state.view = "ship"; save(); render(); }
+    if (e.metaKey && e.key === "2") { e.preventDefault(); state.view = "clear"; save(); render(); }
+    if (e.metaKey && (e.key === "f" || e.key === "F")) { e.preventDefault(); findrow.hidden = false; document.getElementById("q").focus(); }
+    if (e.metaKey && e.key === "Enter" && state.view === "ship") {
+      e.preventDefault();
+      const f = document.activeElement?.dataset?.folder || state.folders.find((x) => state.notes.some((n) => n.folder === x && n.state === "open"));
+      if (f) handOff(state.notes.filter((n) => n.folder === f && n.state === "open"), f);
+    }
+    if (e.key === "Escape") {
+      document.querySelectorAll(".overlay").forEach((o) => o.hidden = true); lbNote = null;
+      if (!findrow.hidden) { findrow.hidden = true; query = ""; document.getElementById("q").value = ""; }
+      render();
+    }
+    if (e.metaKey && !e.shiftKey && (e.key === "z" || e.key === "Z") && !/input|textarea/i.test(document.activeElement?.tagName || "")) { e.preventDefault(); undo(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
