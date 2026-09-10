@@ -16,6 +16,7 @@ import {
   allAttachmentIds,
   MAX_ATTACHMENTS,
   type Attachment,
+  noteState,
 } from "./notes";
 
 const att = (id: string): Attachment => ({ id, name: id, mime: "image/png", thumb: true, width: 10, height: 10 });
@@ -430,6 +431,24 @@ describe("normalizeState", () => {
     expect(legacy.sections[0].name).toBe("Untitled");
     const custom = normalizeState({ version: 2, sections: [{ id: INBOX_ID, name: "Work", createdAt: 0 }], notes: [] });
     expect(custom.sections[0].name).toBe("Work");
+  });
+});
+
+describe("noteState + hand-off lifecycle", () => {
+  it("derives open / claude / done", () => {
+    expect(noteState({ done: false })).toBe("open");
+    expect(noteState({ done: false, handedOff: 5 })).toBe("claude");
+    expect(noteState({ done: true, handedOff: 5 })).toBe("done");
+  });
+  it("markHandedOff sets the state; reopening clears it", () => {
+    let s = reduce(emptyState(), { type: "add", id: "a", sectionId: INBOX_ID, text: "t", now: 1 });
+    s = reduce(s, { type: "markHandedOff", ids: ["a"], now: 9 });
+    expect(noteState(s.notes[0])).toBe("claude");
+    s = reduce(s, { type: "setDone", ids: ["a"], done: true, now: 10 });
+    expect(noteState(s.notes[0])).toBe("done");
+    s = reduce(s, { type: "setDone", ids: ["a"], done: false, now: 11 });
+    expect(noteState(s.notes[0])).toBe("open");
+    expect(s.notes[0].handedOff).toBeUndefined();
   });
 });
 

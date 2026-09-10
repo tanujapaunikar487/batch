@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type Note, INBOX_ID } from "./notes";
-import { asList, mergeText, asPlainText, asNumberedList, forAgent, stamp } from "./format";
+import { asList, mergeText, asPlainText, asNumberedList, forAgent, forAgentAll, stamp } from "./format";
 
 const n = (text: string, createdAt = 0): Note => ({
   id: text, sectionId: INBOX_ID, text, priority: "medium", done: false, createdAt,
@@ -66,6 +66,17 @@ describe("forAgent", () => {
       attachments: [{ id: "a.png", name: "a.png", mime: "image/png", thumb: true, width: 1, height: 1 }],
     };
     expect(forAgent({ name: "F" }, [note])).toContain("— images: a.png");
+  });
+  it("forAgentAll joins one block per non-empty folder", () => {
+    const md = forAgentAll([
+      { folder: { name: "Bugs", preamble: "Repo ~/dev/site." }, notes: [n("fix header", 1)] },
+      { folder: { name: "Empty" }, notes: [] },
+      { folder: { name: "Prompts" }, notes: [n("summarise thread", 2)] },
+    ]);
+    expect(md).toContain("# Bugs");
+    expect(md).toContain("Repo ~/dev/site.");
+    expect(md).toContain("# Prompts");
+    expect(md).not.toContain("# Empty");
   });
   it("stamp formats local time", () => {
     expect(stamp(new Date(2026, 0, 5, 9, 7).getTime())).toBe("2026-01-05 09:07");

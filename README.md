@@ -79,12 +79,14 @@ each done."* Tools: `list_folders`, `list_notes`, `add_note`, `mark_done`,
 see exactly what you captured) along with any **pins**, as percentages of the
 image with your note per pin.
 
-Three more things that make hand-off clean:
+Four more things that make hand-off clean:
 
-- **Copy for agent** (right-click a note or ⌥⌘C) copies a structured block —
-  folder title, optional per-folder **instructions**, numbered items tagged by
-  priority, plus where each came from and any image filenames. One paste and the
-  agent has the context, not just the text.
+- **Ship to Claude** (right-click a note, ⌥⌘C, or ⋯ → *Ship folder to Claude*)
+  copies a structured block — folder title, optional per-folder **instructions**,
+  numbered items tagged by priority, plus where each came from and any image
+  filenames — and marks those notes **with Claude** (a small blue chip) until an
+  outcome lands or you reopen them. One paste and the agent has the context,
+  not just the text.
 - **⇧⇧ remembers the source.** Select text in ChatGPT/Claude/Cursor, tap Shift
   twice, and the note keeps a *"from Arc · <window title>"* chip.
 - **⌥⇧S** grabs a screen region into the capture box.
@@ -154,6 +156,20 @@ build from source without a signing certificate, macOS may treat each rebuild as
 a new app and the banner comes back — re-tick Batch in that list, or run
 `bun run sign:setup` once (see *Keep permissions across rebuilds* above) so every
 build shares one identity.
+
+## Two views, same notes
+
+Press **⌘⇧V** (or the feather in the header) to switch how the list renders:
+
+- **Folders** (default) — tabs, sections, priorities: the classic list below.
+- **Clear** — calm cards grouped by where things stand: *On your mind* →
+  *With Claude* → *handled*, with a headline that counts down and two verbs per
+  card (*Let Claude handle it* · *Done with it*). The star is priority; "hand
+  everything over to Claude" ships every open note, grouped by folder with each
+  folder's agent instructions. Answers pasted onto a card (or written by an
+  agent over MCP) appear right under it.
+
+Same notes, same file, switch any time.
 
 ## Using it
 

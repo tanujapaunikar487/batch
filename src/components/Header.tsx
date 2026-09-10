@@ -1,4 +1,4 @@
-import { Check, ListFilter, Monitor, Moon, MoreHorizontal, Pin, Search, Sun } from "lucide-react";
+import { Check, Feather, ListFilter, Monitor, Moon, MoreHorizontal, Pin, Rows3, Search, Sun } from "lucide-react";
 import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,8 @@ interface Props {
   filtersOpen: boolean;
   activeFilters: number;
   onToggleFilters: () => void;
+  viewMode: "folders" | "clear";
+  onToggleView: () => void;
   pinned: boolean;
   onTogglePin: () => void;
   isTauri: boolean;
@@ -98,6 +100,16 @@ export function Header(p: Props) {
 
       <div className="ml-auto flex items-center gap-0.5">
         {iconBtn(
+          `${p.viewMode === "clear" ? "Folders view" : "Clear view"}  ${formatBinding(p.keymap.toggleView)}`,
+          p.viewMode === "clear",
+          p.onToggleView,
+          p.viewMode === "clear" ? (
+            <Feather className="size-4" />
+          ) : (
+            <Feather className="size-4 text-muted-foreground" />
+          ),
+        )}
+        {iconBtn(
           `Search  ${formatBinding(p.keymap.search)}`,
           p.searchOpen,
           p.onToggleSearch,
@@ -140,9 +152,14 @@ export function Header(p: Props) {
                 <DropdownMenuItem onSelect={p.onResetPosition}>Snap under menu-bar icon</DropdownMenuItem>
               </>
             )}
+            <DropdownMenuItem onSelect={p.onToggleView}>
+              {p.viewMode === "clear" ? <Rows3 /> : <Feather />}
+              {p.viewMode === "clear" ? "Switch to Folders view" : "Switch to Clear view"}
+              <DropdownMenuShortcut>{formatBinding(p.keymap.toggleView)}</DropdownMenuShortcut>
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={p.onRenameFolder}>Rename folder</DropdownMenuItem>
             <DropdownMenuItem onSelect={p.onCopyFolderForAgent}>
-              Copy folder for agent
+              Ship folder to Claude
               <DropdownMenuShortcut>{formatBinding(p.keymap.copyForAgent)}</DropdownMenuShortcut>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={p.onEditPreamble}>Agent instructions for this folder…</DropdownMenuItem>

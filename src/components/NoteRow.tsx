@@ -293,6 +293,11 @@ export function NoteRow({
                 {note.attachments?.length === 1 ? "1 image" : `${note.attachments?.length ?? 0} images`}
               </span>
             )}
+            {!note.done && note.handedOff && !note.outcome && !isEditing && (
+              <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span className="size-1.5 rounded-full bg-sky-500/80" aria-hidden /> with Claude
+              </div>
+            )}
             {note.source && !isEditing && (
               <div
                 className="mt-0.5 truncate text-[11px] text-muted-foreground"

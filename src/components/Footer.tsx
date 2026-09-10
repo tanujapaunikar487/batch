@@ -8,6 +8,8 @@ interface Props {
   /** Progress for what's on screen (current folder, or search results). */
   done: number;
   total: number;
+  /** Clear view has no list navigation; hide the browse hint there. */
+  showBrowseHint?: boolean;
 }
 
 function Ring({ done, total }: { done: number; total: number }) {
@@ -33,7 +35,8 @@ function Ring({ done, total }: { done: number; total: number }) {
   );
 }
 
-export function Footer({ selectedCount, toast, mergeBinding, done, total }: Props) {
+export function Footer(p: Props) {
+  const { selectedCount, toast, mergeBinding, done, total } = p;
   const left = total - done;
   return (
     <footer className="flex h-8 shrink-0 items-center gap-2 border-t border-border/60 px-5 text-xs text-muted-foreground select-none">
@@ -72,7 +75,12 @@ export function Footer({ selectedCount, toast, mergeBinding, done, total }: Prop
             )}
           </span>
           <span className="ml-auto flex items-center gap-1 opacity-70">
-            <Kbd>↑</Kbd> browse · <Kbd>⌘/</Kbd> shortcuts
+            {p.showBrowseHint !== false && (
+              <>
+                <Kbd>↑</Kbd> browse ·{" "}
+              </>
+            )}
+            <Kbd>⌘/</Kbd> shortcuts
           </span>
         </>
       )}

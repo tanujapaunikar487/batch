@@ -132,6 +132,7 @@ export function useNotes(store?: KeyValueStore) {
         dispatch({ type: "setOutcome", id, text, by, now: Date.now() }),
       setPreamble: (sectionId: string, text: string) => dispatch({ type: "setPreamble", sectionId, text }),
       markHandedOff: (ids: string[]) => dispatch({ type: "markHandedOff", ids, now: Date.now() }),
+      clearHandedOff: (ids: string[]) => dispatch({ type: "clearHandedOff", ids }),
       toggle: (id: string) => dispatch({ type: "toggle", id, now: Date.now() }),
       setDone: (ids: string[], done: boolean) => dispatch({ type: "setDone", ids, done, now: Date.now() }),
       edit: (id: string, text: string) => dispatch({ type: "edit", id, text }),

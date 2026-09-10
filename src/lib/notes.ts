@@ -92,6 +92,11 @@ export interface Note {
 }
 
 export const isHeading = (n: Pick<Note, "kind">) => n.kind === "heading";
+
+/** Where a note stands in the loop: on your mind / with Claude / handled. */
+export type NoteLoopState = "open" | "claude" | "done";
+export const noteState = (n: Pick<Note, "done" | "handedOff">): NoteLoopState =>
+  n.done ? "done" : n.handedOff ? "claude" : "open";
 /** `# Title` typed into the capture box becomes a heading. */
 export const HEADING_PREFIX = /^#{1,3}\s+(.+)$/;
 
@@ -143,6 +148,7 @@ export type Action =
   | { type: "setOutcome"; id: string; text: string | null; by: "me" | "agent"; now: number }
   | { type: "setPreamble"; sectionId: string; text: string }
   | { type: "markHandedOff"; ids: string[]; now: number }
+  | { type: "clearHandedOff"; ids: string[] }
   | { type: "toggle"; id: string; now: number }
   | { type: "setDone"; ids: string[]; done: boolean; now: number }
   | { type: "edit"; id: string; text: string }
@@ -240,7 +246,7 @@ export function reduce(state: NotesState, action: Action): NotesState {
           ? n
           : action.done
             ? { ...n, done: true, completedAt: action.now }
-            : { ...n, done: false, completedAt: undefined },
+            : { ...n, done: false, completedAt: undefined, handedOff: undefined },
       );
     case "edit": {
       const text = cleanText(action.text);
@@ -344,6 +350,8 @@ export function reduce(state: NotesState, action: Action): NotesState {
     }
     case "markHandedOff":
       return mapNotes(state, action.ids, (n) => (isHeading(n) ? n : { ...n, handedOff: action.now }));
+    case "clearHandedOff":
+      return mapNotes(state, action.ids, (n) => (n.handedOff === undefined ? n : { ...n, handedOff: undefined }));
     case "setPreamble": {
       const text = cleanText(action.text);
       let changed = false;

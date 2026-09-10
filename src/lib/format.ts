@@ -37,6 +37,14 @@ export function mergeText(notes: Note[]): string {
 /** 0.34 → "34%" — pin coordinates as fractions of the image, left/top. */
 const pct = (f: number) => `${Math.round(f * 100)}%`;
 
+/** "Hand everything over": one block per folder that has notes, joined. */
+export function forAgentAll(groups: { folder: Pick<Section, "name" | "preamble">; notes: Note[] }[]): string {
+  return groups
+    .filter((g) => g.notes.some((n) => !isHeading(n)))
+    .map((g) => forAgent(g.folder, g.notes))
+    .join("\n\n");
+}
+
 const pad = (n: number) => String(n).padStart(2, "0");
 /** 2026-08-18 10:32 (local time) */
 export function stamp(ms: number): string {

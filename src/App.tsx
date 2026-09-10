@@ -28,10 +28,11 @@ import {
   sectionById,
 } from "@/lib/notes";
 import { type Filter, EMPTY_FILTER, activeFilterCount, applyFilters } from "@/lib/filters";
-import { asList, asNumberedList, asPlainText, forAgent } from "@/lib/format";
+import { asList, asNumberedList, asPlainText, forAgent, forAgentAll } from "@/lib/format";
 import { attachmentsDir as loadAttachmentsDir, dragHasImages, dragOut, imagesFromDrop, saveImages } from "@/store/attachments";
-import { allAttachmentIds, allInSection, normalizeState, HEADING_PREFIX, isHeading, type Attachment, type NoteSource, type Pin } from "@/lib/notes";
+import { allAttachmentIds, allInSection, normalizeState, HEADING_PREFIX, isHeading, noteState, type Attachment, type NoteSource, type Pin, type Section } from "@/lib/notes";
 import { PinEditor } from "@/components/PinEditor";
+import { ClearView } from "@/components/ClearView";
 import { type ActionId, matchesEvent } from "@/lib/shortcuts";
 
 const inTauri = isTauri();
@@ -43,6 +44,7 @@ const devParams = inTauri ? new URLSearchParams() : new URLSearchParams(location
 export default function App() {
   const notes = useNotes();
   const settings = useSettings();
+  const viewMode = settings.settings.viewMode;
   useTheme(settings.settings.theme);
   const copy = useCopy();
   const { state } = notes;
@@ -88,6 +90,7 @@ export default function App() {
 
   // ── visible notes ──
   const searching = searchOpen && query.trim().length > 0;
+  const clearMode = viewMode === "clear" && !searchOpen;
   const { open, done } = useMemo(() => {
     if (searching) {
       const hits = applyFilters(searchNotes(state, query), filter);
@@ -130,28 +133,54 @@ export default function App() {
   const [pendingSource, setPendingSource] = useState<NoteSource | undefined>(undefined);
   const [editingPreamble, setEditingPreamble] = useState(false);
 
-  /** "Copy for agent": structured Markdown (folder + preamble + sources), images too. */
+  /** "Ship to Claude" (a.k.a. Copy for agent): structured block on the clipboard, notes marked handed off. */
   const copyForAgent = useCallback(
-    async (ids: string[]) => {
+    async (ids: string[], section?: Section) => {
       const picked = ids
         .map((id) => notesById.get(id))
         .filter((n): n is NonNullable<typeof n> => !!n && !isHeading(n));
       if (picked.length === 0) return showToast("Nothing to copy");
-      const md = forAgent(activeSection, picked);
+      const md = forAgent(section ?? activeSection, picked);
       const imageIds = picked.flatMap((n) => (n.attachments ?? []).map((a) => a.id));
       const ok =
         imageIds.length > 0 && inTauri ? (await native.copyRich(md, imageIds)) !== undefined : await copy(md);
       if (!ok) return showToast("Couldn't copy");
       notes.markHandedOff(picked.map((n) => n.id));
-      const open = settings.settings.copyListMarksDone ? picked.filter((n) => !n.done).map((n) => n.id) : [];
-      if (open.length) notes.setDone(open, true);
       showToast(
-        `Copied for agent · ${picked.length} item${picked.length > 1 ? "s" : ""}${imageIds.length ? ` + ${imageIds.length} image${imageIds.length > 1 ? "s" : ""}` : ""}`,
+        `Shipped to Claude · ${picked.length} item${picked.length > 1 ? "s" : ""}${imageIds.length ? ` + ${imageIds.length} image${imageIds.length > 1 ? "s" : ""}` : ""} — paste into a chat`,
       );
       nav.clear();
     },
-    [notesById, activeSection, copy, notes, nav, showToast, settings.settings.copyListMarksDone],
+    [notesById, activeSection, copy, notes, nav, showToast],
   );
+
+  /** Clear view: ship one note under its own folder's title + instructions. */
+  const handOffOne = useCallback(
+    (id: string) => {
+      const n = notesById.get(id);
+      if (!n) return;
+      void copyForAgent([id], sectionById(state, n.sectionId));
+    },
+    [copyForAgent, notesById, state],
+  );
+
+  /** Clear view: ship every open note, block grouped by folder. */
+  const handOffAll = useCallback(async () => {
+    const groups = state.sections
+      .map((sec) => ({
+        folder: sec,
+        notes: allInSection(state, sec.id).filter((n) => !isHeading(n) && noteState(n) === "open"),
+      }))
+      .filter((g) => g.notes.length > 0);
+    const all = groups.flatMap((g) => g.notes);
+    if (all.length === 0) return showToast("Nothing to hand over");
+    const md = forAgentAll(groups);
+    const imageIds = all.flatMap((n) => (n.attachments ?? []).map((a) => a.id));
+    const ok = imageIds.length > 0 && inTauri ? (await native.copyRich(md, imageIds)) !== undefined : await copy(md);
+    if (!ok) return showToast("Couldn't copy");
+    notes.markHandedOff(all.map((n) => n.id));
+    showToast(`Handed ${all.length} thing${all.length > 1 ? "s" : ""} to Claude — paste into a chat`);
+  }, [state, copy, notes, showToast]);
 
   const copyNotes = useCallback(
     async (ids: string[], asListAlways = false) => {
@@ -642,6 +671,10 @@ export default function App() {
         case "copyForAgent":
           void copyForAgent(taskTargets.length > 0 ? taskTargets : allInSection(state, activeSection.id).map((n) => n.id));
           break;
+        case "toggleView":
+          setView("list");
+          settings.setViewMode(viewMode === "clear" ? "folders" : "clear");
+          break;
         case "merge":
           mergeSelected();
           break;
@@ -678,7 +711,7 @@ export default function App() {
           break;
       }
     },
-    [searchOpen, closeSearch, openSearch, copySectionAsList, copyAsList, copyForAgent, taskTargets, activeSection, activeSection.id, mergeSelected, state, notes, showToast, moveBySection, togglePin, toggleExpand, addSectionHeading],
+    [searchOpen, closeSearch, openSearch, copySectionAsList, copyAsList, copyForAgent, taskTargets, activeSection, activeSection.id, mergeSelected, state, notes, showToast, moveBySection, togglePin, toggleExpand, addSectionHeading, viewMode, settings],
   );
 
   useEffect(() => {
@@ -726,7 +759,7 @@ export default function App() {
         return void hide();
       }
 
-      if (inEditable || view !== "list") return;
+      if (inEditable || view !== "list" || clearMode) return;
 
       // List-mode keys.
       if (meta && e.code === "KeyA") return void (e.preventDefault(), nav.selectAll());
@@ -772,7 +805,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [
     keymap, runAction, hide, quit, state.sections, nav, view, editingId, searchOpen, closeSearch,
-    filtersOpen, filter, focusCapture, copyNotes, notes, notesById, removeIds, toggleMany, searching, taskTargets, goToFolder,
+    filtersOpen, filter, focusCapture, copyNotes, notes, notesById, removeIds, toggleMany, searching, taskTargets, goToFolder, clearMode,
   ]);
 
   // ── render ──
@@ -813,6 +846,8 @@ export default function App() {
           filtersOpen={filtersOpen}
           activeFilters={activeFilterCount(filter)}
           onToggleFilters={() => runAction("filters")}
+          viewMode={viewMode}
+          onToggleView={() => runAction("toggleView")}
           pinned={pinned}
           onTogglePin={togglePin}
           isTauri={inTauri}
@@ -914,7 +949,7 @@ export default function App() {
                 onDismiss={() => setBannerDismissed(true)}
               />
             )}
-            {!searchOpen && (
+            {!searchOpen && viewMode === "folders" && (
               <SectionTabs
                 sections={state.sections}
                 counts={counts}
@@ -977,6 +1012,29 @@ export default function App() {
               }}
             />
             <div className="border-t border-border/60" />
+            {clearMode ? (
+              <ClearView
+                notes={state.notes.filter((n) => !isHeading(n))}
+                sections={state.sections}
+                attachmentsDir={attDir}
+                onHandOffOne={handOffOne}
+                onHandOffAll={() => void handOffAll()}
+                onCopyAgain={handOffOne}
+                onSetDone={(id, done) => notes.setDone([id], done)}
+                onBackToMe={(id) => notes.clearHandedOff([id])}
+                onDelete={(id) => {
+                  notes.remove([id]);
+                  showToast("Cleared · ⌘Z to undo");
+                }}
+                onToggleStar={(id) => {
+                  const n = notesById.get(id);
+                  if (n) notes.setPriority([id], n.priority === "high" ? "medium" : "high");
+                }}
+                onEditText={(id, text) => notes.edit(id, text)}
+                onAddAnswer={(id, text) => notes.setOutcome(id, text, "me")}
+                onOpenAttachment={openPinEditor}
+              />
+            ) : (
             <NoteList
               ref={listRef}
               open={open}
@@ -1061,7 +1119,8 @@ export default function App() {
               onOpenAttachment={openPinEditor}
               onDragAttachments={dragAttachments}
             />
-            {!searchOpen && (editingPreamble || activeSection.preamble) && (
+            )}
+            {!searchOpen && viewMode === "folders" && (editingPreamble || activeSection.preamble) && (
               <div className="mx-5 mb-1 rounded-md border border-border/60 bg-foreground/[0.03] px-2 py-1.5">
                 <div className="mb-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
                   Agent instructions · {activeSection.name}
@@ -1150,15 +1209,18 @@ export default function App() {
                   );
                   return true;
                 }}
-                onArrowUpOut={() => focusList("bottom")}
+                onArrowUpOut={() => {
+                  if (!clearMode) focusList("bottom");
+                }}
               />
             )}
             <Footer
+              showBrowseHint={!clearMode}
               selectedCount={nav.selected.size}
               toast={toast}
               mergeBinding={keymap.merge}
-              done={[...open, ...done].filter((n) => !isHeading(n) && n.done).length}
-              total={[...open, ...done].filter((n) => !isHeading(n)).length}
+              done={(clearMode ? state.notes : [...open, ...done]).filter((n) => !isHeading(n) && n.done).length}
+              total={(clearMode ? state.notes : [...open, ...done]).filter((n) => !isHeading(n)).length}
             />
           </>
         )}

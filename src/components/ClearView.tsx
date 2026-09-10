@@ -1,0 +1,260 @@
+import { useState } from "react";
+import { Star } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { type Attachment, type Note, type Section, noteState, sortKey } from "@/lib/notes";
+import { Markdown } from "./Markdown";
+import { AttachmentStrip } from "./AttachmentStrip";
+
+interface Props {
+  /** All non-heading notes, every folder. */
+  notes: Note[];
+  sections: Section[];
+  attachmentsDir: string;
+  onHandOffOne: (id: string) => void;
+  onHandOffAll: () => void;
+  onCopyAgain: (id: string) => void;
+  onSetDone: (id: string, done: boolean) => void;
+  onBackToMe: (id: string) => void;
+  onDelete: (id: string) => void;
+  onToggleStar: (id: string) => void;
+  onEditText: (id: string, text: string) => void;
+  onAddAnswer: (id: string, text: string) => void;
+  onOpenAttachment: (noteId: string, a: Attachment) => void;
+}
+
+/**
+ * The Clear view: the same notes as the Folders view, grouped by where they
+ * stand — on your mind / with Claude / handled — with two verbs per card and a
+ * headline that counts down. Folders exist but are not managed here.
+ */
+export function ClearView(p: Props) {
+  const [showHandled, setShowHandled] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [answering, setAnswering] = useState<string | null>(null);
+
+  const open = p.notes.filter((n) => noteState(n) === "open");
+  const withClaude = p.notes.filter((n) => noteState(n) === "claude");
+  const handled = p.notes.filter((n) => noteState(n) === "done");
+  const byStarThenAge = (a: Note, z: Note) =>
+    Number(z.priority === "high") - Number(a.priority === "high") || sortKey(a) - sortKey(z);
+  const multiFolder = new Set(p.notes.map((n) => n.sectionId)).size > 1;
+  const folderName = (n: Note) => p.sections.find((s) => s.id === n.sectionId)?.name;
+
+  const verb = (label: string, onClick: () => void, kind: "claude" | "done" | "quiet" = "quiet") => (
+    <button
+      key={label}
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+        kind === "claude" && "bg-primary/10 text-primary hover:bg-primary/15",
+        kind === "done" && "bg-foreground/[0.05] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground",
+        kind === "quiet" && "px-1.5 text-muted-foreground/70 hover:text-foreground",
+      )}
+    >
+      {label}
+    </button>
+  );
+
+  const card = (n: Note) => {
+    const st = noteState(n);
+    return (
+      <div key={n.id} className="relative rounded-xl border border-border/60 bg-background/60 px-4 py-3 dark:bg-input/30">
+        {st !== "done" && (
+          <button
+            type="button"
+            aria-label="This one matters"
+            aria-pressed={n.priority === "high"}
+            onClick={() => p.onToggleStar(n.id)}
+            className={cn(
+              "absolute right-3 top-3 transition-colors",
+              n.priority === "high" ? "text-amber-500" : "text-border hover:text-muted-foreground",
+            )}
+          >
+            <Star className="size-3.5" fill={n.priority === "high" ? "currentColor" : "none"} />
+          </button>
+        )}
+
+        {editing === n.id ? (
+          <textarea
+            autoFocus
+            defaultValue={n.text}
+            rows={Math.min(5, n.text.split("\n").length + 1)}
+            onBlur={(e) => {
+              p.onEditText(n.id, e.target.value);
+              setEditing(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.preventDefault();
+                e.stopPropagation();
+                setEditing(null);
+              } else if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                (e.target as HTMLTextAreaElement).blur();
+              }
+            }}
+            className="w-full resize-none rounded-md border border-input bg-background/60 px-2 py-1 text-sm outline-none"
+          />
+        ) : (
+          <div
+            onDoubleClick={st === "done" ? undefined : () => setEditing(n.id)}
+            className={cn("pr-6 text-sm leading-6", st === "done" && "text-muted-foreground line-through decoration-muted-foreground/60")}
+          >
+            <Markdown text={n.text || "(images only)"} />
+          </div>
+        )}
+
+        {(n.source || (multiFolder && folderName(n))) && (
+          <div className="mt-0.5 text-[11px] text-muted-foreground/80">
+            {[n.source && `from ${[n.source.app, n.source.title].filter(Boolean).join(" · ")}`, multiFolder ? folderName(n) : null]
+              .filter(Boolean)
+              .join(" · ")}
+          </div>
+        )}
+
+        {(n.attachments?.length ?? 0) > 0 && (
+          <AttachmentStrip
+            attachments={n.attachments!}
+            dir={p.attachmentsDir}
+            size="md"
+            onOpen={(a) => p.onOpenAttachment(n.id, a)}
+            className={cn("mt-2", st === "done" && "opacity-70")}
+          />
+        )}
+
+        {st === "claude" && !n.outcome && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-primary">
+            <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+            with Claude — the block is on your clipboard; an agent on MCP updates this live
+          </div>
+        )}
+
+        {n.outcome && (
+          <div className="mt-2 rounded-lg border border-border/60 bg-foreground/[0.03] px-3 py-2">
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+              {n.outcome.by === "agent" ? "Claude" : "You"}
+            </div>
+            <Markdown text={n.outcome.text} className="text-xs leading-5 text-muted-foreground" />
+          </div>
+        )}
+        {answering === n.id && (
+          <textarea
+            autoFocus
+            rows={3}
+            placeholder="Paste the answer here, then click away"
+            onBlur={(e) => {
+              const v = e.target.value.trim();
+              if (v) p.onAddAnswer(n.id, v);
+              setAnswering(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.preventDefault();
+                e.stopPropagation();
+                setAnswering(null);
+              }
+            }}
+            className="mt-2 w-full resize-y rounded-lg border border-input bg-background/60 px-3 py-2 text-xs outline-none"
+          />
+        )}
+
+        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+          {st === "open" && (
+            <>
+              {verb("Let Claude handle it", () => p.onHandOffOne(n.id), "claude")}
+              {verb("Done with it", () => p.onSetDone(n.id, true), "done")}
+              {verb("clear", () => p.onDelete(n.id))}
+            </>
+          )}
+          {st === "claude" && (
+            <>
+              {!n.outcome && answering !== n.id && verb("add the answer", () => setAnswering(n.id), "claude")}
+              {!n.outcome && verb("copy the block again", () => p.onCopyAgain(n.id))}
+              {verb(n.outcome ? "Great — done with it" : "Done with it", () => p.onSetDone(n.id, true), "done")}
+              {verb("back to me", () => p.onBackToMe(n.id))}
+            </>
+          )}
+          {st === "done" && verb("bring it back", () => p.onSetDone(n.id, false))}
+        </div>
+      </div>
+    );
+  };
+
+  const label = (text: string) => (
+    <div className="mb-2 mt-5 px-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">{text}</div>
+  );
+
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-2">
+      <div className="pt-3 text-center">
+        <div className="text-[13px] text-muted-foreground">
+          {open.length === 0 && withClaude.length === 0 ? (
+            "Nothing on your mind."
+          ) : (
+            <>
+              {open.length > 0 && (
+                <>
+                  <span className="font-medium text-foreground">
+                    {open.length} thing{open.length === 1 ? "" : "s"}
+                  </span>{" "}
+                  on your mind
+                </>
+              )}
+              {open.length > 0 && withClaude.length > 0 && " · "}
+              {withClaude.length > 0 && (
+                <span className="font-medium text-primary">{withClaude.length} with Claude</span>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {open.length === 0 && withClaude.length === 0 && (
+        <div className="pt-8 text-center text-xs text-muted-foreground/70">That's the whole point.</div>
+      )}
+
+      {open.length > 0 && (
+        <>
+          {label("On your mind")}
+          <div className="flex flex-col gap-2">{[...open].sort(byStarThenAge).map(card)}</div>
+          {open.length > 1 && (
+            <div className="mt-3 text-center">
+              <button
+                type="button"
+                onClick={p.onHandOffAll}
+                className="text-xs text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary"
+              >
+                hand everything over to Claude
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {withClaude.length > 0 && (
+        <>
+          {label("With Claude")}
+          <div className="flex flex-col gap-2">{[...withClaude].sort((a, z) => sortKey(a) - sortKey(z)).map(card)}</div>
+        </>
+      )}
+
+      {handled.length > 0 && (
+        <div className="mt-6 pb-2 text-center">
+          <button
+            type="button"
+            onClick={() => setShowHandled((v) => !v)}
+            className="text-xs text-muted-foreground/70 hover:text-muted-foreground"
+          >
+            {showHandled ? "hide" : "show"} what's been handled ({handled.length})
+          </button>
+          {showHandled && (
+            <div className="mt-3 flex flex-col gap-2 text-left opacity-80">
+              {[...handled].sort((a, z) => (z.completedAt ?? 0) - (a.completedAt ?? 0)).slice(0, 30).map(card)}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
