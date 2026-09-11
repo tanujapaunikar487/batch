@@ -28,6 +28,9 @@ interface Props {
   /** Shortcut hints shown in the menu. */
   bindings: { ship: string; copyList: string; clearDone: string };
   onReorder: (id: string, afterId: string | null) => void;
+  /** A search query is active — no tab reads as "active" (results span every folder);
+   * clicking one jumps there and exits search. */
+  searching?: boolean;
   /** Externally triggered "new folder" (⌘⇧N). */
   addRequest: number;
   /** Externally triggered "rename active folder". */
@@ -48,6 +51,7 @@ export function SectionTabs({
   onEditInstructions,
   bindings,
   onReorder,
+  searching,
   addRequest,
   renameRequest,
 }: Props) {
@@ -121,16 +125,17 @@ export function SectionTabs({
 
   return (
     <div className="flex shrink-0 items-center gap-1 overflow-x-auto px-5 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist">
-      {sections.map((s, i) =>
-        renaming === s.id ? (
+      {sections.map((s, i) => {
+        const isActive = !searching && s.id === activeId;
+        return renaming === s.id ? (
           <span key={s.id}>{editor}</span>
         ) : (
           <ContextMenu key={s.id}>
             <ContextMenuTrigger asChild>
               <button
-                ref={s.id === activeId ? activeRef : undefined}
+                ref={isActive ? activeRef : undefined}
                 role="tab"
-                aria-selected={s.id === activeId}
+                aria-selected={isActive}
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData("application/x-batch-folder", s.id);
@@ -163,15 +168,18 @@ export function SectionTabs({
                   setOver(null);
                 }}
                 title={
-                  s.id === activeId
+                  isActive
                     ? "Click to rename · right-click for options"
-                    : i < 9
-                      ? `⌘${i + 1} · right-click for options`
-                      : "right-click for options"
+                    : searching
+                      ? "Jump here · exits search"
+                      : i < 9
+                        ? `⌘${i + 1} · right-click for options`
+                        : "right-click for options"
                 }
                 // Click selects; clicking the active folder's name renames it; right-click opens the menu.
+                // While searching, no tab is "active" — every click jumps there and exits search.
                 onClick={() => {
-                  if (s.id === activeId) {
+                  if (isActive) {
                     setRenaming(s.id);
                     setDraft(s.name);
                   } else {
@@ -184,7 +192,7 @@ export function SectionTabs({
                     "before:absolute before:-left-1 before:top-1 before:bottom-1 before:w-0.5 before:rounded-full before:bg-ring",
                   dragId && over?.id === s.id && dragId !== s.id && over.side === "right" &&
                     "after:absolute after:-right-1 after:top-1 after:bottom-1 after:w-0.5 after:rounded-full after:bg-ring",
-                  s.id === activeId
+                  isActive
                     ? "bg-foreground/[0.08] text-foreground dark:bg-foreground/[0.12]"
                     : "text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground",
                 )}
@@ -228,8 +236,8 @@ export function SectionTabs({
               )}
             </ContextMenuContent>
           </ContextMenu>
-        ),
-      )}
+        );
+      })}
       {adding ? (
         editor
       ) : (

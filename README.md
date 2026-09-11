@@ -200,7 +200,7 @@ the same in both — same notes, same file, same folder, switch any time.
 | Move to another folder | ⇧⌘] / ⇧⌘[ · or ⋯ / right-click → Move to |
 | Sections inside a folder | ⊕ → *New section*, or type `# Title` in the box — a heading row you can drag notes under (rename by clicking it; delete keeps its notes) · chevron collapses/expands it · moving a heading moves its whole section |
 | Reorder | drag a note up or down within its folder (a line shows where it lands) · drag one of several selected notes to move them all · ⌥↑ / ⌥↓ · right-click → Move up / Move down · ⌘Z undoes |
-| Search | ⌘F — searches all folders; results show their folder — click it (or ↩) to jump there with the note focused |
+| Search | ⌘F — searches all folders; the folder tabs stay put (none highlighted, since results span all of them) — click one to jump there and exit search; each result also shows its folder — click it (or ↩) to jump there with the note focused |
 | Filters | ⇧⌘F — Status (All / Open / Done) · ★ Starred · Type (Links / Code / Text) · When (Today / 7 days) |
 | Undo / redo | ⌘Z / ⇧⌘Z (every note change, 50 steps) |
 | Delete | ⌫ on selected notes · hover → ⋯ → Delete |

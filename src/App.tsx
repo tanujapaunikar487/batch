@@ -956,14 +956,18 @@ export default function App() {
                 onDismiss={() => setBannerDismissed(true)}
               />
             )}
-            {!searchOpen && (
-              <SectionTabs
+            <SectionTabs
                 sections={state.sections}
                 counts={counts}
                 activeId={activeSection.id}
+                searching={searching}
                 onSelect={(id) => {
                   setActiveId(id);
                   nav.clear();
+                  if (searchOpen) {
+                    setSearchOpen(false);
+                    setQuery("");
+                  }
                   focusCapture();
                 }}
                 onAdd={(name) => {
@@ -1010,7 +1014,6 @@ export default function App() {
                 addRequest={addSectionRequest}
                 renameRequest={renameRequest}
               />
-            )}
             <SearchAndFilters
               filtersOpen={filtersOpen}
               filter={filter}
