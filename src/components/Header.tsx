@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { type ThemePref } from "@/store/useSettings";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { type ActionId, formatBinding } from "@/lib/shortcuts";
 
@@ -99,16 +100,32 @@ export function Header(p: Props) {
       </span>
 
       <div className="ml-auto flex items-center gap-0.5">
-        {iconBtn(
-          `${p.viewMode === "clear" ? "Folders view" : "Clear view"}  ${formatBinding(p.keymap.toggleView)}`,
-          p.viewMode === "clear",
-          p.onToggleView,
-          p.viewMode === "clear" ? (
-            <Feather className="size-4" />
-          ) : (
-            <Feather className="size-4 text-muted-foreground" />
-          ),
-        )}
+        <ToggleGroup
+          type="single"
+          spacing={0}
+          value={p.viewMode}
+          onValueChange={(v) => {
+            if (v && v !== p.viewMode) p.onToggleView();
+          }}
+          aria-label={`View  ${formatBinding(p.keymap.toggleView)}`}
+          title={`Switch view  ${formatBinding(p.keymap.toggleView)}`}
+          className="mr-1 h-6 shrink-0 items-center gap-0 rounded-lg bg-foreground/[0.06] p-0.5"
+        >
+          <ToggleGroupItem
+            value="folders"
+            aria-label="Folders view"
+            className="h-5 min-w-0 gap-1 rounded-md border-0 px-1.5 text-[11px] font-medium text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
+          >
+            <Rows3 className="size-3" /> Folders
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="clear"
+            aria-label="Clear view"
+            className="h-5 min-w-0 gap-1 rounded-md border-0 px-1.5 text-[11px] font-medium text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
+          >
+            <Feather className="size-3" /> Clear
+          </ToggleGroupItem>
+        </ToggleGroup>
         {iconBtn(
           `Search  ${formatBinding(p.keymap.search)}`,
           p.searchOpen,
