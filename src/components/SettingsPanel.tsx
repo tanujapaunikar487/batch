@@ -144,6 +144,7 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
         </nav>
 
         <div ref={scrollRef} onScroll={onScroll} className="min-h-0 min-w-0 flex-1 overflow-y-auto py-2 pl-2 pr-5">
+          <div className="mx-auto w-full max-w-[500px]">
           {group(
             "general",
             "General",
@@ -374,6 +375,7 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
               )}
             </div>,
           )}
+          </div>
         </div>
       </div>
     </div>
