@@ -8,6 +8,7 @@ import { DataBanner } from "@/components/DataBanner";
 import { allToMarkdown, folderToMarkdown, mergeImport, parseImport, stateToJson } from "@/lib/export";
 import { newId } from "@/store/useNotes";
 import { NoteList } from "@/components/NoteList";
+import { NEW_SECTION_PLACEHOLDER } from "@/components/NoteRow";
 import { Footer } from "@/components/Footer";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { HelpSheet } from "@/components/HelpSheet";
@@ -366,7 +367,7 @@ export default function App() {
         const i = seq.findIndex((n) => n.id === aboveId);
         insertAfter = i <= 0 ? null : seq[i - 1].id;
       }
-      const id = notes.add(activeSection.id, "New section", undefined, undefined, "heading", insertAfter);
+      const id = notes.add(activeSection.id, NEW_SECTION_PLACEHOLDER, undefined, undefined, "heading", insertAfter);
       nav.focus(id);
       setEditingId(id);
       requestAnimationFrame(() =>

@@ -15,6 +15,10 @@ import {
 } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import { type Attachment, type Note, type Priority, type Section, hasAttachments, isHeading } from "@/lib/notes";
+
+/** A just-created section keeps this text in the data (blank notes are dropped
+ * by the reducer) but renders as a muted placeholder you never have to clear. */
+export const NEW_SECTION_PLACEHOLDER = "New section";
 import { formatBinding } from "@/lib/shortcuts";
 import { Markdown } from "./Markdown";
 import { AttachmentStrip } from "./AttachmentStrip";
@@ -238,9 +242,12 @@ export function NoteRow({
             )}
             {isEditing ? (
               <InlineEditor
-                initial={note.text}
+                initial={heading && note.text === NEW_SECTION_PLACEHOLDER ? "" : note.text}
+                placeholder={heading ? NEW_SECTION_PLACEHOLDER : undefined}
                 onCommit={(t) => {
                   onStopEdit();
+                  // An untitled section keeps its placeholder instead of being deleted.
+                  if (heading && !t.trim()) return;
                   onEdit(note.id, t);
                 }}
                 onCancel={onStopEdit}
@@ -260,14 +267,17 @@ export function NoteRow({
                   {note.collapsed ? <ChevronRight className="size-3" /> : <ChevronDown className="size-3" />}
                 </button>
                 <h3
-                  className="text-xs font-semibold uppercase tracking-wide text-foreground/85"
+                  className={cn(
+                    "text-xs font-semibold uppercase tracking-wide",
+                    note.text === NEW_SECTION_PLACEHOLDER ? "font-medium normal-case italic text-muted-foreground/70" : "text-foreground/85",
+                  )}
                   onClick={(e) => {
                     e.stopPropagation();
                     onStartEdit(note.id);
                   }}
-                  title="Click to rename"
+                  title={note.text === NEW_SECTION_PLACEHOLDER ? "Click to name this section" : "Click to rename"}
                 >
-                  {note.text}
+                  {note.text === NEW_SECTION_PLACEHOLDER ? "Name this section…" : note.text}
                 </h3>
                 {sectionCount !== undefined && sectionCount > 0 && (
                   <span className="text-xs tabular-nums text-muted-foreground">{sectionCount}</span>
@@ -532,10 +542,12 @@ export function NoteRow({
 
 function InlineEditor({
   initial,
+  placeholder,
   onCommit,
   onCancel,
 }: {
   initial: string;
+  placeholder?: string;
   onCommit: (text: string) => void;
   onCancel: () => void;
 }) {
@@ -573,7 +585,8 @@ function InlineEditor({
         }
       }}
       rows={1}
-      className="block w-full resize-none bg-transparent text-sm leading-5 outline-none"
+      placeholder={placeholder}
+      className="block w-full resize-none bg-transparent text-sm leading-5 outline-none placeholder:text-muted-foreground/60"
       aria-label="Edit note"
     />
   );
