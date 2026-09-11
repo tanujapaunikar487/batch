@@ -155,7 +155,7 @@ export default function App() {
     [notesById, activeSection, copy, notes, nav, showToast],
   );
 
-  /** Clear view multi-select, owned here so the Esc cascade can clear it. */
+  /** Focus view multi-select, owned here so the Esc cascade can clear it. */
   const [clearSel, setClearSel] = useState<Set<string>>(new Set());
 
   const copyNotes = useCallback(

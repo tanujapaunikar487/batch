@@ -6,7 +6,7 @@ import { Markdown } from "./Markdown";
 import { AttachmentStrip } from "./AttachmentStrip";
 
 interface Props {
-  /** The active folder's notes (no headings) — same scope as the Folders view. */
+  /** The active folder's notes (no headings) — same scope as the List view. */
   notes: Note[];
   folderName: string;
   attachmentsDir: string;
@@ -29,9 +29,9 @@ interface Props {
 }
 
 /**
- * The Clear view: the active folder's notes grouped by where they stand —
+ * The Focus view: the active folder's notes grouped by where they stand —
  * on your mind / with your agent / handled — with two verbs per card and a
- * headline that counts down. Star = important (same star as the Folders view).
+ * headline that counts down. Star = important (same star as the List view).
  */
 export function ClearView(p: Props) {
   const [showHandled, setShowHandled] = useState(false);

@@ -21,7 +21,7 @@ export function HelpSheet({ keymap, toggleShortcut, doubleShift, onBack }: Props
     ["Edit note", "↩  ·  double-click"],
     ["Delete", "⌫"],
     ["Star (this one matters)", "1 · click the ★"],
-    ["Select several (Clear view)", "⌘-click cards · Esc deselects"],
+    ["Select several (Focus view)", "⌘-click cards · Esc deselects"],
     ["Move note up / down", "⌥↑ · ⌥↓  ·  drag"],
     ["Pin feedback on an image", "click a thumbnail · click the image to add pins"],
     ["Switch folder", "⌘1 … ⌘9"],

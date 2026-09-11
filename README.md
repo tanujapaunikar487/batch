@@ -159,10 +159,12 @@ build shares one identity.
 
 ## Two views, same notes
 
-Press **⌘⇧V** (or the feather in the header) to switch how the list renders:
+Press **⌘⇧V** (or the **List / Focus** switch in the header) to change how the
+same notes render:
 
-- **Folders** (default) — tabs, sections, priorities: the classic list below.
-- **Clear** — calm cards grouped by where things stand: *On your mind* →
+- **List** (default) — every note in order: sections, drag to reorder, the
+  classic checklist below.
+- **Focus** — calm cards grouped by where things stand: *On your mind* →
   *With your agent* → *handled*, with a headline that counts down and two verbs per
   card (*Let your agent handle it* · *Done with it*). ⌘-click selects several cards
   for group actions (hand off, done, star, merge, clear); "hand all of
@@ -191,7 +193,7 @@ the same in both — same notes, same file, same folder, switch any time.
 | Merge notes | select 2+ → ⌘M or right-click → Merge Notes (texts joined, earliest note kept, ⌘Z to undo) |
 | Done | Space (or the checkbox); done notes sink to the bottom of their section, struck through · ⇧⌘⌫ / *Clear done* removes them |
 | Edit | ↩ or double-click · ↩ saves · `Esc` cancels |
-| Star (this one matters) | press 1 on selected notes, or click the ★ on a row / card — starred notes sort first in Clear view |
+| Star (this one matters) | press 1 on selected notes, or click the ★ on a row / card — starred notes sort first in Focus view |
 | Move to another folder | ⇧⌘] / ⇧⌘[ · or ⋯ / right-click → Move to |
 | Sections inside a folder | ⊕ → *New section*, or type `# Title` in the box — a heading row you can drag notes under (rename by clicking it; delete keeps its notes) · chevron collapses/expands it · moving a heading moves its whole section |
 | Reorder | drag a note up or down within its folder (a line shows where it lands) · drag one of several selected notes to move them all · ⌥↑ / ⌥↓ · right-click → Move up / Move down · ⌘Z undoes |

@@ -48,7 +48,7 @@ export const ACTIONS: Record<ActionId, { label: string; customizable: boolean }>
   movePrevSection: { label: "Move note to previous folder", customizable: true },
   pin: { label: "Pin / unpin window", customizable: true },
   expand: { label: "Expand to side panel / restore", customizable: true },
-  toggleView: { label: "Switch view (Folders / Clear)", customizable: true },
+  toggleView: { label: "Switch view (List / Focus)", customizable: true },
   settings: { label: "Settings", customizable: false },
   help: { label: "Keyboard shortcuts", customizable: false },
   undo: { label: "Undo", customizable: false },

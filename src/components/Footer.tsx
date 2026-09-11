@@ -8,7 +8,7 @@ interface Props {
   /** Progress for what's on screen (current folder, or search results). */
   done: number;
   total: number;
-  /** Clear view has no list navigation; hide the browse hint there. */
+  /** Focus view has no list navigation; hide the browse hint there. */
   showBrowseHint?: boolean;
 }
 

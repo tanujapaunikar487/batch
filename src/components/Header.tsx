@@ -1,4 +1,4 @@
-import { Check, Feather, Filter, Monitor, Moon, MoreHorizontal, Pin, Rows3, Search, Sun, X } from "lucide-react";
+import { Check, Filter, Focus, List, Monitor, Moon, MoreHorizontal, Pin, Search, Sun, X } from "lucide-react";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
@@ -158,17 +158,17 @@ export function Header(p: Props) {
         >
           <ToggleGroupItem
             value="folders"
-            aria-label="Folders view"
+            aria-label="List view — every note in order"
             className="h-6 min-w-0 gap-1.5 rounded-md border-0 px-2 text-xs font-medium text-muted-foreground [&_svg:not([class*='size-'])]:size-3.5 data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
           >
-            <Rows3 /> Folders
+            <List /> List
           </ToggleGroupItem>
           <ToggleGroupItem
             value="clear"
-            aria-label="Clear view"
+            aria-label="Focus view — grouped by what needs you"
             className="h-6 min-w-0 gap-1.5 rounded-md border-0 px-2 text-xs font-medium text-muted-foreground [&_svg:not([class*='size-'])]:size-3.5 data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
           >
-            <Feather /> Clear
+            <Focus /> Focus
           </ToggleGroupItem>
         </ToggleGroup>
         {iconBtn(
