@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { SquareArrowOutUpRight, Trash2 } from "lucide-react";
+import { SquareArrowOutUpRight, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -171,8 +171,17 @@ export function PinEditor({ attachment, dir, onSave, onClose, onOpenFile }: Prop
               <SquareArrowOutUpRight />
             </Button>
           )}
-          <Button size="sm" variant="secondary" onClick={finish}>
-            Done
+          <Button size="sm" onClick={finish}>
+            Save
+          </Button>
+          <Button
+            size="icon-xs"
+            variant="ghost"
+            title="Close without saving"
+            aria-label="Close without saving"
+            onClick={onClose}
+          >
+            <X />
           </Button>
         </div>
 
