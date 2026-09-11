@@ -228,15 +228,16 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
             </Row>
           ))}
           <p className="pt-1 text-xs leading-5 text-muted-foreground">
-            Fixed: ⌘1–9 sections · ↑↓ browse · Space done · ↩ edit · ⌫ delete · 1/2/3 priority · ⌘A · ⌘C · ⌘Z · ⌘, · ⌘/
+            Fixed: ⌘1–9 sections · ↑↓ browse · Space done · ↩ edit · ⌫ delete · 1 star · ⌘A · ⌘C · ⌘Z · ⌘, · ⌘/
           </p>
         </Group>
 
         {inTauri && (
           <Group title="Agents (MCP)">
             <p className="text-xs leading-5 text-muted-foreground">
-              Let Claude Code, Cursor or Codex read and tick off your notes. They talk to a local
-              server that edits the same file — nothing leaves your Mac.
+              Connect Claude Code, Cursor or Codex once and it reads your notes itself, writes
+              each answer under its note, and ticks it off — live in the app, no pasting.
+              A local server edits the same file; nothing leaves your Mac.
             </p>
             {mcpPath ? (
               <div className="mt-1.5 flex items-center gap-2">
