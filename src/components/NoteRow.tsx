@@ -1,14 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Bot, Check, CheckSquare, ChevronDown, ChevronRight, Copy, CornerDownRight, FolderInput, Heading, ImagePlus, ListOrdered, Merge, MessageSquare, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Bot, Check, CheckSquare, ChevronDown, ChevronRight, Copy, CornerDownRight, FolderInput, Heading, ImagePlus, ListOrdered, Merge, MessageSquare, MoreHorizontal, Pencil, Square, Star, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -21,8 +14,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
-import { type Attachment, type Note, type Priority, type Section, PRIORITIES, hasAttachments, isHeading } from "@/lib/notes";
-import { PRIORITY_UI } from "@/lib/priority-ui";
+import { type Attachment, type Note, type Priority, type Section, hasAttachments, isHeading } from "@/lib/notes";
 import { formatBinding } from "@/lib/shortcuts";
 import { Markdown } from "./Markdown";
 import { AttachmentStrip } from "./AttachmentStrip";
@@ -127,7 +119,6 @@ export function NoteRow({
   onRowDrop,
   onRowDragEnd,
 }: NoteRowProps) {
-  const ui = PRIORITY_UI[note.priority];
   const heading = isHeading(note);
   const sectionName = sections.find((s) => s.id === note.sectionId)?.name;
   const rowRef = useRef<HTMLLIElement>(null);
@@ -366,30 +357,23 @@ export function NoteRow({
                   <MoreHorizontal className="size-3.5" />
                 </Button>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    aria-label={`Priority: ${ui.label}. Change`}
-                    title={`${ui.label} priority`}
-                    className="grid size-5 place-items-center rounded-md hover:bg-foreground/[0.06] aria-expanded:bg-foreground/[0.08]"
-                  >
-                    <span className={cn("size-1.5 rounded-full", ui.dot, note.done && "opacity-40")} />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="min-w-32">
-                  <DropdownMenuRadioGroup value={note.priority} onValueChange={(v) => onSetPriority([note.id], v as Priority)}>
-                    {PRIORITIES.map((p) => (
-                      <DropdownMenuRadioItem key={p} value={p}>
-                        <span className={cn("mr-1 size-1.5 rounded-full", PRIORITY_UI[p].dot)} />
-                        {PRIORITY_UI[p].label}
-                        <span className="ml-auto pl-3 text-xs text-muted-foreground">{PRIORITIES.indexOf(p) + 1}</span>
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <button
+                type="button"
+                tabIndex={-1}
+                aria-label={note.priority === "high" ? "Unstar" : "Star — this one matters"}
+                aria-pressed={note.priority === "high"}
+                title={note.priority === "high" ? "Starred — click to unstar (1)" : "Star (1)"}
+                onClick={() => onSetPriority([note.id], note.priority === "high" ? "medium" : "high")}
+                className={cn(
+                  "grid size-5 place-items-center rounded-md transition-colors hover:bg-foreground/[0.06]",
+                  note.priority === "high"
+                    ? "text-amber-500"
+                    : "text-transparent group-hover:text-muted-foreground/50 hover:!text-amber-500",
+                  note.done && "opacity-40",
+                )}
+              >
+                <Star className="size-3.5" fill={note.priority === "high" ? "currentColor" : "none"} />
+              </button>
             </div>
           )}
           {heading && (

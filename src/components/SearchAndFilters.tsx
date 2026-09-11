@@ -4,8 +4,6 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { type Filter, EMPTY_FILTER, isFilterActive } from "@/lib/filters";
-import { PRIORITIES, type Priority } from "@/lib/notes";
-import { PRIORITY_UI } from "@/lib/priority-ui";
 
 interface Props {
   searchOpen: boolean;
@@ -69,10 +67,12 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
             onChange={(v) => onFilter({ ...filter, status: v as Filter["status"] })}
           />
           <FilterSelect
-            value={filter.priority ?? "any"}
-            options={[["any", "Any Priority"], ...PRIORITIES.map((p) => [p, PRIORITY_UI[p].label] as [string, string])]}
-            dots={Object.fromEntries(PRIORITIES.map((p) => [p, PRIORITY_UI[p].dot]))}
-            onChange={(v) => onFilter({ ...filter, priority: v === "any" ? undefined : (v as Priority) })}
+            value={filter.priority === "high" ? "high" : "any"}
+            options={[
+              ["any", "Any"],
+              ["high", "★ Starred"],
+            ]}
+            onChange={(v) => onFilter({ ...filter, priority: v === "high" ? "high" : undefined })}
           />
           <FilterSelect
             value={filter.kind ?? "any"}

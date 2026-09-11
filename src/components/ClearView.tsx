@@ -1,31 +1,34 @@
 import { useState } from "react";
-import { Star } from "lucide-react";
+import { Star, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { type Attachment, type Note, type Section, noteState, sortKey } from "@/lib/notes";
+import { type Attachment, type Note, noteState, sortKey } from "@/lib/notes";
 import { Markdown } from "./Markdown";
 import { AttachmentStrip } from "./AttachmentStrip";
 
 interface Props {
-  /** All non-heading notes, every folder. */
+  /** The active folder's notes (no headings) — same scope as the Folders view. */
   notes: Note[];
-  sections: Section[];
+  folderName: string;
   attachmentsDir: string;
-  onHandOffOne: (id: string) => void;
-  onHandOffAll: () => void;
-  onCopyAgain: (id: string) => void;
-  onSetDone: (id: string, done: boolean) => void;
+  /** Multi-select (⌘-click), owned by App so Esc can clear it. */
+  selected: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onClearSelection: () => void;
+  onHandOff: (ids: string[]) => void;
+  onSetDone: (ids: string[], done: boolean) => void;
   onBackToMe: (id: string) => void;
-  onDelete: (id: string) => void;
-  onToggleStar: (id: string) => void;
+  onDelete: (ids: string[]) => void;
+  onToggleStar: (ids: string[]) => void;
+  onMerge: (ids: string[]) => void;
   onEditText: (id: string, text: string) => void;
   onAddAnswer: (id: string, text: string) => void;
   onOpenAttachment: (noteId: string, a: Attachment) => void;
 }
 
 /**
- * The Clear view: the same notes as the Folders view, grouped by where they
- * stand — on your mind / with Claude / handled — with two verbs per card and a
- * headline that counts down. Folders exist but are not managed here.
+ * The Clear view: the active folder's notes grouped by where they stand —
+ * on your mind / with Claude / handled — with two verbs per card and a
+ * headline that counts down. Star = important (same star as the Folders view).
  */
 export function ClearView(p: Props) {
   const [showHandled, setShowHandled] = useState(false);
@@ -35,10 +38,9 @@ export function ClearView(p: Props) {
   const open = p.notes.filter((n) => noteState(n) === "open");
   const withClaude = p.notes.filter((n) => noteState(n) === "claude");
   const handled = p.notes.filter((n) => noteState(n) === "done");
-  const byStarThenAge = (a: Note, z: Note) =>
+  const byStarThenOrder = (a: Note, z: Note) =>
     Number(z.priority === "high") - Number(a.priority === "high") || sortKey(a) - sortKey(z);
-  const multiFolder = new Set(p.notes.map((n) => n.sectionId)).size > 1;
-  const folderName = (n: Note) => p.sections.find((s) => s.id === n.sectionId)?.name;
+  const sel = [...p.selected];
 
   const verb = (label: string, onClick: () => void, kind: "claude" | "done" | "quiet" = "quiet") => (
     <button
@@ -58,17 +60,30 @@ export function ClearView(p: Props) {
 
   const card = (n: Note) => {
     const st = noteState(n);
+    const isSel = p.selected.has(n.id);
     return (
-      <div key={n.id} className="relative rounded-xl border border-border/60 bg-background/60 px-4 py-3 dark:bg-input/30">
+      <div
+        key={n.id}
+        onClickCapture={(e) => {
+          if (!e.metaKey) return;
+          e.preventDefault();
+          e.stopPropagation();
+          p.onToggleSelect(n.id);
+        }}
+        className={cn(
+          "relative rounded-xl border border-border/60 bg-background/60 px-4 py-3 dark:bg-input/30",
+          isSel && "border-primary/50 ring-2 ring-primary/25",
+        )}
+      >
         {st !== "done" && (
           <button
             type="button"
-            aria-label="This one matters"
+            aria-label={n.priority === "high" ? "Unstar" : "Star — this one matters"}
             aria-pressed={n.priority === "high"}
-            onClick={() => p.onToggleStar(n.id)}
+            onClick={() => p.onToggleStar([n.id])}
             className={cn(
               "absolute right-3 top-3 transition-colors",
-              n.priority === "high" ? "text-amber-500" : "text-border hover:text-muted-foreground",
+              n.priority === "high" ? "text-amber-500" : "text-muted-foreground/50 hover:text-amber-500",
             )}
           >
             <Star className="size-3.5" fill={n.priority === "high" ? "currentColor" : "none"} />
@@ -105,11 +120,9 @@ export function ClearView(p: Props) {
           </div>
         )}
 
-        {(n.source || (multiFolder && folderName(n))) && (
+        {n.source && (
           <div className="mt-0.5 text-[11px] text-muted-foreground/80">
-            {[n.source && `from ${[n.source.app, n.source.title].filter(Boolean).join(" · ")}`, multiFolder ? folderName(n) : null]
-              .filter(Boolean)
-              .join(" · ")}
+            from {[n.source.app, n.source.title].filter(Boolean).join(" · ")}
           </div>
         )}
 
@@ -162,20 +175,20 @@ export function ClearView(p: Props) {
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
           {st === "open" && (
             <>
-              {verb("Let Claude handle it", () => p.onHandOffOne(n.id), "claude")}
-              {verb("Done with it", () => p.onSetDone(n.id, true), "done")}
-              {verb("clear", () => p.onDelete(n.id))}
+              {verb("Let Claude handle it", () => p.onHandOff([n.id]), "claude")}
+              {verb("Done with it", () => p.onSetDone([n.id], true), "done")}
+              {verb("clear", () => p.onDelete([n.id]))}
             </>
           )}
           {st === "claude" && (
             <>
               {!n.outcome && answering !== n.id && verb("add the answer", () => setAnswering(n.id), "claude")}
-              {!n.outcome && verb("copy the block again", () => p.onCopyAgain(n.id))}
-              {verb(n.outcome ? "Great — done with it" : "Done with it", () => p.onSetDone(n.id, true), "done")}
+              {!n.outcome && verb("copy the block again", () => p.onHandOff([n.id]))}
+              {verb(n.outcome ? "Great — done with it" : "Done with it", () => p.onSetDone([n.id], true), "done")}
               {verb("back to me", () => p.onBackToMe(n.id))}
             </>
           )}
-          {st === "done" && verb("bring it back", () => p.onSetDone(n.id, false))}
+          {st === "done" && verb("bring it back", () => p.onSetDone([n.id], false))}
         </div>
       </div>
     );
@@ -186,11 +199,11 @@ export function ClearView(p: Props) {
   );
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-2">
+    <div className="relative min-h-0 flex-1 overflow-y-auto px-5 pb-2">
       <div className="pt-3 text-center">
         <div className="text-[13px] text-muted-foreground">
           {open.length === 0 && withClaude.length === 0 ? (
-            "Nothing on your mind."
+            "Nothing on your mind here."
           ) : (
             <>
               {open.length > 0 && (
@@ -217,15 +230,15 @@ export function ClearView(p: Props) {
       {open.length > 0 && (
         <>
           {label("On your mind")}
-          <div className="flex flex-col gap-2">{[...open].sort(byStarThenAge).map(card)}</div>
+          <div className="flex flex-col gap-2">{[...open].sort(byStarThenOrder).map(card)}</div>
           {open.length > 1 && (
             <div className="mt-3 text-center">
               <button
                 type="button"
-                onClick={p.onHandOffAll}
+                onClick={() => p.onHandOff(open.map((n) => n.id))}
                 className="text-xs text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary"
               >
-                hand everything over to Claude
+                hand all of {p.folderName} to Claude
               </button>
             </div>
           )}
@@ -253,6 +266,25 @@ export function ClearView(p: Props) {
               {[...handled].sort((a, z) => (z.completedAt ?? 0) - (a.completedAt ?? 0)).slice(0, 30).map(card)}
             </div>
           )}
+        </div>
+      )}
+
+      {sel.length > 0 && (
+        <div className="sticky bottom-2 z-10 mx-auto mt-3 flex w-fit max-w-full flex-wrap items-center justify-center gap-1 rounded-full border border-border bg-background/95 px-3 py-1.5 shadow-lg backdrop-blur">
+          <span className="pr-1 text-xs text-muted-foreground">{sel.length} selected</span>
+          {verb("Hand to Claude", () => p.onHandOff(sel), "claude")}
+          {verb("Done", () => p.onSetDone(sel, true), "done")}
+          {verb("Star", () => p.onToggleStar(sel))}
+          {sel.length > 1 && verb("Merge", () => p.onMerge(sel))}
+          {verb("clear", () => p.onDelete(sel))}
+          <button
+            type="button"
+            aria-label="Deselect"
+            onClick={p.onClearSelection}
+            className="grid size-5 place-items-center rounded-full text-muted-foreground hover:text-foreground"
+          >
+            <X className="size-3" />
+          </button>
         </div>
       )}
     </div>

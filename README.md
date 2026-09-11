@@ -164,12 +164,13 @@ Press **⌘⇧V** (or the feather in the header) to switch how the list renders:
 - **Folders** (default) — tabs, sections, priorities: the classic list below.
 - **Clear** — calm cards grouped by where things stand: *On your mind* →
   *With Claude* → *handled*, with a headline that counts down and two verbs per
-  card (*Let Claude handle it* · *Done with it*). The star is priority; "hand
-  everything over to Claude" ships every open note, grouped by folder with each
-  folder's agent instructions. Answers pasted onto a card (or written by an
-  agent over MCP) appear right under it.
+  card (*Let Claude handle it* · *Done with it*). ⌘-click selects several cards
+  for group actions (hand off, done, star, merge, clear); "hand all of
+  \<folder\> to Claude" ships every open note in it. Answers pasted onto a card
+  (or written by an agent over MCP) appear right under it.
 
-Same notes, same file, switch any time.
+The folder tabs, the capture box, search, the ★ star, pins, and shortcuts are
+the same in both — same notes, same file, same folder, switch any time.
 
 ## Using it
 
@@ -190,12 +191,12 @@ Same notes, same file, switch any time.
 | Merge notes | select 2+ → ⌘M or right-click → Merge Notes (texts joined, earliest note kept, ⌘Z to undo) |
 | Done | Space (or the checkbox); done notes stay where they are, struck through · ⇧⌘⌫ / *Clear done* removes them |
 | Edit | ↩ or double-click · ↩ saves · `Esc` cancels |
-| Priority | 1 / 2 / 3 on the selected notes · hover → ⋯ → Priority · shown as a coloured dot |
+| Star (this one matters) | press 1 on selected notes, or click the ★ on a row / card — starred notes sort first in Clear view |
 | Move to another folder | ⇧⌘] / ⇧⌘[ · or ⋯ / right-click → Move to |
 | Sections inside a folder | ⊕ → *New section*, or type `# Title` in the box — a heading row you can drag notes under (rename by clicking it; delete keeps its notes) · chevron collapses/expands it · moving a heading moves its whole section |
 | Reorder | drag a note up or down within its folder (a line shows where it lands) · drag one of several selected notes to move them all · ⌥↑ / ⌥↓ · right-click → Move up / Move down · ⌘Z undoes |
 | Search | ⌘F — searches all folders; results show their folder — click it (or ↩) to jump there with the note focused |
-| Filters | ⇧⌘F — Status (All / Open / Done) · Priority · Type (Links / Code / Text) · When (Today / 7 days) |
+| Filters | ⇧⌘F — Status (All / Open / Done) · ★ Starred · Type (Links / Code / Text) · When (Today / 7 days) |
 | Undo / redo | ⌘Z / ⇧⌘Z (every note change, 50 steps) |
 | Delete | ⌫ on selected notes · hover → ⋯ → Delete |
 | Pin (stay open when unfocused) | 📌 or ⌘P |

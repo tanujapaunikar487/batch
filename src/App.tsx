@@ -20,7 +20,6 @@ import { useTheme } from "@/hooks/useSystemTheme";
 import { useListNav } from "@/hooks/useListNav";
 import { useCopy } from "@/hooks/useClipboard";
 import {
-  type Priority,
   INBOX_ID,
   doneInSection,
   notesInSection,
@@ -28,9 +27,9 @@ import {
   sectionById,
 } from "@/lib/notes";
 import { type Filter, EMPTY_FILTER, activeFilterCount, applyFilters } from "@/lib/filters";
-import { asList, asNumberedList, asPlainText, forAgent, forAgentAll } from "@/lib/format";
+import { asList, asNumberedList, asPlainText, forAgent } from "@/lib/format";
 import { attachmentsDir as loadAttachmentsDir, dragHasImages, dragOut, imagesFromDrop, saveImages } from "@/store/attachments";
-import { allAttachmentIds, allInSection, normalizeState, HEADING_PREFIX, isHeading, noteState, type Attachment, type NoteSource, type Pin, type Section } from "@/lib/notes";
+import { allAttachmentIds, allInSection, normalizeState, HEADING_PREFIX, isHeading, type Attachment, type NoteSource, type Pin, type Section } from "@/lib/notes";
 import { PinEditor } from "@/components/PinEditor";
 import { ClearView } from "@/components/ClearView";
 import { type ActionId, matchesEvent } from "@/lib/shortcuts";
@@ -91,6 +90,7 @@ export default function App() {
   // ── visible notes ──
   const searching = searchOpen && query.trim().length > 0;
   const clearMode = viewMode === "clear" && !searchOpen;
+  useEffect(() => setClearSel(new Set()), [activeSection.id, viewMode]);
   const { open, done } = useMemo(() => {
     if (searching) {
       const hits = applyFilters(searchNotes(state, query), filter);
@@ -154,33 +154,8 @@ export default function App() {
     [notesById, activeSection, copy, notes, nav, showToast],
   );
 
-  /** Clear view: ship one note under its own folder's title + instructions. */
-  const handOffOne = useCallback(
-    (id: string) => {
-      const n = notesById.get(id);
-      if (!n) return;
-      void copyForAgent([id], sectionById(state, n.sectionId));
-    },
-    [copyForAgent, notesById, state],
-  );
-
-  /** Clear view: ship every open note, block grouped by folder. */
-  const handOffAll = useCallback(async () => {
-    const groups = state.sections
-      .map((sec) => ({
-        folder: sec,
-        notes: allInSection(state, sec.id).filter((n) => !isHeading(n) && noteState(n) === "open"),
-      }))
-      .filter((g) => g.notes.length > 0);
-    const all = groups.flatMap((g) => g.notes);
-    if (all.length === 0) return showToast("Nothing to hand over");
-    const md = forAgentAll(groups);
-    const imageIds = all.flatMap((n) => (n.attachments ?? []).map((a) => a.id));
-    const ok = imageIds.length > 0 && inTauri ? (await native.copyRich(md, imageIds)) !== undefined : await copy(md);
-    if (!ok) return showToast("Couldn't copy");
-    notes.markHandedOff(all.map((n) => n.id));
-    showToast(`Handed ${all.length} thing${all.length > 1 ? "s" : ""} to Claude — paste into a chat`);
-  }, [state, copy, notes, showToast]);
+  /** Clear view multi-select, owned here so the Esc cascade can clear it. */
+  const [clearSel, setClearSel] = useState<Set<string>>(new Set());
 
   const copyNotes = useCallback(
     async (ids: string[], asListAlways = false) => {
@@ -751,6 +726,7 @@ export default function App() {
         e.preventDefault();
         if (view !== "list") return void (setView("list"), focusCapture());
         if (editingId) return void setEditingId(null);
+        if (clearMode && clearSel.size > 0) return void setClearSel(new Set());
         if (nav.selected.size > 0 || nav.cursor) return void (nav.clear(), focusCapture());
         if (searchOpen) return void closeSearch();
         if (filtersOpen && activeFilterCount(filter) > 0) return void setFilter(EMPTY_FILTER);
@@ -794,10 +770,10 @@ export default function App() {
         return;
       }
       if (e.code === "Backspace" || e.code === "Delete") return void (e.preventDefault(), removeIds(nav.targets));
-      if (/^Digit[123]$/.test(e.code) && !meta) {
+      if (e.code === "Digit1" && !meta) {
         e.preventDefault();
-        const p: Priority = (["high", "medium", "low"] as const)[Number(e.code.slice(5)) - 1];
-        notes.setPriority(taskTargets, p);
+        const allStarred = taskTargets.every((id) => notesById.get(id)?.priority === "high");
+        notes.setPriority(taskTargets, allStarred ? "medium" : "high");
         return;
       }
     };
@@ -805,7 +781,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [
     keymap, runAction, hide, quit, state.sections, nav, view, editingId, searchOpen, closeSearch,
-    filtersOpen, filter, focusCapture, copyNotes, notes, notesById, removeIds, toggleMany, searching, taskTargets, goToFolder, clearMode,
+    filtersOpen, filter, focusCapture, copyNotes, notes, notesById, removeIds, toggleMany, searching, taskTargets, goToFolder, clearMode, clearSel,
   ]);
 
   // ── render ──
@@ -949,7 +925,7 @@ export default function App() {
                 onDismiss={() => setBannerDismissed(true)}
               />
             )}
-            {!searchOpen && viewMode === "folders" && (
+            {!searchOpen && (
               <SectionTabs
                 sections={state.sections}
                 counts={counts}
@@ -1014,21 +990,41 @@ export default function App() {
             <div className="border-t border-border/60" />
             {clearMode ? (
               <ClearView
-                notes={state.notes.filter((n) => !isHeading(n))}
-                sections={state.sections}
+                notes={allInSection(state, activeSection.id).filter((n) => !isHeading(n))}
+                folderName={activeSection.name}
                 attachmentsDir={attDir}
-                onHandOffOne={handOffOne}
-                onHandOffAll={() => void handOffAll()}
-                onCopyAgain={handOffOne}
-                onSetDone={(id, done) => notes.setDone([id], done)}
-                onBackToMe={(id) => notes.clearHandedOff([id])}
-                onDelete={(id) => {
-                  notes.remove([id]);
-                  showToast("Cleared · ⌘Z to undo");
+                selected={clearSel}
+                onToggleSelect={(id) =>
+                  setClearSel((cur) => {
+                    const next = new Set(cur);
+                    next.has(id) ? next.delete(id) : next.add(id);
+                    return next;
+                  })
+                }
+                onClearSelection={() => setClearSel(new Set())}
+                onHandOff={(ids) => {
+                  void copyForAgent(ids);
+                  setClearSel(new Set());
                 }}
-                onToggleStar={(id) => {
-                  const n = notesById.get(id);
-                  if (n) notes.setPriority([id], n.priority === "high" ? "medium" : "high");
+                onSetDone={(ids, done) => {
+                  notes.setDone(ids, done);
+                  setClearSel(new Set());
+                }}
+                onBackToMe={(id) => notes.clearHandedOff([id])}
+                onDelete={(ids) => {
+                  notes.remove(ids);
+                  setClearSel(new Set());
+                  showToast(`Cleared${ids.length > 1 ? ` ${ids.length}` : ""} · ⌘Z to undo`);
+                }}
+                onToggleStar={(ids) => {
+                  const allStarred = ids.every((id) => notesById.get(id)?.priority === "high");
+                  notes.setPriority(ids, allStarred ? "medium" : "high");
+                }}
+                onMerge={(ids) => {
+                  if (ids.length < 2) return;
+                  notes.merge(ids);
+                  setClearSel(new Set());
+                  showToast(`Merged ${ids.length} → 1 · ⌘Z to undo`);
                 }}
                 onEditText={(id, text) => notes.edit(id, text)}
                 onAddAnswer={(id, text) => notes.setOutcome(id, text, "me")}
@@ -1219,8 +1215,8 @@ export default function App() {
               selectedCount={nav.selected.size}
               toast={toast}
               mergeBinding={keymap.merge}
-              done={(clearMode ? state.notes : [...open, ...done]).filter((n) => !isHeading(n) && n.done).length}
-              total={(clearMode ? state.notes : [...open, ...done]).filter((n) => !isHeading(n)).length}
+              done={[...open, ...done].filter((n) => !isHeading(n) && n.done).length}
+              total={[...open, ...done].filter((n) => !isHeading(n)).length}
             />
           </>
         )}
