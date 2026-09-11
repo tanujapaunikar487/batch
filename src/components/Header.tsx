@@ -1,4 +1,4 @@
-import { Check, Feather, ListFilter, Monitor, Moon, MoreHorizontal, Pin, Rows3, Search, Sun, X } from "lucide-react";
+import { Check, Feather, Filter, Monitor, Moon, MoreHorizontal, Pin, Rows3, Search, Sun, X } from "lucide-react";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
@@ -154,28 +154,28 @@ export function Header(p: Props) {
           }}
           aria-label={`View  ${formatBinding(p.keymap.toggleView)}`}
           title={`Switch view  ${formatBinding(p.keymap.toggleView)}`}
-          className="mr-1 h-6 shrink-0 items-center gap-0 rounded-lg bg-foreground/[0.06] p-0.5"
+          className="mr-1 h-7 shrink-0 items-center gap-0 rounded-lg bg-foreground/[0.06] p-0.5"
         >
           <ToggleGroupItem
             value="folders"
             aria-label="Folders view"
-            className="h-5 min-w-0 gap-1 rounded-md border-0 px-1.5 text-[11px] font-medium text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
+            className="h-6 min-w-0 gap-1.5 rounded-md border-0 px-2 text-xs font-medium text-muted-foreground [&_svg:not([class*='size-'])]:size-3.5 data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
           >
-            <Rows3 className="size-3" /> Folders
+            <Rows3 /> Folders
           </ToggleGroupItem>
           <ToggleGroupItem
             value="clear"
             aria-label="Clear view"
-            className="h-5 min-w-0 gap-1 rounded-md border-0 px-1.5 text-[11px] font-medium text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
+            className="h-6 min-w-0 gap-1.5 rounded-md border-0 px-2 text-xs font-medium text-muted-foreground [&_svg:not([class*='size-'])]:size-3.5 data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
           >
-            <Feather className="size-3" /> Clear
+            <Feather /> Clear
           </ToggleGroupItem>
         </ToggleGroup>
         {iconBtn(
           `Filters  ${formatBinding(p.keymap.filters)}`,
           p.filtersOpen,
           p.onToggleFilters,
-          <ListFilter className="size-4 text-muted-foreground" />,
+          <Filter className="size-4 text-muted-foreground" />,
           p.activeFilters,
         )}
         {p.isTauri &&
