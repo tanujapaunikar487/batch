@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Star, X } from "lucide-react";
+import { MoreHorizontal, Star, X } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { type Attachment, type Note, noteState, sortKey } from "@/lib/notes";
 import { Markdown } from "./Markdown";
@@ -59,6 +65,27 @@ export function ClearView(p: Props) {
     >
       {label}
     </button>
+  );
+
+  const more = (items: [string, () => void][]) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="More actions"
+          className="grid size-6 place-items-center rounded-full text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground aria-expanded:bg-foreground/[0.06]"
+        >
+          <MoreHorizontal className="size-3.5" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-40">
+        {items.map(([text, run]) => (
+          <DropdownMenuItem key={text} onSelect={run}>
+            {text}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 
   const card = (n: Note) => {
@@ -141,13 +168,6 @@ export function ClearView(p: Props) {
           />
         )}
 
-        {st === "claude" && !n.outcome && (
-          <div className="mt-2 flex items-center gap-2 text-xs text-primary">
-            <span className="size-1.5 animate-pulse rounded-full bg-primary" />
-            with your agent — the block is on your clipboard; over MCP this updates live
-          </div>
-        )}
-
         {n.outcome && (
           <div className="mt-2 rounded-lg border border-border/60 bg-foreground/[0.03] px-3 py-2">
             <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -182,25 +202,31 @@ export function ClearView(p: Props) {
             <>
               {verb("Let your agent handle it", () => p.onHandOff([n.id]), "claude")}
               {verb("Done with it", () => p.onSetDone([n.id], true), "done")}
-              {verb("clear", () => p.onDelete([n.id]))}
+              {more([["Delete this note", () => p.onDelete([n.id])]])}
             </>
           )}
           {st === "claude" && (
             <>
-              {!n.outcome && answering !== n.id && verb("add the answer", () => setAnswering(n.id), "claude")}
-              {!n.outcome && verb("copy the block again", () => p.onHandOff([n.id]))}
+              {!n.outcome && answering !== n.id && verb("Add the answer", () => setAnswering(n.id), "claude")}
               {verb(n.outcome ? "Great — done with it" : "Done with it", () => p.onSetDone([n.id], true), "done")}
-              {verb("back to me", () => p.onBackToMe(n.id))}
+              {more([
+                ["Copy the block again", () => p.onHandOff([n.id])],
+                ["Back to me", () => p.onBackToMe(n.id)],
+                ["Delete this note", () => p.onDelete([n.id])],
+              ])}
             </>
           )}
-          {st === "done" && verb("bring it back", () => p.onSetDone([n.id], false))}
+          {st === "done" && verb("Bring it back", () => p.onSetDone([n.id], false))}
         </div>
       </div>
     );
   };
 
-  const label = (text: string) => (
-    <div className="mb-2 mt-5 px-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">{text}</div>
+  const label = (text: string, hint?: string) => (
+    <div className="mb-2 mt-5 px-1">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">{text}</div>
+      {hint && <div className="mt-0.5 text-[11px] text-muted-foreground/80">{hint}</div>}
+    </div>
   );
 
   return (
@@ -252,7 +278,12 @@ export function ClearView(p: Props) {
 
       {withClaude.length > 0 && (
         <>
-          {label("With your agent")}
+          {label(
+            "With your agent",
+            withClaude.some((n) => !n.outcome)
+              ? "Paste the block into your AI chat and bring the answer back — or let an agent on MCP answer here itself."
+              : undefined,
+          )}
           <div className="flex flex-col gap-2">{[...withClaude].sort((a, z) => sortKey(a) - sortKey(z)).map(card)}</div>
         </>
       )}
