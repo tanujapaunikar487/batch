@@ -6,9 +6,11 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuShortcut,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
+import { formatBinding } from "@/lib/shortcuts";
 import { type Section, INBOX_ID } from "@/lib/notes";
 
 interface Props {
@@ -21,6 +23,10 @@ interface Props {
   onRemove: (id: string) => void;
   onCopyAsList: (id: string) => void;
   onClearDone: (id: string) => void;
+  onShipFolder: (id: string) => void;
+  onEditInstructions: (id: string) => void;
+  /** Shortcut hints shown in the menu. */
+  bindings: { ship: string; copyList: string; clearDone: string };
   onReorder: (id: string, afterId: string | null) => void;
   /** Externally triggered "new folder" (⌘⇧N). */
   addRequest: number;
@@ -38,6 +44,9 @@ export function SectionTabs({
   onRemove,
   onCopyAsList,
   onClearDone,
+  onShipFolder,
+  onEditInstructions,
+  bindings,
   onReorder,
   addRequest,
   renameRequest,
@@ -195,8 +204,20 @@ export function SectionTabs({
               >
                 Rename
               </ContextMenuItem>
-              <ContextMenuItem onSelect={() => onCopyAsList(s.id)}>Copy as list</ContextMenuItem>
-              <ContextMenuItem onSelect={() => onClearDone(s.id)}>Clear done</ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem onSelect={() => onShipFolder(s.id)}>
+                Ship folder to your agent
+                <ContextMenuShortcut>{formatBinding(bindings.ship)}</ContextMenuShortcut>
+              </ContextMenuItem>
+              <ContextMenuItem onSelect={() => onEditInstructions(s.id)}>Agent instructions for this folder…</ContextMenuItem>
+              <ContextMenuItem onSelect={() => onCopyAsList(s.id)}>
+                Copy folder as list
+                <ContextMenuShortcut>{formatBinding(bindings.copyList)}</ContextMenuShortcut>
+              </ContextMenuItem>
+              <ContextMenuItem onSelect={() => onClearDone(s.id)}>
+                Clear done in folder
+                <ContextMenuShortcut>{formatBinding(bindings.clearDone)}</ContextMenuShortcut>
+              </ContextMenuItem>
               {s.id !== INBOX_ID && (
                 <>
                   <ContextMenuSeparator />

@@ -965,6 +965,16 @@ export default function App() {
                   showToast(n ? `Folder deleted · ${n} note${n > 1 ? "s" : ""} moved to ${home} · ⌘Z to undo` : "Folder deleted");
                 }}
                 onCopyAsList={copySectionAsList}
+                onShipFolder={(id) =>
+                  void copyForAgent(allInSection(state, id).map((n) => n.id), sectionById(state, id))
+                }
+                onEditInstructions={(id) => {
+                  setView("list");
+                  if (searchOpen) closeSearch();
+                  setActiveId(id);
+                  setEditingPreamble(true);
+                }}
+                bindings={{ ship: keymap.copyForAgent, copyList: keymap.copySectionAsList, clearDone: keymap.clearDone }}
                 onClearDone={(id) => {
                   const n = doneInSection(state, id).length;
                   notes.clearDone(id);
