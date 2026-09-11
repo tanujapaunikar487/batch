@@ -17,6 +17,7 @@ import {
   MAX_ATTACHMENTS,
   type Attachment,
   noteState,
+  sinkDone,
 } from "./notes";
 
 const att = (id: string): Attachment => ({ id, name: id, mime: "image/png", thumb: true, width: 10, height: 10 });
@@ -481,6 +482,19 @@ describe("normalizePins (via normalizeState)", () => {
   it("caps at MAX_PINS", () => {
     const many = Array.from({ length: 30 }, (_, i) => ({ x: 0.5, y: 0.5, text: String(i) }));
     expect(withPins(many)).toHaveLength(20);
+  });
+});
+
+describe("sinkDone", () => {
+  const mk = (id: string, done = false, kind?: "heading"): Note =>
+    ({ id, sectionId: INBOX_ID, text: id, priority: "medium", done, createdAt: 0, ...(kind ? { kind } : {}) }) as Note;
+  it("sinks done notes below open ones within each section segment", () => {
+    const order = sinkDone([mk("a", true), mk("b"), mk("h", false, "heading"), mk("c", true), mk("d"), mk("e", true)]).map((n) => n.id);
+    expect(order).toEqual(["b", "a", "h", "d", "c", "e"]);
+  });
+  it("keeps relative order stable within open and done groups", () => {
+    const order = sinkDone([mk("x", true), mk("y", true), mk("p"), mk("q")]).map((n) => n.id);
+    expect(order).toEqual(["p", "q", "x", "y"]);
   });
 });
 

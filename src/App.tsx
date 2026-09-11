@@ -29,7 +29,7 @@ import {
 import { type Filter, EMPTY_FILTER, activeFilterCount, applyFilters } from "@/lib/filters";
 import { asList, asNumberedList, asPlainText, forAgent } from "@/lib/format";
 import { attachmentsDir as loadAttachmentsDir, dragHasImages, dragOut, imagesFromDrop, saveImages } from "@/store/attachments";
-import { allAttachmentIds, allInSection, normalizeState, HEADING_PREFIX, isHeading, type Attachment, type NoteSource, type Pin, type Section } from "@/lib/notes";
+import { allAttachmentIds, allInSection, normalizeState, sinkDone, HEADING_PREFIX, isHeading, type Attachment, type NoteSource, type Pin, type Section } from "@/lib/notes";
 import { PinEditor } from "@/components/PinEditor";
 import { ClearView } from "@/components/ClearView";
 import { type ActionId, matchesEvent } from "@/lib/shortcuts";
@@ -96,8 +96,8 @@ export default function App() {
       const hits = applyFilters(searchNotes(state, query), filter);
       return { open: hits.filter((n) => !n.done), done: hits.filter((n) => n.done) };
     }
-    // Folder view: one sequence, done notes stay in place (struck through).
-    return { open: applyFilters(allInSection(state, activeSection.id), filter), done: [] };
+    // Folder view: one sequence; done notes sink to the bottom of their section.
+    return { open: sinkDone(applyFilters(allInSection(state, activeSection.id), filter)), done: [] };
   }, [state, searching, query, filter, activeSection.id]);
   const visibleIds = useMemo(() => [...open, ...done].map((n) => n.id), [open, done]);
   const nav = useListNav(visibleIds);

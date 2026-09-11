@@ -189,7 +189,7 @@ the same in both — same notes, same file, same folder, switch any time.
 | Copy as List | right-click → **Copy as List**, or ⇧⌘C — copies the selection (or the whole folder when nothing is selected) as a **numbered** list and marks those notes **done** (⌘Z undoes) |
 | Right-click menu | Copy · Copy as List · Mark as Done · Edit · Merge Notes · Priority · Move to · Delete — acts on the whole selection when the note is part of it (the ⋯ button opens the same menu) |
 | Merge notes | select 2+ → ⌘M or right-click → Merge Notes (texts joined, earliest note kept, ⌘Z to undo) |
-| Done | Space (or the checkbox); done notes stay where they are, struck through · ⇧⌘⌫ / *Clear done* removes them |
+| Done | Space (or the checkbox); done notes sink to the bottom of their section, struck through · ⇧⌘⌫ / *Clear done* removes them |
 | Edit | ↩ or double-click · ↩ saves · `Esc` cancels |
 | Star (this one matters) | press 1 on selected notes, or click the ★ on a row / card — starred notes sort first in Clear view |
 | Move to another folder | ⇧⌘] / ⇧⌘[ · or ⋯ / right-click → Move to |

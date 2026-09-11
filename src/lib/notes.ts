@@ -643,6 +643,29 @@ function normalizePins(raw: unknown): Pin[] {
   return out;
 }
 
+/**
+ * Display order for the folder list: within each section segment (the run of
+ * notes between headings), open notes keep their order and done notes sink
+ * below them. Display-only — stored order is untouched, so unchecking a note
+ * returns it to its old spot.
+ */
+export function sinkDone(notes: Note[]): Note[] {
+  const out: Note[] = [];
+  let seg: Note[] = [];
+  const flush = () => {
+    out.push(...seg.filter((n) => !n.done), ...seg.filter((n) => n.done));
+    seg = [];
+  };
+  for (const n of notes) {
+    if (isHeading(n)) {
+      flush();
+      out.push(n);
+    } else seg.push(n);
+  }
+  flush();
+  return out;
+}
+
 /** Every attachment id referenced anywhere (for GC). */
 export function allAttachmentIds(state: NotesState): string[] {
   return state.notes.flatMap((n) => (n.attachments ?? []).map((a) => a.id));
