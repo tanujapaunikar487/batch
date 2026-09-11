@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Bot, Check, CheckSquare, ChevronDown, ChevronRight, Copy, CornerDownRight, FolderInput, Heading, ImagePlus, ListOrdered, Merge, MessageSquare, MoreHorizontal, Pencil, Square, Star, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Bot, Check, CheckSquare, ChevronDown, ChevronRight, Copy, CornerDownRight, FolderInput, Heading, ImagePlus, ListOrdered, Merge, MessageSquare, MessageSquarePlus, MoreHorizontal, Pencil, Square, Star, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -22,6 +22,43 @@ export const NEW_SECTION_PLACEHOLDER = "Untitled";
 import { formatBinding } from "@/lib/shortcuts";
 import { Markdown } from "./Markdown";
 import { AttachmentStrip } from "./AttachmentStrip";
+
+/** Icon-only button + shadcn tooltip — every quick action in the row uses this. */
+function IconAction({
+  label,
+  pressed,
+  className,
+  onClick,
+  children,
+}: {
+  label: string;
+  pressed?: boolean;
+  className?: string;
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label={label}
+          aria-pressed={pressed}
+          aria-expanded={pressed}
+          onClick={onClick}
+          className={cn(
+            "grid size-5 shrink-0 place-items-center rounded-md transition-colors hover:bg-foreground/[0.06]",
+            className,
+          )}
+        >
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 export interface NoteRowProps {
   note: Note;
@@ -340,72 +377,71 @@ export function NoteRow({
             )}
           </div>
 
-          {/* Reserved column: priority dot (a dropdown) always; ⋯ appears next to it on hover. */}
+          {/* One reserved action zone, right-aligned: contextual primary action (hover) ·
+              star (always) · ⋯ (hover) — same cluster and order as the Focus card's action row. */}
           {!heading && (
-            <div className="mt-0.5 flex h-5 w-11 shrink-0 items-center justify-end gap-0.5">
-              <div
-                className={cn(
-                  "opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
-                  menuOpen && "opacity-100",
-                )}
-              >
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  tabIndex={-1}
-                  aria-label="Note actions"
-                  aria-expanded={menuOpen}
-                  className={cn(menuOpen && "bg-foreground/[0.08] text-foreground")}
-                  onClick={(e) => {
-                    const r = e.currentTarget.getBoundingClientRect();
-                    openMenuAt(r.left, r.bottom);
-                  }}
+            <div className="mt-0.5 flex h-5 shrink-0 items-center justify-end gap-0.5">
+              {!note.done && !note.handedOff && (
+                <IconAction
+                  label="Hand to your agent"
+                  className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                  onClick={() => onCopyForAgent(targetsFor(note.id))}
                 >
-                  <MoreHorizontal className="size-3.5" />
-                </Button>
-              </div>
-              <button
-                type="button"
-                tabIndex={-1}
-                aria-label={note.priority === "high" ? "Unstar" : "Star — this one matters"}
-                aria-pressed={note.priority === "high"}
-                title={note.priority === "high" ? "Starred — click to unstar (1)" : "Star (1)"}
+                  <Bot className="size-3.5" />
+                </IconAction>
+              )}
+              {!note.done && note.handedOff && !note.outcome && (
+                <IconAction
+                  label="Add the answer"
+                  className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                  onClick={() => setEditingOutcome(true)}
+                >
+                  <MessageSquarePlus className="size-3.5" />
+                </IconAction>
+              )}
+              <IconAction
+                label={note.priority === "high" ? "Unstar" : "Star — this one matters"}
+                pressed={note.priority === "high"}
                 onClick={() => onSetPriority([note.id], note.priority === "high" ? "medium" : "high")}
                 className={cn(
-                  "grid size-5 place-items-center rounded-md transition-colors hover:bg-foreground/[0.06]",
-                  note.priority === "high"
-                    ? "text-amber-500"
-                    : "text-transparent group-hover:text-muted-foreground/50 hover:!text-amber-500",
+                  note.priority === "high" ? "text-amber-500" : "text-muted-foreground/50 hover:!text-amber-500",
                   note.done && "opacity-40",
                 )}
               >
                 <Star className="size-3.5" fill={note.priority === "high" ? "currentColor" : "none"} />
-              </button>
+              </IconAction>
+              <IconAction
+                label="Note actions"
+                pressed={menuOpen}
+                className={cn(
+                  "opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
+                  menuOpen && "opacity-100 bg-foreground/[0.08] text-foreground",
+                )}
+                onClick={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect();
+                  openMenuAt(r.left, r.bottom);
+                }}
+              >
+                <MoreHorizontal className="size-3.5" />
+              </IconAction>
             </div>
           )}
           {heading && (
-            <div className="mt-0.5 flex h-5 w-11 shrink-0 items-center justify-end">
-              <div
+            <div className="mt-0.5 flex h-5 shrink-0 items-center justify-end">
+              <IconAction
+                label="Section actions"
+                pressed={menuOpen}
                 className={cn(
                   "opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
-                  menuOpen && "opacity-100",
+                  menuOpen && "opacity-100 bg-foreground/[0.08] text-foreground",
                 )}
+                onClick={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect();
+                  openMenuAt(r.left, r.bottom);
+                }}
               >
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  tabIndex={-1}
-                  aria-label="Section actions"
-                  aria-expanded={menuOpen}
-                  className={cn(menuOpen && "bg-foreground/[0.08] text-foreground")}
-                  onClick={(e) => {
-                    const r = e.currentTarget.getBoundingClientRect();
-                    openMenuAt(r.left, r.bottom);
-                  }}
-                >
-                  <MoreHorizontal className="size-3.5" />
-                </Button>
-              </div>
+                <MoreHorizontal className="size-3.5" />
+              </IconAction>
             </div>
           )}
         </li>

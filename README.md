@@ -194,7 +194,9 @@ the same in both — same notes, same file, same folder, switch any time.
 | Merge notes | select 2+ → ⌘M or right-click → Merge Notes (texts joined, earliest note kept, ⌘Z to undo) |
 | Done | Space (or the checkbox); done notes sink to the bottom of their section, struck through · ⇧⌘⌫ / *Clear done* removes them |
 | Edit | ↩ or double-click · ↩ saves · `Esc` cancels |
-| Star (this one matters) | press 1 on selected notes, or click the ★ on a row / card — starred notes sort first in Focus view |
+| Star (this one matters) | press 1 on selected notes, or click the ★ — always visible, same place (trailing) in both views — starred notes sort first in Focus view |
+| Hand a note to your agent | hover a row (or any Focus card) → the 🤖 icon — ships just that one note, same as *Ship*, but for a single item |
+| Add the answer to a note | once it's with your agent: hover → the 💬 icon (List) or the card's own button (Focus) opens the outcome field right there |
 | Move to another folder | ⇧⌘] / ⇧⌘[ · or ⋯ / right-click → Move to |
 | Sections inside a folder | ⊕ → *New section*, or type `# Title` in the box — a heading row you can drag notes under (rename by clicking it; delete keeps its notes) · chevron collapses/expands it · moving a heading moves its whole section |
 | Reorder | drag a note up or down within its folder (a line shows where it lands) · drag one of several selected notes to move them all · ⌥↑ / ⌥↓ · right-click → Move up / Move down · ⌘Z undoes |

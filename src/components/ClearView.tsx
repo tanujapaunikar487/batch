@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Bot, Check, CheckCircle2, Circle, MessageSquarePlus, MoreHorizontal, RotateCcw, Star, X } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,22 +55,32 @@ export function ClearView(p: Props) {
     Number(z.priority === "high") - Number(a.priority === "high") || sortKey(a) - sortKey(z);
   const sel = [...p.selected];
 
-  const act = (label: string, icon: React.ReactNode, onClick: () => void, kind: "primary" | "plain" = "plain") => (
-    <button
-      key={label}
-      type="button"
-      onClick={onClick}
-      title={label}
-      aria-label={label}
-      className={cn(
-        "grid size-7 place-items-center rounded-full transition-colors",
-        kind === "primary"
-          ? "bg-primary/10 text-primary hover:bg-primary/20"
-          : "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
-      )}
-    >
-      {icon}
-    </button>
+  const act = (
+    label: string,
+    icon: React.ReactNode,
+    onClick: () => void,
+    kind: "primary" | "plain" = "plain",
+    extraClassName?: string,
+  ) => (
+    <Tooltip key={label}>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={onClick}
+          aria-label={label}
+          className={cn(
+            "grid size-7 place-items-center rounded-full transition-colors",
+            kind === "primary"
+              ? "bg-primary/10 text-primary hover:bg-primary/20"
+              : "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
+            extraClassName,
+          )}
+        >
+          {icon}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{label}</TooltipContent>
+    </Tooltip>
   );
 
   const verb = (label: string, onClick: () => void, kind: "claude" | "done" | "quiet" = "quiet") => (
@@ -90,15 +101,20 @@ export function ClearView(p: Props) {
 
   const more = (items: [string, () => void][]) => (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label="More actions"
-          className="grid size-6 place-items-center rounded-full text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground aria-expanded:bg-foreground/[0.06]"
-        >
-          <MoreHorizontal className="size-3.5" />
-        </button>
-      </DropdownMenuTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label="More actions"
+              className="grid size-7 place-items-center rounded-full text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground aria-expanded:bg-foreground/[0.06]"
+            >
+              <MoreHorizontal className="size-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">More actions</TooltipContent>
+      </Tooltip>
       <DropdownMenuContent align="start" className="min-w-40">
         {items.map(([text, run]) => (
           <DropdownMenuItem key={text} onSelect={run}>
@@ -128,21 +144,6 @@ export function ClearView(p: Props) {
           p.imageDropRowId === n.id && "border-primary ring-2 ring-primary/40",
         )}
       >
-        {st !== "done" && (
-          <button
-            type="button"
-            aria-label={n.priority === "high" ? "Unstar" : "Star — this one matters"}
-            aria-pressed={n.priority === "high"}
-            onClick={() => p.onToggleStar([n.id])}
-            className={cn(
-              "absolute right-3 top-3 transition-colors",
-              n.priority === "high" ? "text-amber-500" : "text-muted-foreground/50 hover:text-amber-500",
-            )}
-          >
-            <Star className="size-3.5" fill={n.priority === "high" ? "currentColor" : "none"} />
-          </button>
-        )}
-
         {editing === n.id ? (
           <textarea
             autoFocus
@@ -167,7 +168,7 @@ export function ClearView(p: Props) {
         ) : (
           <div
             onDoubleClick={st === "done" ? undefined : () => setEditing(n.id)}
-            className={cn("pr-6 text-sm leading-6", st === "done" && "text-muted-foreground line-through decoration-muted-foreground/60")}
+            className={cn("text-sm leading-6", st === "done" && "text-muted-foreground line-through decoration-muted-foreground/60")}
           >
             <Markdown text={n.text || "(images only)"} />
           </div>
@@ -254,6 +255,17 @@ export function ClearView(p: Props) {
             </>
           )}
           {st === "done" && act("Bring it back", <RotateCcw className="size-4" />, () => p.onSetDone([n.id], false))}
+          {st !== "done" && (
+            <div className="ml-auto">
+              {act(
+                n.priority === "high" ? "Unstar" : "Star — this one matters",
+                <Star className="size-4" fill={n.priority === "high" ? "currentColor" : "none"} />,
+                () => p.onToggleStar([n.id]),
+                n.priority === "high" ? "primary" : "plain",
+                n.priority === "high" ? "!text-amber-500 !bg-amber-500/10 hover:!bg-amber-500/15" : "hover:!text-amber-500",
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
