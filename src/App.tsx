@@ -101,6 +101,13 @@ export default function App() {
     return { open: sinkDone(applyFilters(allInSection(state, activeSection.id), filter)), done: [] };
   }, [state, searching, query, filter, activeSection.id]);
   const visibleIds = useMemo(() => [...open, ...done].map((n) => n.id), [open, done]);
+  const focusNotes = useMemo(
+    () =>
+      searching
+        ? [...open, ...done].filter((n) => !isHeading(n))
+        : allInSection(state, activeSection.id).filter((n) => !isHeading(n)),
+    [searching, open, done, state, activeSection.id],
+  );
   const nav = useListNav(visibleIds);
   const notesById = useMemo(() => new Map(state.notes.map((n) => [n.id, n])), [state.notes]);
   const counts = useMemo(() => {
@@ -736,7 +743,31 @@ export default function App() {
         return void hide();
       }
 
-      if (inEditable || view !== "list" || clearMode) return;
+      if (inEditable || view !== "list") return;
+
+      // Focus view: selection keys act on the card selection.
+      if (clearMode) {
+        if (meta && e.code === "KeyA") {
+          e.preventDefault();
+          return void setClearSel(new Set(focusNotes.map((n) => n.id)));
+        }
+        if (clearSel.size === 0) return;
+        const ids = [...clearSel];
+        if (e.code === "Space") {
+          e.preventDefault();
+          const allDone = ids.every((id) => notesById.get(id)?.done);
+          notes.setDone(ids, !allDone);
+          return void setClearSel(new Set());
+        }
+        if (e.code === "Backspace" || e.code === "Delete") {
+          e.preventDefault();
+          notes.remove(ids);
+          setClearSel(new Set());
+          return void showToast(`Cleared ${ids.length} · ⌘Z to undo`);
+        }
+        return;
+      }
+
 
       // List-mode keys.
       if (meta && e.code === "KeyA") return void (e.preventDefault(), nav.selectAll());
@@ -782,7 +813,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [
     keymap, runAction, hide, quit, state.sections, nav, view, editingId, searchOpen, closeSearch,
-    filtersOpen, filter, focusCapture, copyNotes, notes, notesById, removeIds, toggleMany, searching, taskTargets, goToFolder, clearMode, clearSel,
+    filtersOpen, filter, focusCapture, copyNotes, notes, notesById, removeIds, toggleMany, searching, taskTargets, goToFolder, clearMode, clearSel, focusNotes, showToast,
   ]);
 
   // ── render ──
@@ -991,11 +1022,7 @@ export default function App() {
             <div className="border-t border-border/60" />
             {clearMode ? (
               <ClearView
-                notes={
-                  searching
-                    ? [...open, ...done].filter((n) => !isHeading(n))
-                    : allInSection(state, activeSection.id).filter((n) => !isHeading(n))
-                }
+                notes={focusNotes}
                 folderName={activeSection.name}
                 searching={searching}
                 folderOf={(n) => sectionById(state, n.sectionId)?.name}

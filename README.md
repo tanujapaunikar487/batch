@@ -166,8 +166,9 @@ same notes render:
   classic checklist below.
 - **Focus** — calm cards grouped by where things stand: *On your mind* →
   *With your agent* → *handled*, with a headline that counts down and two verbs per
-  card (*Let your agent handle it* · *Done with it*). ⌘-click selects several cards
-  for group actions (hand off, done, star, merge, clear); "hand all of
+  card. Select cards with the ◯ button or ⌘-click (⌘A selects all) for group
+  actions — hand off, done, star, merge, clear — or Space / ⌫ on the
+  selection; "hand all of
   \<folder\> to your agent" ships every open note in it. Answers pasted onto a card
   (or written by an agent over MCP) appear right under it.
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bot, Check, MessageSquarePlus, MoreHorizontal, RotateCcw, Star, X } from "lucide-react";
+import { Bot, Check, CheckCircle2, Circle, MessageSquarePlus, MoreHorizontal, RotateCcw, Star, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -221,6 +221,12 @@ export function ClearView(p: Props) {
         )}
 
         <div className="mt-2 flex flex-wrap items-center gap-0.5">
+          {act(
+            isSel ? "Deselect" : "Select (⌘-click the card)",
+            isSel ? <CheckCircle2 className="size-4" /> : <Circle className="size-4" />,
+            () => p.onToggleSelect(n.id),
+            isSel ? "primary" : "plain",
+          )}
           {st === "open" && (
             <>
               {act("Let your agent handle it", <Bot className="size-4" />, () => p.onHandOff([n.id]), "primary")}
