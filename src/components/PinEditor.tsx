@@ -15,8 +15,8 @@ interface Props {
 }
 
 /**
- * Full-window overlay: the image at full size with numbered pins. Click the
- * image to drop a pin, type a note per pin. Esc / Done saves and closes
+ * Modal over a dimmed backdrop: the image with numbered pins. Click the
+ * image to drop a pin, type a note per pin. Esc / Done / clicking outside saves and closes
  * (an empty overlay just closes). Pin coords are fractions of the image, so
  * they hold at any size; agents get them as percentages.
  */
@@ -60,7 +60,7 @@ export function PinEditor({ attachment, dir, onSave, onClose, onOpenFile }: Prop
       tabIndex={-1}
       role="dialog"
       aria-label={`Pins on ${attachment.name}`}
-      className="fixed inset-0 z-50 flex flex-col bg-background/95 outline-none backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 outline-none backdrop-blur-[2px]"
       onKeyDown={(e) => {
         e.stopPropagation();
         if (e.key === "Escape") {
@@ -68,7 +68,11 @@ export function PinEditor({ attachment, dir, onSave, onClose, onOpenFile }: Prop
           finish();
         }
       }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) finish();
+      }}
     >
+      <div className="flex max-h-[85vh] w-full min-h-0 max-w-[520px] flex-col rounded-xl border border-border bg-background shadow-2xl">
       <div className="flex items-center gap-2 px-4 pb-1 pt-3">
         <span className="min-w-0 truncate text-sm font-medium">{attachment.name}</span>
         <span className="shrink-0 text-xs text-muted-foreground">
@@ -98,7 +102,7 @@ export function PinEditor({ attachment, dir, onSave, onClose, onOpenFile }: Prop
             alt={attachment.name}
             draggable={false}
             onClick={addPinAt}
-            className="block max-h-[52vh] max-w-full cursor-crosshair select-none rounded-md border border-border/60"
+            className="block max-h-[48vh] max-w-full cursor-crosshair select-none rounded-md border border-border/60"
           />
           {pins.map((p, i) => (
             <button
@@ -153,8 +157,9 @@ export function PinEditor({ attachment, dir, onSave, onClose, onOpenFile }: Prop
         </div>
       )}
 
-      <div className="px-4 pb-2 text-center text-[10px] text-muted-foreground">
-        Pins ride along in Copy for agent and over MCP · Esc saves
+      <div className="px-4 pb-3 text-center text-[10px] text-muted-foreground">
+        Pins ride along when this ships to Claude · Esc saves
+      </div>
       </div>
     </div>
   );
