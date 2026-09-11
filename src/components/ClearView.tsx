@@ -10,6 +10,9 @@ interface Props {
   notes: Note[];
   folderName: string;
   attachmentsDir: string;
+  /** Search mode: results span folders — label each card, show handled openly. */
+  searching?: boolean;
+  folderOf?: (n: Note) => string | undefined;
   /** Multi-select (⌘-click), owned by App so Esc can clear it. */
   selected: Set<string>;
   onToggleSelect: (id: string) => void;
@@ -120,9 +123,11 @@ export function ClearView(p: Props) {
           </div>
         )}
 
-        {n.source && (
+        {(n.source || (p.searching && p.folderOf?.(n))) && (
           <div className="mt-0.5 text-[11px] text-muted-foreground/80">
-            from {[n.source.app, n.source.title].filter(Boolean).join(" · ")}
+            {[n.source && `from ${[n.source.app, n.source.title].filter(Boolean).join(" · ")}`, p.searching ? p.folderOf?.(n) : null]
+              .filter(Boolean)
+              .join(" · ")}
           </div>
         )}
 
@@ -203,7 +208,7 @@ export function ClearView(p: Props) {
       <div className="pt-3 text-center">
         <div className="text-[13px] text-muted-foreground">
           {open.length === 0 && withClaude.length === 0 ? (
-            "Nothing on your mind here."
+            p.searching ? (handled.length ? "Only handled notes match." : "Nothing matches.") : "Nothing on your mind here."
           ) : (
             <>
               {open.length > 0 && (
@@ -223,7 +228,7 @@ export function ClearView(p: Props) {
         </div>
       </div>
 
-      {open.length === 0 && withClaude.length === 0 && (
+      {open.length === 0 && withClaude.length === 0 && !p.searching && (
         <div className="pt-8 text-center text-xs text-muted-foreground/70">That's the whole point.</div>
       )}
 
@@ -231,7 +236,7 @@ export function ClearView(p: Props) {
         <>
           {label("On your mind")}
           <div className="flex flex-col gap-2">{[...open].sort(byStarThenOrder).map(card)}</div>
-          {open.length > 1 && (
+          {open.length > 1 && !p.searching && (
             <div className="mt-3 text-center">
               <button
                 type="button"
@@ -254,14 +259,19 @@ export function ClearView(p: Props) {
 
       {handled.length > 0 && (
         <div className="mt-6 pb-2 text-center">
-          <button
-            type="button"
-            onClick={() => setShowHandled((v) => !v)}
-            className="text-xs text-muted-foreground/70 hover:text-muted-foreground"
-          >
-            {showHandled ? "hide" : "show"} what's been handled ({handled.length})
-          </button>
-          {showHandled && (
+          {!p.searching && (
+            <button
+              type="button"
+              onClick={() => setShowHandled((v) => !v)}
+              className="text-xs text-muted-foreground/70 hover:text-muted-foreground"
+            >
+              {showHandled ? "hide" : "show"} what's been handled ({handled.length})
+            </button>
+          )}
+          {p.searching && handled.length > 0 && (
+            <div className="mb-2 px-1 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Handled</div>
+          )}
+          {(showHandled || p.searching) && (
             <div className="mt-3 flex flex-col gap-2 text-left opacity-80">
               {[...handled].sort((a, z) => (z.completedAt ?? 0) - (a.completedAt ?? 0)).slice(0, 30).map(card)}
             </div>

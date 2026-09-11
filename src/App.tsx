@@ -90,7 +90,7 @@ export default function App() {
 
   // ── visible notes ──
   const searching = searchOpen && query.trim().length > 0;
-  const clearMode = viewMode === "clear" && !searchOpen;
+  const clearMode = viewMode === "clear";
   useEffect(() => setClearSel(new Set()), [activeSection.id, viewMode]);
   const { open, done } = useMemo(() => {
     if (searching) {
@@ -985,8 +985,14 @@ export default function App() {
             <div className="border-t border-border/60" />
             {clearMode ? (
               <ClearView
-                notes={allInSection(state, activeSection.id).filter((n) => !isHeading(n))}
+                notes={
+                  searching
+                    ? [...open, ...done].filter((n) => !isHeading(n))
+                    : allInSection(state, activeSection.id).filter((n) => !isHeading(n))
+                }
                 folderName={activeSection.name}
+                searching={searching}
+                folderOf={(n) => sectionById(state, n.sectionId)?.name}
                 attachmentsDir={attDir}
                 selected={clearSel}
                 onToggleSelect={(id) =>
