@@ -43,10 +43,6 @@ interface Props {
   onUndo: () => void;
   onRedo: () => void;
 
-  onCopySectionAsList: () => void;
-  onCopyFolderForAgent: () => void;
-  onEditPreamble: () => void;
-  onClearDone: () => void;
   onRevealFile: () => void;
   onResetPosition: () => void;
   onExport: (what: "folder-md" | "all-md" | "json" | "folder-bundle" | "all-bundle") => void;
@@ -208,19 +204,6 @@ export function Header(p: Props) {
                 <DropdownMenuItem onSelect={p.onResetPosition}>Snap under menu-bar icon</DropdownMenuItem>
               </>
             )}
-            <DropdownMenuItem onSelect={p.onCopyFolderForAgent}>
-              Ship folder to your agent
-              <DropdownMenuShortcut>{formatBinding(p.keymap.copyForAgent)}</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={p.onEditPreamble}>Agent instructions for this folder…</DropdownMenuItem>
-            <DropdownMenuItem onSelect={p.onCopySectionAsList}>
-              Copy folder as list
-              <DropdownMenuShortcut>{formatBinding(p.keymap.copySectionAsList)}</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={p.onClearDone}>
-              Clear done in folder
-              <DropdownMenuShortcut>{formatBinding(p.keymap.clearDone)}</DropdownMenuShortcut>
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>Appearance</DropdownMenuSubTrigger>

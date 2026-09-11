@@ -841,10 +841,6 @@ export default function App() {
           canRedo={notes.canRedo}
           onUndo={notes.undo}
           onRedo={notes.redo}
-          onCopySectionAsList={() => copySectionAsList(activeSection.id)}
-          onCopyFolderForAgent={() => void copyForAgent(allInSection(state, activeSection.id).map((n) => n.id))}
-          onEditPreamble={() => setEditingPreamble(true)}
-          onClearDone={() => runAction("clearDone")}
           onRevealFile={() => void native.revealNotesFile()}
           onResetPosition={() => void native.resetPosition()}
           onExport={exportAs}
@@ -1039,6 +1035,11 @@ export default function App() {
                 }}
                 onEditText={(id, text) => notes.edit(id, text)}
                 onAddAnswer={(id, text) => notes.setOutcome(id, text, "me")}
+                onAttachImages={(id) => {
+                  attachTargetId.current = id;
+                  noteFileInput.current?.click();
+                }}
+                imageDropRowId={dropRowId}
                 onOpenAttachment={openPinEditor}
               />
             ) : (

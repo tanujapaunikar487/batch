@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreHorizontal, Star, X } from "lucide-react";
+import { Bot, Check, MessageSquarePlus, MoreHorizontal, RotateCcw, Star, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +31,9 @@ interface Props {
   onMerge: (ids: string[]) => void;
   onEditText: (id: string, text: string) => void;
   onAddAnswer: (id: string, text: string) => void;
+  onAttachImages: (id: string) => void;
+  /** Note currently under an image drag, for the drop highlight. */
+  imageDropRowId?: string | null;
   onOpenAttachment: (noteId: string, a: Attachment) => void;
 }
 
@@ -50,6 +53,24 @@ export function ClearView(p: Props) {
   const byStarThenOrder = (a: Note, z: Note) =>
     Number(z.priority === "high") - Number(a.priority === "high") || sortKey(a) - sortKey(z);
   const sel = [...p.selected];
+
+  const act = (label: string, icon: React.ReactNode, onClick: () => void, kind: "primary" | "plain" = "plain") => (
+    <button
+      key={label}
+      type="button"
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      className={cn(
+        "grid size-7 place-items-center rounded-full transition-colors",
+        kind === "primary"
+          ? "bg-primary/10 text-primary hover:bg-primary/20"
+          : "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
+      )}
+    >
+      {icon}
+    </button>
+  );
 
   const verb = (label: string, onClick: () => void, kind: "claude" | "done" | "quiet" = "quiet") => (
     <button
@@ -100,9 +121,11 @@ export function ClearView(p: Props) {
           e.stopPropagation();
           p.onToggleSelect(n.id);
         }}
+        data-note-id={n.id}
         className={cn(
           "relative rounded-xl border border-border/60 bg-background/60 px-4 py-3 dark:bg-input/30",
           isSel && "border-primary/50 ring-2 ring-primary/25",
+          p.imageDropRowId === n.id && "border-primary ring-2 ring-primary/40",
         )}
       >
         {st !== "done" && (
@@ -197,26 +220,34 @@ export function ClearView(p: Props) {
           />
         )}
 
-        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+        <div className="mt-2 flex flex-wrap items-center gap-0.5">
           {st === "open" && (
             <>
-              {verb("Let your agent handle it", () => p.onHandOff([n.id]), "claude")}
-              {verb("Done with it", () => p.onSetDone([n.id], true), "done")}
-              {more([["Delete this note", () => p.onDelete([n.id])]])}
-            </>
-          )}
-          {st === "claude" && (
-            <>
-              {!n.outcome && answering !== n.id && verb("Add the answer", () => setAnswering(n.id), "claude")}
-              {verb(n.outcome ? "Great — done with it" : "Done with it", () => p.onSetDone([n.id], true), "done")}
+              {act("Let your agent handle it", <Bot className="size-4" />, () => p.onHandOff([n.id]), "primary")}
+              {act("Done with it", <Check className="size-4" />, () => p.onSetDone([n.id], true))}
               {more([
-                ["Copy the block again", () => p.onHandOff([n.id])],
-                ["Back to me", () => p.onBackToMe(n.id)],
+                ["Attach an image…", () => p.onAttachImages(n.id)],
                 ["Delete this note", () => p.onDelete([n.id])],
               ])}
             </>
           )}
-          {st === "done" && verb("Bring it back", () => p.onSetDone([n.id], false))}
+          {st === "claude" && (
+            <>
+              {!n.outcome &&
+                answering !== n.id &&
+                act("Add the answer", <MessageSquarePlus className="size-4" />, () => setAnswering(n.id), "primary")}
+              {act(n.outcome ? "Great — done with it" : "Done with it", <Check className="size-4" />, () =>
+                p.onSetDone([n.id], true),
+              )}
+              {more([
+                ["Copy the block again", () => p.onHandOff([n.id])],
+                ["Back to me", () => p.onBackToMe(n.id)],
+                ["Attach an image…", () => p.onAttachImages(n.id)],
+                ["Delete this note", () => p.onDelete([n.id])],
+              ])}
+            </>
+          )}
+          {st === "done" && act("Bring it back", <RotateCcw className="size-4" />, () => p.onSetDone([n.id], false))}
         </div>
       </div>
     );
