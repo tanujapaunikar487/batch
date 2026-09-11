@@ -235,12 +235,12 @@ export function PinEditor({ attachment, dir, onSave, onClose, onOpenFile }: Prop
                       rowRefs.current[i] = el;
                     }}
                     className={cn(
-                      "rounded-lg border border-transparent px-2 py-1.5",
-                      active?.i === i ? "border-border bg-foreground/[0.03]" : "hover:bg-foreground/[0.03]",
+                      "rounded-lg border border-transparent",
+                      active?.i === i ? "border-border bg-foreground/[0.03] p-2.5" : "px-2 py-1.5 hover:bg-foreground/[0.03]",
                     )}
                   >
                     {active?.i === i ? (
-                      <div className="flex flex-col gap-1.5">
+                      <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
                           {badge(i)}
                           <span className="text-xs text-muted-foreground">{p.w ? "area" : "pin"}</span>
@@ -260,6 +260,7 @@ export function PinEditor({ attachment, dir, onSave, onClose, onOpenFile }: Prop
                         </div>
                         <Input
                           autoFocus
+                          className="text-sm"
                           value={active.draft}
                           placeholder={p.w ? "What about this area?" : "What about this spot?"}
                           onChange={(e) => setActive({ ...active, draft: e.target.value })}
@@ -274,7 +275,7 @@ export function PinEditor({ attachment, dir, onSave, onClose, onOpenFile }: Prop
                             }
                           }}
                         />
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-2">
                           <Button size="xs" onClick={() => closeEditor(true)}>
                             {active.isNew ? "Add" : "Save"}
                           </Button>
