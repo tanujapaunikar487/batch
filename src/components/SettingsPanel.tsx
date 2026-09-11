@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Check, Copy, ExternalLink, Monitor, Moon, Sun } from "lucide-react";
+import { ArrowLeft, Check, Copy, ExternalLink, Monitor, Moon, Search, Sun } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
   const [mcpPath, setMcpPath] = useState<string | null>(null);
   const [copiedMcp, setCopiedMcp] = useState(false);
   const [activeNav, setActiveNav] = useState<SectionId>("general");
+  const [q, setQ] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Partial<Record<SectionId, HTMLElement | null>>>({});
   const clickScroll = useRef(false);
@@ -77,6 +79,31 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
   const duplicateOf = (binding: string, except: ActionId | "toggle") =>
     (Object.keys(keymap) as ActionId[]).find((a) => a !== except && keymap[a] === binding);
 
+  const qx = q.trim().toLowerCase();
+  const m = (...texts: (string | undefined)[]) => !qx || texts.some((t) => t?.toLowerCase().includes(qx));
+  const shortcutHits = CUSTOMIZABLE_ACTIONS.filter((a) => m(ACTIONS[a].label));
+  const rows = {
+    appearance: m("appearance", "theme", "system light dark"),
+    autostart: m("launch at login", "autostart"),
+    copyList: m("copy as list marks notes done", "handed off"),
+    toggleHotkey: m("toggle hotkey", "system-wide", "show hide"),
+    doubleShift: m("double-shift to open", "input monitoring"),
+    captureSel: m("capture selected text", "accessibility"),
+    captureSrc: m("remember where a capture came from", "source app window"),
+    regionHotkey: m("screen-region hotkey", "screenshot", "drag a box"),
+    fixed: m("fixed shortcuts", "browse", "star"),
+    agents: m("agents", "mcp", "claude cursor codex", "connect", "server"),
+    data: m("your data", "notes folder", "local file", "reveal", "sync"),
+  };
+  const showSection: Record<SectionId, boolean> = {
+    general: m("general") || rows.appearance || rows.autostart || rows.copyList || rows.toggleHotkey,
+    capture: m("capture") || rows.doubleShift || rows.captureSel || rows.captureSrc || rows.regionHotkey,
+    shortcuts: m("shortcuts") || shortcutHits.length > 0,
+    agents: rows.agents,
+    data: rows.data,
+  };
+  const anyHit = (Object.keys(showSection) as SectionId[]).some((k) => showSection[k]);
+
   const goTo = (id: SectionId) => {
     setActiveNav(id);
     clickScroll.current = true;
@@ -115,17 +142,33 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center gap-1 px-4 pb-1">
-        <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back">
-          <ArrowLeft className="size-4" />
-        </Button>
-        <h2 className="text-sm font-semibold">Settings</h2>
-        <span className="ml-auto text-xs text-muted-foreground">Esc to close</span>
-      </div>
-
       <div className="flex min-h-0 flex-1">
-        <nav className="w-32 shrink-0 overflow-y-auto py-2 pl-4 pr-2" aria-label="Settings sections">
-          {NAV.filter(([id]) => id !== "agents" || inTauri).map(([id, label]) => (
+        <nav className="flex w-40 shrink-0 flex-col gap-0.5 overflow-y-auto py-3 pl-4 pr-2" aria-label="Settings sections">
+          <button
+            type="button"
+            onClick={onBack}
+            className="mb-2 flex items-center gap-1.5 px-1 text-[13px] font-medium text-foreground hover:text-muted-foreground"
+          >
+            <ArrowLeft className="size-3.5" /> Back to app
+          </button>
+          <div className="relative mb-2">
+            <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && q) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setQ("");
+                }
+              }}
+              placeholder="Search settings…"
+              aria-label="Search settings"
+              className="h-7 pl-7 text-sm"
+            />
+          </div>
+          {NAV.filter(([id]) => (id !== "agents" || inTauri) && (!qx || showSection[id])).map(([id, label]) => (
             <button
               key={id}
               type="button"
@@ -145,11 +188,15 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
 
         <div ref={scrollRef} onScroll={onScroll} className="min-h-0 min-w-0 flex-1 overflow-y-auto py-2 pl-2 pr-5">
           <div className="mx-auto w-full max-w-[500px]">
-          {group(
+          {qx && !anyHit && (
+            <p className="px-1 py-6 text-center text-xs text-muted-foreground">Nothing in Settings matches “{q}”.</p>
+          )}
+          {showSection.general && group(
             "general",
             "General",
             null,
             <>
+              {rows.appearance && (
               <Row label="Appearance" hint="System follows macOS">
                 <div className="flex items-center rounded-md border border-input bg-background/60 p-0.5 dark:bg-input/40" role="radiogroup" aria-label="Appearance">
                   {(
@@ -177,12 +224,18 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
                   ))}
                 </div>
               </Row>
+              )}
+              {rows.autostart && (
               <Row label="Launch at login" hint={inTauri ? undefined : "Available in the Mac app"}>
                 <Switch checked={!!autostart} disabled={!inTauri || autostart === null} onCheckedChange={toggleAutostart} />
               </Row>
+              )}
+              {rows.copyList && (
               <Row label="Copy as List marks notes done" hint="They've been handed off; ⌘Z brings them back">
                 <Switch checked={settings.settings.copyListMarksDone} onCheckedChange={settings.setCopyListMarksDone} />
               </Row>
+              )}
+              {rows.toggleHotkey && (
               <Row label="Toggle hotkey" hint="System-wide; shows or hides Batch">
                 <ShortcutRecorder
                   value={settings.settings.toggleShortcut}
@@ -196,14 +249,16 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
                   onReset={() => void settings.setToggleShortcut(DEFAULT_TOGGLE_SHORTCUT)}
                 />
               </Row>
+              )}
             </>,
           )}
 
-          {group(
+          {showSection.capture && group(
             "capture",
             "Capture",
             null,
             <>
+              {rows.doubleShift && (
               <Row
                 label="Double-Shift to open"
                 hint={
@@ -237,6 +292,8 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
                   <Switch checked={settings.settings.doubleShift} disabled={!inTauri} onCheckedChange={settings.setDoubleShift} />
                 </div>
               </Row>
+              )}
+              {rows.captureSel && (
               <Row
                 label="Capture selected text on ⇧⇧"
                 hint={
@@ -260,6 +317,8 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
                   />
                 </div>
               </Row>
+              )}
+              {rows.captureSrc && (
               <Row label="Remember where a ⇧⇧ capture came from" hint="Shows the app/window on the note">
                 <Switch
                   checked={settings.settings.captureSource}
@@ -267,6 +326,8 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
                   onCheckedChange={settings.setCaptureSource}
                 />
               </Row>
+              )}
+              {rows.regionHotkey && (
               <Row label="Screen-region hotkey" hint="Drag a box; the shot lands in the capture box">
                 <ShortcutRecorder
                   value={settings.settings.screenshotShortcut}
@@ -280,10 +341,11 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
                   onReset={() => void settings.setScreenshotShortcut(DEFAULT_SCREENSHOT_SHORTCUT)}
                 />
               </Row>
+              )}
             </>,
           )}
 
-          {group(
+          {showSection.shortcuts && group(
             "shortcuts",
             "Shortcuts",
             Object.keys(settings.settings.keymap).length > 0 ? (
@@ -292,7 +354,7 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
               </button>
             ) : null,
             <>
-              {CUSTOMIZABLE_ACTIONS.map((a) => (
+              {shortcutHits.map((a) => (
                 <Row key={a} label={ACTIONS[a].label}>
                   <ShortcutRecorder
                     value={keymap[a]}
@@ -308,13 +370,16 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
                   />
                 </Row>
               ))}
+              {rows.fixed && (
               <p className="py-2.5 text-xs leading-5 text-muted-foreground">
                 Fixed: ⌘1–9 sections · ↑↓ browse · Space done · ↩ edit · ⌫ delete · 1 star · ⌘A · ⌘C · ⌘Z · ⌘, · ⌘/
               </p>
+              )}
             </>,
           )}
 
           {inTauri &&
+            showSection.agents &&
             group(
               "agents",
               "Agents (MCP)",
@@ -354,7 +419,7 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
               </div>,
             )}
 
-          {group(
+          {showSection.data && group(
             "data",
             "Your data",
             null,
