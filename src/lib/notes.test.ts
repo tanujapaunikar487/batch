@@ -479,6 +479,11 @@ describe("normalizePins (via normalizeState)", () => {
     expect(withPins([])).toBeUndefined();
     expect(withPins(undefined)).toBeUndefined();
   });
+  it("keeps area size when valid, drops it when degenerate", () => {
+    expect(withPins([{ x: 0.1, y: 0.2, w: 0.5, h: 0.25, text: "a" }])).toEqual([{ x: 0.1, y: 0.2, w: 0.5, h: 0.25, text: "a" }]);
+    expect(withPins([{ x: 0.1, y: 0.2, w: 0, h: 0.3, text: "" }])).toEqual([{ x: 0.1, y: 0.2, text: "" }]);
+    expect(withPins([{ x: 0.1, y: 0.2, w: 2, h: 0.5, text: "" }])).toEqual([{ x: 0.1, y: 0.2, w: 1, h: 0.5, text: "" }]);
+  });
   it("caps at MAX_PINS", () => {
     const many = Array.from({ length: 30 }, (_, i) => ({ x: 0.5, y: 0.5, text: String(i) }));
     expect(withPins(many)).toHaveLength(20);

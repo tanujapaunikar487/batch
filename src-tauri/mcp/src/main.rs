@@ -145,7 +145,7 @@ fn tool_defs() -> Value {
           "inputSchema": { "type": "object", "properties": {
             "folder": { "type": "string", "description": "Folder id or name (default: all folders)" },
             "status": { "type": "string", "enum": ["all","open","done"], "description": "default open" } } } },
-        { "name": "get_note", "description": "Get one note by id: full text, source app/window, and its attached images — returned as actual images, with any numbered pins (x/y as % of the image, left/top).",
+        { "name": "get_note", "description": "Get one note by id: full text, source app/window, and its attached images — returned as actual images, with any numbered pins or area markers (x/y as % of the image, left/top; areas add w/h).",
           "inputSchema": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] } },
         { "name": "add_note", "description": "Add a note to a folder.",
           "inputSchema": { "type": "object", "properties": {
@@ -247,7 +247,11 @@ fn call_tool(name: &str, args: &Value) -> Result<Value, String> {
                             .iter()
                             .enumerate()
                             .map(|(i, p)| {
-                                json!({ "pin": i + 1, "x": pct(&p["x"]), "y": pct(&p["y"]), "note": p["text"] })
+                                let mut o = json!({ "pin": i + 1, "x": pct(&p["x"]), "y": pct(&p["y"]), "note": p["text"] });
+                                if p["w"].is_number() && p["h"].is_number() {
+                                    o["area"] = json!({ "w": pct(&p["w"]), "h": pct(&p["h"]) });
+                                }
+                                o
                             })
                             .collect();
                         meta["pins"] = json!(out);

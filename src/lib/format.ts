@@ -78,7 +78,11 @@ export function forAgent(folder: Pick<Section, "name" | "preamble">, notes: Note
           const count = a.pins?.length ?? 0;
           lines.push(`${indent}— image: ${a.name}${count ? ` (${count} pin${count === 1 ? "" : "s"})` : ""}`);
           a.pins?.forEach((p, pi) =>
-            lines.push(`${indent}    pin ${pi + 1} @ (${pct(p.x)}, ${pct(p.y)})${p.text ? `: ${p.text}` : ""}`),
+            lines.push(
+              p.w && p.h
+                ? `${indent}    area ${pi + 1} @ (${pct(p.x)}, ${pct(p.y)}), ${pct(p.w)} × ${pct(p.h)} of the image${p.text ? `: ${p.text}` : ""}`
+                : `${indent}    pin ${pi + 1} @ (${pct(p.x)}, ${pct(p.y)})${p.text ? `: ${p.text}` : ""}`,
+            ),
           );
         }
       } else {

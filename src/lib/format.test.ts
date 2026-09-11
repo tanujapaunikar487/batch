@@ -60,6 +60,14 @@ describe("forAgent", () => {
     expect(md).not.toContain("pin 2 @ (5%, 88%):");
     expect(md).toContain("— image: other.png");
   });
+  it("emits area lines for markers with a size", () => {
+    const note: Note = {
+      ...n("Fix spacing", 1),
+      attachments: [{ id: "a.png", name: "shot.png", mime: "image/png", thumb: true, width: 800, height: 600,
+        pins: [{ x: 0.1, y: 0.2, w: 0.5, h: 0.25, text: "this whole region" }] }],
+    };
+    expect(forAgent({ name: "Bugs" }, [note])).toContain("area 1 @ (10%, 20%), 50% × 25% of the image: this whole region");
+  });
   it("keeps the compact images line when no image has pins", () => {
     const note: Note = {
       ...n("x", 1),

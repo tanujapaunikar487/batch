@@ -44,10 +44,14 @@ export const MAX_ATTACHMENTS = 10;
 /** Max pins per image. */
 export const MAX_PINS = 20;
 
-/** A numbered feedback marker on an attachment; x/y are fractions (0-1) of the image. */
+/** A numbered feedback marker on an attachment; x/y are fractions (0-1) of the
+ * image (top-left corner for areas). w/h (also fractions) make it an area. */
 export interface Pin {
   x: number;
   y: number;
+  /** Area width/height as fractions of the image; absent = a point marker. */
+  w?: number;
+  h?: number;
   text: string;
 }
 
@@ -637,7 +641,16 @@ function normalizePins(raw: unknown): Pin[] {
     const p = item as Record<string, unknown>;
     if (typeof p.x !== "number" || !Number.isFinite(p.x)) continue;
     if (typeof p.y !== "number" || !Number.isFinite(p.y)) continue;
-    out.push({ x: clamp01(p.x), y: clamp01(p.y), text: typeof p.text === "string" ? p.text : "" });
+    const pin: Pin = { x: clamp01(p.x), y: clamp01(p.y), text: typeof p.text === "string" ? p.text : "" };
+    if (typeof p.w === "number" && Number.isFinite(p.w) && typeof p.h === "number" && Number.isFinite(p.h)) {
+      const w = clamp01(p.w);
+      const h = clamp01(p.h);
+      if (w > 0 && h > 0) {
+        pin.w = w;
+        pin.h = h;
+      }
+    }
+    out.push(pin);
     if (out.length >= MAX_PINS) break;
   }
   return out;
