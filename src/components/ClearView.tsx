@@ -69,7 +69,7 @@ export function ClearView(p: Props) {
           onClick={onClick}
           aria-label={label}
           className={cn(
-            "grid size-7 place-items-center rounded-full transition-colors",
+            "grid size-6 place-items-center rounded-full transition-colors",
             kind === "primary"
               ? "bg-primary/10 text-primary hover:bg-primary/20"
               : "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
@@ -99,6 +99,17 @@ export function ClearView(p: Props) {
     </button>
   );
 
+  const star = (n: Note) =>
+    noteState(n) === "done"
+      ? null
+      : act(
+          n.priority === "high" ? "Unstar" : "Star — this one matters",
+          <Star className="size-3.5" fill={n.priority === "high" ? "currentColor" : "none"} />,
+          () => p.onToggleStar([n.id]),
+          n.priority === "high" ? "primary" : "plain",
+          n.priority === "high" ? "!text-amber-500 !bg-amber-500/10 hover:!bg-amber-500/15" : "hover:!text-amber-500",
+        );
+
   const more = (items: [string, () => void][]) => (
     <DropdownMenu>
       <Tooltip>
@@ -107,7 +118,7 @@ export function ClearView(p: Props) {
             <button
               type="button"
               aria-label="More actions"
-              className="grid size-7 place-items-center rounded-full text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground aria-expanded:bg-foreground/[0.06]"
+              className="grid size-6 place-items-center rounded-full text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground aria-expanded:bg-foreground/[0.06]"
             >
               <MoreHorizontal className="size-3.5" />
             </button>
@@ -224,14 +235,15 @@ export function ClearView(p: Props) {
         <div className="mt-2 flex flex-wrap items-center gap-0.5">
           {act(
             isSel ? "Deselect" : "Select (⌘-click the card)",
-            isSel ? <CheckCircle2 className="size-4" /> : <Circle className="size-4" />,
+            isSel ? <CheckCircle2 className="size-3.5" /> : <Circle className="size-3.5" />,
             () => p.onToggleSelect(n.id),
             isSel ? "primary" : "plain",
           )}
           {st === "open" && (
             <>
-              {act("Let your agent handle it", <Bot className="size-4" />, () => p.onHandOff([n.id]), "primary")}
-              {act("Done with it", <Check className="size-4" />, () => p.onSetDone([n.id], true))}
+              {act("Let your agent handle it", <Bot className="size-3.5" />, () => p.onHandOff([n.id]), "primary")}
+              {act("Done with it", <Check className="size-3.5" />, () => p.onSetDone([n.id], true))}
+              {star(n)}
               {more([
                 ["Attach an image…", () => p.onAttachImages(n.id)],
                 ["Delete this note", () => p.onDelete([n.id])],
@@ -242,10 +254,11 @@ export function ClearView(p: Props) {
             <>
               {!n.outcome &&
                 answering !== n.id &&
-                act("Add the answer", <MessageSquarePlus className="size-4" />, () => setAnswering(n.id), "primary")}
-              {act(n.outcome ? "Great — done with it" : "Done with it", <Check className="size-4" />, () =>
+                act("Add the answer", <MessageSquarePlus className="size-3.5" />, () => setAnswering(n.id), "primary")}
+              {act(n.outcome ? "Great — done with it" : "Done with it", <Check className="size-3.5" />, () =>
                 p.onSetDone([n.id], true),
               )}
+              {star(n)}
               {more([
                 ["Copy the block again", () => p.onHandOff([n.id])],
                 ["Back to me", () => p.onBackToMe(n.id)],
@@ -254,18 +267,7 @@ export function ClearView(p: Props) {
               ])}
             </>
           )}
-          {st === "done" && act("Bring it back", <RotateCcw className="size-4" />, () => p.onSetDone([n.id], false))}
-          {st !== "done" && (
-            <div className="ml-auto">
-              {act(
-                n.priority === "high" ? "Unstar" : "Star — this one matters",
-                <Star className="size-4" fill={n.priority === "high" ? "currentColor" : "none"} />,
-                () => p.onToggleStar([n.id]),
-                n.priority === "high" ? "primary" : "plain",
-                n.priority === "high" ? "!text-amber-500 !bg-amber-500/10 hover:!bg-amber-500/15" : "hover:!text-amber-500",
-              )}
-            </div>
-          )}
+          {st === "done" && act("Bring it back", <RotateCcw className="size-3.5" />, () => p.onSetDone([n.id], false))}
         </div>
       </div>
     );

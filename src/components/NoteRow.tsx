@@ -48,7 +48,7 @@ function IconAction({
           aria-expanded={pressed}
           onClick={onClick}
           className={cn(
-            "grid size-5 shrink-0 place-items-center rounded-md transition-colors hover:bg-foreground/[0.06]",
+            "grid size-6 shrink-0 place-items-center rounded-md transition-colors hover:bg-foreground/[0.06]",
             className,
           )}
         >
