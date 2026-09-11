@@ -62,7 +62,7 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [addSectionRequest, setAddSectionRequest] = useState(0);
-  const [renameRequest, setRenameRequest] = useState(0);
+  const [renameRequest] = useState(0);
   const [dsStatus, setDsStatus] = useState<{ active: boolean; granted: boolean } | null>(null);
   const [attDir, setAttDir] = useState("");
   const [dropping, setDropping] = useState(false);
@@ -817,6 +817,14 @@ export default function App() {
       >
         <Header
           searchOpen={searchOpen}
+          query={query}
+          onQuery={(q) => {
+            setQuery(q);
+            nav.clear();
+          }}
+          onCloseSearch={closeSearch}
+          onArrowDownOut={() => focusList("top")}
+          searchRef={searchRef}
           expanded={expanded}
           onToggleExpand={() => void toggleExpand()}
           onToggleSearch={() => (searchOpen ? closeSearch() : openSearch())}
@@ -833,11 +841,6 @@ export default function App() {
           canRedo={notes.canRedo}
           onUndo={notes.undo}
           onRedo={notes.redo}
-          onRenameFolder={() => {
-            setView("list");
-            if (searchOpen) closeSearch();
-            setRenameRequest((n) => n + 1);
-          }}
           onCopySectionAsList={() => copySectionAsList(activeSection.id)}
           onCopyFolderForAgent={() => void copyForAgent(allInSection(state, activeSection.id).map((n) => n.id))}
           onEditPreamble={() => setEditingPreamble(true)}
@@ -972,15 +975,6 @@ export default function App() {
               />
             )}
             <SearchAndFilters
-              ref={searchRef}
-              searchOpen={searchOpen}
-              query={query}
-              onQuery={(q) => {
-                setQuery(q);
-                nav.clear();
-              }}
-              onCloseSearch={closeSearch}
-              onArrowDownOut={() => focusList("top")}
               filtersOpen={filtersOpen}
               filter={filter}
               onFilter={(f) => {

@@ -183,7 +183,7 @@ the same in both — same notes, same file, same folder, switch any time.
 | Images on an existing note | drop images onto the note, or right-click → *Attach images…* · hover a thumbnail → × removes it (⌘Z undoes) |
 | Pin feedback on an image | click a thumbnail (in a note or the capture box) → the image opens with a crosshair: click to drop numbered pins, type a note per pin · `Esc` saves · ↗ opens the file itself · thumbnails show a pin count · pins go with the image in Copy for agent and `get_note` |
 | Copy with images | ⌘C / ⋯ → Copy puts the **text and the image files** on the clipboard together — paste once into ChatGPT, Claude, Cursor… (they read the files; text fields get the text) · drag a thumbnail out to drop the note's images into another app |
-| Folders | tabs at the top (the first is "Untitled" until you rename it) · ⌘1…⌘9 switch · ⇧⌘N new · click the active folder's name to rename (or ⋯ → Rename folder, or right-click) · right-click also has Copy as list / Clear done / Delete |
+| Folders | tabs at the top (the first is "Untitled" until you rename it) · ⌘1…⌘9 switch · ⇧⌘N new · click the active folder's name to rename (or right-click it) · right-click also has Copy as list / Clear done / Delete |
 | Browse | ↑ from the capture box enters the list (↓ past the last note returns) · ↑↓ move · ⇧↑↓ extend · ⌘A select all · click / ⌘-click / ⇧-click |
 | Copy | ⌘C — one note copies its text; several copy their texts separated by blank lines |
 | Copy as List | right-click → **Copy as List**, or ⇧⌘C — copies the selection (or the whole folder when nothing is selected) as a **numbered** list and marks those notes **done** (⌘Z undoes) |

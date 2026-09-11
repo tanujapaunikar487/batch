@@ -1,60 +1,18 @@
-import { forwardRef } from "react";
-import { Search, X } from "lucide-react";
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { type Filter, EMPTY_FILTER, isFilterActive } from "@/lib/filters";
 
 interface Props {
-  searchOpen: boolean;
-  query: string;
-  onQuery: (q: string) => void;
-  onCloseSearch: () => void;
-  onArrowDownOut: () => void;
   filtersOpen: boolean;
   filter: Filter;
   onFilter: (f: Filter) => void;
 }
 
-export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function SearchAndFilters(
-  { searchOpen, query, onQuery, onCloseSearch, onArrowDownOut, filtersOpen, filter, onFilter },
-  ref,
-) {
-  if (!searchOpen && !filtersOpen) return null;
+/** The filter chips row; the search input itself lives in the Header now. */
+export function SearchAndFilters({ filtersOpen, filter, onFilter }: Props) {
+  if (!filtersOpen) return null;
   return (
     <div className="flex shrink-0 flex-col gap-2 px-5 pb-3">
-      {searchOpen && (
-        <InputGroup className="h-8 bg-background/60 has-[[data-slot=input-group-control]:focus-visible]:ring-ring/15 dark:bg-input/40">
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupInput
-            ref={ref}
-            value={query}
-            onChange={(e) => onQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                e.preventDefault();
-                e.stopPropagation();
-                if (query) onQuery("");
-                else onCloseSearch();
-              } else if (e.key === "ArrowDown") {
-                e.preventDefault();
-                onArrowDownOut();
-              }
-            }}
-            placeholder="Search all folders…"
-            aria-label="Search"
-            autoComplete="off"
-            className="text-sm"
-          />
-          <InputGroupAddon align="inline-end">
-            <InputGroupButton size="icon-xs" onClick={onCloseSearch} aria-label="Close search">
-              <X />
-            </InputGroupButton>
-          </InputGroupAddon>
-        </InputGroup>
-      )}
       {filtersOpen && (
         <div className="flex flex-wrap items-center gap-1.5">
           <FilterSelect
@@ -107,7 +65,7 @@ export const SearchAndFilters = forwardRef<HTMLInputElement, Props>(function Sea
       )}
     </div>
   );
-});
+}
 
 function FilterSelect({
   value,

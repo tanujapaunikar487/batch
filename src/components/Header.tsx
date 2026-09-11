@@ -1,4 +1,5 @@
-import { Check, Feather, ListFilter, Monitor, Moon, MoreHorizontal, Pin, Rows3, Search, Sun } from "lucide-react";
+import { Check, Feather, ListFilter, Monitor, Moon, MoreHorizontal, Pin, Rows3, Search, Sun, X } from "lucide-react";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,11 @@ import { type ActionId, formatBinding } from "@/lib/shortcuts";
 
 interface Props {
   searchOpen: boolean;
+  query: string;
+  onQuery: (q: string) => void;
+  onCloseSearch: () => void;
+  onArrowDownOut: () => void;
+  searchRef: React.Ref<HTMLInputElement>;
   expanded: boolean;
   onToggleExpand: () => void;
   onToggleSearch: () => void;
@@ -36,7 +42,7 @@ interface Props {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
-  onRenameFolder: () => void;
+
   onCopySectionAsList: () => void;
   onCopyFolderForAgent: () => void;
   onEditPreamble: () => void;
@@ -99,7 +105,47 @@ export function Header(p: Props) {
         Batch
       </span>
 
-      <div className="ml-auto flex items-center gap-0.5">
+      <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-0.5">
+        {p.searchOpen ? (
+          <InputGroup className="h-7 min-w-0 flex-1 bg-background/60 has-[[data-slot=input-group-control]:focus-visible]:ring-ring/15 dark:bg-input/40">
+            <InputGroupAddon>
+              <Search />
+            </InputGroupAddon>
+            <InputGroupInput
+              ref={p.searchRef}
+              value={p.query}
+              onChange={(e) => p.onQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (p.query) p.onQuery("");
+                  else p.onCloseSearch();
+                } else if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  p.onArrowDownOut();
+                }
+              }}
+              placeholder="Search all folders…"
+              aria-label="Search"
+              autoComplete="off"
+              className="text-sm"
+            />
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton size="icon-xs" onClick={p.onCloseSearch} aria-label="Close search">
+                <X />
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
+        ) : (
+          iconBtn(
+            `Search  ${formatBinding(p.keymap.search)}`,
+            false,
+            p.onToggleSearch,
+            <Search className="size-4 text-muted-foreground" />,
+          )
+        )}
+        {!p.searchOpen && (
         <ToggleGroup
           type="single"
           spacing={0}
@@ -126,11 +172,6 @@ export function Header(p: Props) {
             <Feather className="size-3" /> Clear
           </ToggleGroupItem>
         </ToggleGroup>
-        {iconBtn(
-          `Search  ${formatBinding(p.keymap.search)}`,
-          p.searchOpen,
-          p.onToggleSearch,
-          <Search className="size-4 text-muted-foreground" />,
         )}
         {iconBtn(
           `Filters  ${formatBinding(p.keymap.filters)}`,
@@ -169,12 +210,6 @@ export function Header(p: Props) {
                 <DropdownMenuItem onSelect={p.onResetPosition}>Snap under menu-bar icon</DropdownMenuItem>
               </>
             )}
-            <DropdownMenuItem onSelect={p.onToggleView}>
-              {p.viewMode === "clear" ? <Rows3 /> : <Feather />}
-              {p.viewMode === "clear" ? "Switch to Folders view" : "Switch to Clear view"}
-              <DropdownMenuShortcut>{formatBinding(p.keymap.toggleView)}</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={p.onRenameFolder}>Rename folder</DropdownMenuItem>
             <DropdownMenuItem onSelect={p.onCopyFolderForAgent}>
               Ship folder to Claude
               <DropdownMenuShortcut>{formatBinding(p.keymap.copyForAgent)}</DropdownMenuShortcut>
