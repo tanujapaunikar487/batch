@@ -134,7 +134,7 @@ export default function App() {
   const [pendingSource, setPendingSource] = useState<NoteSource | undefined>(undefined);
   const [editingPreamble, setEditingPreamble] = useState(false);
 
-  /** "Ship to Claude" (a.k.a. Copy for agent): structured block on the clipboard, notes marked handed off. */
+  /** Ship (a.k.a. Copy for agent): structured block on the clipboard, notes marked handed off. */
   const copyForAgent = useCallback(
     async (ids: string[], section?: Section) => {
       const picked = ids
@@ -148,7 +148,7 @@ export default function App() {
       if (!ok) return showToast("Couldn't copy");
       notes.markHandedOff(picked.map((n) => n.id));
       showToast(
-        `Shipped to Claude · ${picked.length} item${picked.length > 1 ? "s" : ""}${imageIds.length ? ` + ${imageIds.length} image${imageIds.length > 1 ? "s" : ""}` : ""} — paste into a chat`,
+        `Shipped · ${picked.length} item${picked.length > 1 ? "s" : ""}${imageIds.length ? ` + ${imageIds.length} image${imageIds.length > 1 ? "s" : ""}` : ""} — paste into your AI chat`,
       );
       nav.clear();
     },

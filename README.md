@@ -81,10 +81,10 @@ image with your note per pin.
 
 Four more things that make hand-off clean:
 
-- **Ship to Claude** (right-click a note, ⌥⌘C, or ⋯ → *Ship folder to Claude*)
+- **Ship to your agent** (right-click a note, ⌥⌘C, or ⋯ → *Ship folder to your agent*)
   copies a structured block — folder title, optional per-folder **instructions**,
   numbered items tagged by priority, plus where each came from and any image
-  filenames — and marks those notes **with Claude** (a small blue chip) until an
+  filenames — and marks those notes **with your agent** (a small blue chip) until an
   outcome lands or you reopen them. One paste and the agent has the context,
   not just the text.
 - **⇧⇧ remembers the source.** Select text in ChatGPT/Claude/Cursor, tap Shift
@@ -163,10 +163,10 @@ Press **⌘⇧V** (or the feather in the header) to switch how the list renders:
 
 - **Folders** (default) — tabs, sections, priorities: the classic list below.
 - **Clear** — calm cards grouped by where things stand: *On your mind* →
-  *With Claude* → *handled*, with a headline that counts down and two verbs per
-  card (*Let Claude handle it* · *Done with it*). ⌘-click selects several cards
+  *With your agent* → *handled*, with a headline that counts down and two verbs per
+  card (*Let your agent handle it* · *Done with it*). ⌘-click selects several cards
   for group actions (hand off, done, star, merge, clear); "hand all of
-  \<folder\> to Claude" ships every open note in it. Answers pasted onto a card
+  \<folder\> to your agent" ships every open note in it. Answers pasted onto a card
   (or written by an agent over MCP) appear right under it.
 
 The folder tabs, the capture box, search, the ★ star, pins, and shortcuts are

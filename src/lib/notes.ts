@@ -93,7 +93,7 @@ export interface Note {
 
 export const isHeading = (n: Pick<Note, "kind">) => n.kind === "heading";
 
-/** Where a note stands in the loop: on your mind / with Claude / handled. */
+/** Where a note stands in the loop: on your mind / with your agent / handled. */
 export type NoteLoopState = "open" | "claude" | "done";
 export const noteState = (n: Pick<Note, "done" | "handedOff">): NoteLoopState =>
   n.done ? "done" : n.handedOff ? "claude" : "open";

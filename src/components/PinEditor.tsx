@@ -158,7 +158,7 @@ export function PinEditor({ attachment, dir, onSave, onClose, onOpenFile }: Prop
       )}
 
       <div className="px-4 pb-3 text-center text-[10px] text-muted-foreground">
-        Pins ride along when this ships to Claude · Esc saves
+        Pins ride along when this ships to your agent · Esc saves
       </div>
       </div>
     </div>

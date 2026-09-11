@@ -107,7 +107,7 @@ export function Header(p: Props) {
 
       <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-0.5">
         {p.searchOpen ? (
-          <InputGroup className="h-7 min-w-0 flex-1 bg-background/60 has-[[data-slot=input-group-control]:focus-visible]:ring-ring/15 dark:bg-input/40">
+          <InputGroup className="h-7 min-w-16 max-w-60 flex-1 bg-background/60 has-[[data-slot=input-group-control]:focus-visible]:ring-ring/15 dark:bg-input/40">
             <InputGroupAddon>
               <Search />
             </InputGroupAddon>
@@ -145,7 +145,6 @@ export function Header(p: Props) {
             <Search className="size-4 text-muted-foreground" />,
           )
         )}
-        {!p.searchOpen && (
         <ToggleGroup
           type="single"
           spacing={0}
@@ -172,7 +171,6 @@ export function Header(p: Props) {
             <Feather className="size-3" /> Clear
           </ToggleGroupItem>
         </ToggleGroup>
-        )}
         {iconBtn(
           `Filters  ${formatBinding(p.keymap.filters)}`,
           p.filtersOpen,
@@ -211,7 +209,7 @@ export function Header(p: Props) {
               </>
             )}
             <DropdownMenuItem onSelect={p.onCopyFolderForAgent}>
-              Ship folder to Claude
+              Ship folder to your agent
               <DropdownMenuShortcut>{formatBinding(p.keymap.copyForAgent)}</DropdownMenuShortcut>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={p.onEditPreamble}>Agent instructions for this folder…</DropdownMenuItem>

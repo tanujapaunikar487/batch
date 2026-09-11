@@ -17,8 +17,8 @@ import { cn } from "@/lib/utils";
 import { type Attachment, type Note, type Priority, type Section, hasAttachments, isHeading } from "@/lib/notes";
 
 /** A just-created section keeps this text in the data (blank notes are dropped
- * by the reducer) but renders as a muted placeholder you never have to clear. */
-export const NEW_SECTION_PLACEHOLDER = "New section";
+ * by the reducer); the editor opens empty so there is nothing to clear. */
+export const NEW_SECTION_PLACEHOLDER = "Untitled";
 import { formatBinding } from "@/lib/shortcuts";
 import { Markdown } from "./Markdown";
 import { AttachmentStrip } from "./AttachmentStrip";
@@ -267,17 +267,14 @@ export function NoteRow({
                   {note.collapsed ? <ChevronRight className="size-3" /> : <ChevronDown className="size-3" />}
                 </button>
                 <h3
-                  className={cn(
-                    "text-xs font-semibold uppercase tracking-wide",
-                    note.text === NEW_SECTION_PLACEHOLDER ? "font-medium normal-case italic text-muted-foreground/70" : "text-foreground/85",
-                  )}
+                  className="text-xs font-semibold uppercase tracking-wide text-foreground/85"
                   onClick={(e) => {
                     e.stopPropagation();
                     onStartEdit(note.id);
                   }}
                   title={note.text === NEW_SECTION_PLACEHOLDER ? "Click to name this section" : "Click to rename"}
                 >
-                  {note.text === NEW_SECTION_PLACEHOLDER ? "Name this section…" : note.text}
+                  {note.text}
                 </h3>
                 {sectionCount !== undefined && sectionCount > 0 && (
                   <span className="text-xs tabular-nums text-muted-foreground">{sectionCount}</span>
@@ -296,7 +293,7 @@ export function NoteRow({
             )}
             {!note.done && note.handedOff && !note.outcome && !isEditing && (
               <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <span className="size-1.5 rounded-full bg-sky-500/80" aria-hidden /> with Claude
+                <span className="size-1.5 rounded-full bg-sky-500/80" aria-hidden /> with your agent
               </div>
             )}
             {note.source && !isEditing && (

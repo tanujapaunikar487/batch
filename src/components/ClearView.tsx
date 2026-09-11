@@ -27,7 +27,7 @@ interface Props {
 
 /**
  * The Clear view: the active folder's notes grouped by where they stand —
- * on your mind / with Claude / handled — with two verbs per card and a
+ * on your mind / with your agent / handled — with two verbs per card and a
  * headline that counts down. Star = important (same star as the Folders view).
  */
 export function ClearView(p: Props) {
@@ -139,14 +139,14 @@ export function ClearView(p: Props) {
         {st === "claude" && !n.outcome && (
           <div className="mt-2 flex items-center gap-2 text-xs text-primary">
             <span className="size-1.5 animate-pulse rounded-full bg-primary" />
-            with Claude — the block is on your clipboard; an agent on MCP updates this live
+            with your agent — the block is on your clipboard; over MCP this updates live
           </div>
         )}
 
         {n.outcome && (
           <div className="mt-2 rounded-lg border border-border/60 bg-foreground/[0.03] px-3 py-2">
             <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-              {n.outcome.by === "agent" ? "Claude" : "You"}
+              {n.outcome.by === "agent" ? "Agent" : "You"}
             </div>
             <Markdown text={n.outcome.text} className="text-xs leading-5 text-muted-foreground" />
           </div>
@@ -175,7 +175,7 @@ export function ClearView(p: Props) {
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
           {st === "open" && (
             <>
-              {verb("Let Claude handle it", () => p.onHandOff([n.id]), "claude")}
+              {verb("Let your agent handle it", () => p.onHandOff([n.id]), "claude")}
               {verb("Done with it", () => p.onSetDone([n.id], true), "done")}
               {verb("clear", () => p.onDelete([n.id]))}
             </>
@@ -216,7 +216,7 @@ export function ClearView(p: Props) {
               )}
               {open.length > 0 && withClaude.length > 0 && " · "}
               {withClaude.length > 0 && (
-                <span className="font-medium text-primary">{withClaude.length} with Claude</span>
+                <span className="font-medium text-primary">{withClaude.length} with your agent</span>
               )}
             </>
           )}
@@ -238,7 +238,7 @@ export function ClearView(p: Props) {
                 onClick={() => p.onHandOff(open.map((n) => n.id))}
                 className="text-xs text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary"
               >
-                hand all of {p.folderName} to Claude
+                hand all of {p.folderName} to your agent
               </button>
             </div>
           )}
@@ -247,7 +247,7 @@ export function ClearView(p: Props) {
 
       {withClaude.length > 0 && (
         <>
-          {label("With Claude")}
+          {label("With your agent")}
           <div className="flex flex-col gap-2">{[...withClaude].sort((a, z) => sortKey(a) - sortKey(z)).map(card)}</div>
         </>
       )}
@@ -272,7 +272,7 @@ export function ClearView(p: Props) {
       {sel.length > 0 && (
         <div className="sticky bottom-2 z-10 mx-auto mt-3 flex w-fit max-w-full flex-wrap items-center justify-center gap-1 rounded-full border border-border bg-background/95 px-3 py-1.5 shadow-lg backdrop-blur">
           <span className="pr-1 text-xs text-muted-foreground">{sel.length} selected</span>
-          {verb("Hand to Claude", () => p.onHandOff(sel), "claude")}
+          {verb("Hand to agent", () => p.onHandOff(sel), "claude")}
           {verb("Done", () => p.onSetDone(sel, true), "done")}
           {verb("Star", () => p.onToggleStar(sel))}
           {sel.length > 1 && verb("Merge", () => p.onMerge(sel))}
