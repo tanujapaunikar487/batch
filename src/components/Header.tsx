@@ -1,4 +1,4 @@
-import { Check, Filter, Focus, List, Monitor, Moon, MoreHorizontal, Pin, Search, Sun, X } from "lucide-react";
+import { Check, Filter, Monitor, Moon, MoreHorizontal, Pin, Search, Sun, X } from "lucide-react";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { type ThemePref } from "@/store/useSettings";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { type ActionId, formatBinding } from "@/lib/shortcuts";
 
@@ -32,8 +31,6 @@ interface Props {
   filtersOpen: boolean;
   activeFilters: number;
   onToggleFilters: () => void;
-  viewMode: "folders" | "clear";
-  onToggleView: () => void;
   pinned: boolean;
   onTogglePin: () => void;
   isTauri: boolean;
@@ -141,32 +138,6 @@ export function Header(p: Props) {
             <Search className="size-4 text-muted-foreground" />,
           )
         )}
-        <ToggleGroup
-          type="single"
-          spacing={0}
-          value={p.viewMode}
-          onValueChange={(v) => {
-            if (v && v !== p.viewMode) p.onToggleView();
-          }}
-          aria-label={`View  ${formatBinding(p.keymap.toggleView)}`}
-          title={`Switch view  ${formatBinding(p.keymap.toggleView)}`}
-          className="mr-1 h-7 shrink-0 items-center gap-0 rounded-lg bg-foreground/[0.06] p-0.5"
-        >
-          <ToggleGroupItem
-            value="folders"
-            aria-label="List view — every note in order"
-            className="h-6 min-w-0 gap-1.5 rounded-md border-0 px-2 text-xs font-medium text-muted-foreground [&_svg:not([class*='size-'])]:size-3.5 data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
-          >
-            <List /> List
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="clear"
-            aria-label="Focus view — grouped by what needs you"
-            className="h-6 min-w-0 gap-1.5 rounded-md border-0 px-2 text-xs font-medium text-muted-foreground [&_svg:not([class*='size-'])]:size-3.5 data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
-          >
-            <Focus /> Focus
-          </ToggleGroupItem>
-        </ToggleGroup>
         {iconBtn(
           `Filters  ${formatBinding(p.keymap.filters)}`,
           p.filtersOpen,

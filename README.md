@@ -157,24 +157,6 @@ a new app and the banner comes back — re-tick Batch in that list, or run
 `bun run sign:setup` once (see *Keep permissions across rebuilds* above) so every
 build shares one identity.
 
-## Two views, same notes
-
-Press **⌘⇧V** (or the **List / Focus** switch in the header) to change how the
-same notes render:
-
-- **List** (default) — every note in order: sections, drag to reorder, the
-  classic checklist below.
-- **Focus** — calm cards grouped by where things stand: *On your mind* →
-  *With your agent* → *handled*, with a headline that counts down and two verbs per
-  card. Select cards with the ◯ button or ⌘-click (⌘A selects all) for group
-  actions — hand off, done, star, merge, clear — or Space / ⌫ on the
-  selection; "hand all of
-  \<folder\> to your agent" ships every open note in it. Answers pasted onto a card
-  (or written by an agent over MCP) appear right under it.
-
-The folder tabs, the capture box, search, the ★ star, pins, and shortcuts are
-the same in both — same notes, same file, same folder, switch any time.
-
 ## Using it
 
 | Action | How |
@@ -183,7 +165,7 @@ the same in both — same notes, same file, same folder, switch any time.
 | Add a note | capture box at the bottom: type / paste (Markdown, multi-line), ↩ · ⇧↩ for a newline |
 | Capture from another app | select text anywhere, tap ⇧⇧ — it lands in the capture box (needs Accessibility; Settings → *Capture selected text*) |
 | Attach images | ⊕ → *Attach images…*, paste an image (⌘V), or **drag & drop** anywhere on the window — the images land in the capture box so you can add a prompt and press ↩ · accepts files from Finder and images dragged from browsers/apps · up to **10** per note · a note can be images only · thumbnails show above the text (click to view + pin) · ⊕ also has *New folder* |
-| Images on an existing note | drop images onto the note (either view), or right-click → *Attach images…* in List, ⋯ → *Attach an image…* in Focus · hover a thumbnail → × removes it (⌘Z undoes) |
+| Images on an existing note | drop images onto the note, or right-click → *Attach images…* · hover a thumbnail → × removes it (⌘Z undoes) |
 | Mark up an image | click a thumbnail (in a note or the capture box) → the image opens with a crosshair: **click** drops a numbered pin, **drag** marks an area (green) · a comment box opens at the marker — type, ↩ · click a marker to edit or delete it · `Esc` saves · ↗ opens the file itself · thumbnails show a marker count · markers go with the image when you ship, and over `get_note` |
 | Copy with images | ⌘C / ⋯ → Copy puts the **text and the image files** on the clipboard together — paste once into ChatGPT, Claude, Cursor… (they read the files; text fields get the text) · drag a thumbnail out to drop the note's images into another app |
 | Folders | tabs at the top (the first is "Untitled" until you rename it) · ⌘1…⌘9 switch · ⇧⌘N new · click the active folder's name to rename (or right-click it) · right-click a tab for **Ship folder to your agent**, Agent instructions, Copy folder as list, Clear done, Delete |
@@ -194,9 +176,9 @@ the same in both — same notes, same file, same folder, switch any time.
 | Merge notes | select 2+ → ⌘M or right-click → Merge Notes (texts joined, earliest note kept, ⌘Z to undo) |
 | Done | Space (or the checkbox); done notes sink to the bottom of their section, struck through · ⇧⌘⌫ / *Clear done* removes them |
 | Edit | ↩ or double-click · ↩ saves · `Esc` cancels |
-| Star (this one matters) | press 1 on selected notes, or click the ★ — always visible, same place (trailing) in both views — starred notes sort first in Focus view |
-| Hand a note to your agent | hover a row (or any Focus card) → the 🤖 icon — ships just that one note, same as *Ship*, but for a single item |
-| Add the answer to a note | once it's with your agent: hover → the 💬 icon (List) or the card's own button (Focus) opens the outcome field right there |
+| Star (this one matters) | press 1 on selected notes, or click the ★ — always visible, trailing on the row |
+| Hand a note to your agent | hover a row → the 🤖 icon — ships just that one note, same as *Ship*, but for a single item |
+| Add the answer to a note | once it's with your agent: hover → the 💬 icon opens the outcome field right there |
 | Move to another folder | ⇧⌘] / ⇧⌘[ · or ⋯ / right-click → Move to |
 | Sections inside a folder | ⊕ → *New section*, or type `# Title` in the box — a heading row you can drag notes under (rename by clicking it; delete keeps its notes) · chevron collapses/expands it · moving a heading moves its whole section |
 | Reorder | drag a note up or down within its folder (a line shows where it lands) · drag one of several selected notes to move them all · ⌥↑ / ⌥↓ · right-click → Move up / Move down · ⌘Z undoes |

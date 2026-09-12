@@ -26,8 +26,6 @@ export interface Settings {
   /** "Copy as List" marks the copied notes done. */
   copyListMarksDone: boolean;
   theme: ThemePref;
-  /** How the note list renders: classic folders, or the calm state-grouped view. */
-  viewMode: "folders" | "clear";
   keymap: Partial<Record<ActionId, string>>;
   /** Remembered popover size (logical px); applied by Rust on launch. */
   window?: { width: number; height: number };
@@ -42,7 +40,6 @@ export const DEFAULT_SETTINGS: Settings = {
   screenshotShortcut: DEFAULT_SCREENSHOT_SHORTCUT,
   copyListMarksDone: true,
   theme: "system",
-  viewMode: "folders",
   keymap: {},
 };
 
@@ -61,7 +58,6 @@ function normalizeSettings(raw: unknown): Settings {
   }
   if (typeof r.copyListMarksDone === "boolean") s.copyListMarksDone = r.copyListMarksDone;
   if (r.theme === "light" || r.theme === "dark" || r.theme === "system") s.theme = r.theme;
-  if (r.viewMode === "folders" || r.viewMode === "clear") s.viewMode = r.viewMode;
   const w = r.window as { width?: unknown; height?: unknown } | undefined;
   if (w && typeof w.width === "number" && typeof w.height === "number" && w.width >= 320 && w.height >= 360) {
     s.window = { width: w.width, height: w.height };
@@ -168,11 +164,8 @@ export function useSettings(store?: KeyValueStore) {
     [update],
   );
 
-  const setViewMode = useCallback((viewMode: Settings["viewMode"]) => update({ viewMode }), [update]);
-
   return {
     settings,
-    setViewMode,
     keymap,
     loaded,
     setBinding,

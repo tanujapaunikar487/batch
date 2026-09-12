@@ -32,7 +32,6 @@ import { asList, asNumberedList, asPlainText, forAgent } from "@/lib/format";
 import { attachmentsDir as loadAttachmentsDir, dragHasImages, dragOut, imagesFromDrop, saveImages } from "@/store/attachments";
 import { allAttachmentIds, allInSection, normalizeState, sinkDone, HEADING_PREFIX, isHeading, type Attachment, type NoteSource, type Pin, type Section } from "@/lib/notes";
 import { PinEditor } from "@/components/PinEditor";
-import { ClearView } from "@/components/ClearView";
 import { type ActionId, matchesEvent } from "@/lib/shortcuts";
 
 const inTauri = isTauri();
@@ -44,7 +43,6 @@ const devParams = inTauri ? new URLSearchParams() : new URLSearchParams(location
 export default function App() {
   const notes = useNotes();
   const settings = useSettings();
-  const viewMode = settings.settings.viewMode;
   useTheme(settings.settings.theme);
   const copy = useCopy();
   const { state } = notes;
@@ -90,8 +88,6 @@ export default function App() {
 
   // ── visible notes ──
   const searching = searchOpen && query.trim().length > 0;
-  const clearMode = viewMode === "clear";
-  useEffect(() => setClearSel(new Set()), [activeSection.id, viewMode]);
   const { open, done } = useMemo(() => {
     if (searching) {
       const hits = applyFilters(searchNotes(state, query), filter);
@@ -101,13 +97,6 @@ export default function App() {
     return { open: sinkDone(applyFilters(allInSection(state, activeSection.id), filter)), done: [] };
   }, [state, searching, query, filter, activeSection.id]);
   const visibleIds = useMemo(() => [...open, ...done].map((n) => n.id), [open, done]);
-  const focusNotes = useMemo(
-    () =>
-      searching
-        ? [...open, ...done].filter((n) => !isHeading(n))
-        : allInSection(state, activeSection.id).filter((n) => !isHeading(n)),
-    [searching, open, done, state, activeSection.id],
-  );
   const nav = useListNav(visibleIds);
   const notesById = useMemo(() => new Map(state.notes.map((n) => [n.id, n])), [state.notes]);
   const counts = useMemo(() => {
@@ -161,9 +150,6 @@ export default function App() {
     },
     [notesById, activeSection, copy, notes, nav, showToast],
   );
-
-  /** Focus view multi-select, owned here so the Esc cascade can clear it. */
-  const [clearSel, setClearSel] = useState<Set<string>>(new Set());
 
   const copyNotes = useCallback(
     async (ids: string[], asListAlways = false) => {
@@ -654,10 +640,6 @@ export default function App() {
         case "copyForAgent":
           void copyForAgent(taskTargets.length > 0 ? taskTargets : allInSection(state, activeSection.id).map((n) => n.id));
           break;
-        case "toggleView":
-          setView("list");
-          settings.setViewMode(viewMode === "clear" ? "folders" : "clear");
-          break;
         case "merge":
           mergeSelected();
           break;
@@ -694,7 +676,7 @@ export default function App() {
           break;
       }
     },
-    [searchOpen, closeSearch, openSearch, copySectionAsList, copyAsList, copyForAgent, taskTargets, activeSection, activeSection.id, mergeSelected, state, notes, showToast, moveBySection, togglePin, toggleExpand, addSectionHeading, viewMode, settings],
+    [searchOpen, closeSearch, openSearch, copySectionAsList, copyAsList, copyForAgent, taskTargets, activeSection, activeSection.id, mergeSelected, state, notes, showToast, moveBySection, togglePin, toggleExpand, addSectionHeading],
   );
 
   useEffect(() => {
@@ -734,7 +716,6 @@ export default function App() {
         e.preventDefault();
         if (view !== "list") return void (setView("list"), focusCapture());
         if (editingId) return void setEditingId(null);
-        if (clearMode && clearSel.size > 0) return void setClearSel(new Set());
         if (nav.selected.size > 0 || nav.cursor) return void (nav.clear(), focusCapture());
         if (searchOpen) return void closeSearch();
         if (filtersOpen && activeFilterCount(filter) > 0) return void setFilter(EMPTY_FILTER);
@@ -744,30 +725,6 @@ export default function App() {
       }
 
       if (inEditable || view !== "list") return;
-
-      // Focus view: selection keys act on the card selection.
-      if (clearMode) {
-        if (meta && e.code === "KeyA") {
-          e.preventDefault();
-          return void setClearSel(new Set(focusNotes.map((n) => n.id)));
-        }
-        if (clearSel.size === 0) return;
-        const ids = [...clearSel];
-        if (e.code === "Space") {
-          e.preventDefault();
-          const allDone = ids.every((id) => notesById.get(id)?.done);
-          notes.setDone(ids, !allDone);
-          return void setClearSel(new Set());
-        }
-        if (e.code === "Backspace" || e.code === "Delete") {
-          e.preventDefault();
-          notes.remove(ids);
-          setClearSel(new Set());
-          return void showToast(`Cleared ${ids.length} · ⌘Z to undo`);
-        }
-        return;
-      }
-
 
       // List-mode keys.
       if (meta && e.code === "KeyA") return void (e.preventDefault(), nav.selectAll());
@@ -813,7 +770,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [
     keymap, runAction, hide, quit, state.sections, nav, view, editingId, searchOpen, closeSearch,
-    filtersOpen, filter, focusCapture, copyNotes, notes, notesById, removeIds, toggleMany, searching, taskTargets, goToFolder, clearMode, clearSel, focusNotes, showToast,
+    filtersOpen, filter, focusCapture, copyNotes, notes, notesById, removeIds, toggleMany, searching, taskTargets, goToFolder,
   ]);
 
   // ── render ──
@@ -862,8 +819,6 @@ export default function App() {
           filtersOpen={filtersOpen}
           activeFilters={activeFilterCount(filter)}
           onToggleFilters={() => runAction("filters")}
-          viewMode={viewMode}
-          onToggleView={() => runAction("toggleView")}
           pinned={pinned}
           onTogglePin={togglePin}
           isTauri={inTauri}
@@ -1022,57 +977,6 @@ export default function App() {
                 nav.clear();
               }}
             />
-            <div className="border-t border-border/60" />
-            {clearMode ? (
-              <ClearView
-                notes={focusNotes}
-                folderName={activeSection.name}
-                searching={searching}
-                folderOf={(n) => sectionById(state, n.sectionId)?.name}
-                attachmentsDir={attDir}
-                selected={clearSel}
-                onToggleSelect={(id) =>
-                  setClearSel((cur) => {
-                    const next = new Set(cur);
-                    next.has(id) ? next.delete(id) : next.add(id);
-                    return next;
-                  })
-                }
-                onClearSelection={() => setClearSel(new Set())}
-                onHandOff={(ids) => {
-                  void copyForAgent(ids);
-                  setClearSel(new Set());
-                }}
-                onSetDone={(ids, done) => {
-                  notes.setDone(ids, done);
-                  setClearSel(new Set());
-                }}
-                onBackToMe={(id) => notes.clearHandedOff([id])}
-                onDelete={(ids) => {
-                  notes.remove(ids);
-                  setClearSel(new Set());
-                  showToast(`Cleared${ids.length > 1 ? ` ${ids.length}` : ""} · ⌘Z to undo`);
-                }}
-                onToggleStar={(ids) => {
-                  const allStarred = ids.every((id) => notesById.get(id)?.priority === "high");
-                  notes.setPriority(ids, allStarred ? "medium" : "high");
-                }}
-                onMerge={(ids) => {
-                  if (ids.length < 2) return;
-                  notes.merge(ids);
-                  setClearSel(new Set());
-                  showToast(`Merged ${ids.length} → 1 · ⌘Z to undo`);
-                }}
-                onEditText={(id, text) => notes.edit(id, text)}
-                onAddAnswer={(id, text) => notes.setOutcome(id, text, "me")}
-                onAttachImages={(id) => {
-                  attachTargetId.current = id;
-                  noteFileInput.current?.click();
-                }}
-                imageDropRowId={dropRowId}
-                onOpenAttachment={openPinEditor}
-              />
-            ) : (
             <NoteList
               ref={listRef}
               open={open}
@@ -1157,8 +1061,7 @@ export default function App() {
               onOpenAttachment={openPinEditor}
               onDragAttachments={dragAttachments}
             />
-            )}
-            {!searchOpen && viewMode === "folders" && (editingPreamble || activeSection.preamble) && (
+            {!searchOpen && (editingPreamble || activeSection.preamble) && (
               <div className="mx-5 mb-1 rounded-md border border-border/60 bg-foreground/[0.03] px-2 py-1.5">
                 <div className="mb-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
                   Agent instructions · {activeSection.name}
@@ -1247,13 +1150,10 @@ export default function App() {
                   );
                   return true;
                 }}
-                onArrowUpOut={() => {
-                  if (!clearMode) focusList("bottom");
-                }}
+                onArrowUpOut={() => focusList("bottom")}
               />
             )}
             <Footer
-              showBrowseHint={!clearMode}
               selectedCount={nav.selected.size}
               toast={toast}
               mergeBinding={keymap.merge}

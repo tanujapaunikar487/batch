@@ -23,8 +23,7 @@ export type ActionId =
   | "settings"
   | "help"
   | "undo"
-  | "redo"
-  | "toggleView";
+  | "redo";
 
 export interface Binding {
   mod: boolean;
@@ -48,7 +47,6 @@ export const ACTIONS: Record<ActionId, { label: string; customizable: boolean }>
   movePrevSection: { label: "Move note to previous folder", customizable: true },
   pin: { label: "Pin / unpin window", customizable: true },
   expand: { label: "Expand to side panel / restore", customizable: true },
-  toggleView: { label: "Switch view (List / Focus)", customizable: true },
   settings: { label: "Settings", customizable: false },
   help: { label: "Keyboard shortcuts", customizable: false },
   undo: { label: "Undo", customizable: false },
@@ -69,7 +67,6 @@ export const DEFAULT_KEYMAP: Record<ActionId, string> = {
   movePrevSection: "mod+shift+BracketLeft",
   pin: "mod+KeyP",
   expand: "ctrl+mod+KeyF",
-  toggleView: "mod+shift+KeyV",
   settings: "mod+Comma",
   help: "mod+Slash",
   undo: "mod+KeyZ",

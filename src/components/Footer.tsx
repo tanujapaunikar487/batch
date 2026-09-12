@@ -8,8 +8,6 @@ interface Props {
   /** Progress for what's on screen (current folder, or search results). */
   done: number;
   total: number;
-  /** Focus view has no list navigation; hide the browse hint there. */
-  showBrowseHint?: boolean;
 }
 
 function Ring({ done, total }: { done: number; total: number }) {
@@ -75,12 +73,7 @@ export function Footer(p: Props) {
             )}
           </span>
           <span className="ml-auto flex items-center gap-1 opacity-70">
-            {p.showBrowseHint !== false && (
-              <>
-                <Kbd>↑</Kbd> browse ·{" "}
-              </>
-            )}
-            <Kbd>⌘/</Kbd> shortcuts
+            <Kbd>↑</Kbd> browse · <Kbd>⌘/</Kbd> shortcuts
           </span>
         </>
       )}
