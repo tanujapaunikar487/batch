@@ -124,7 +124,7 @@ export function SectionTabs({
   );
 
   return (
-    <div className="flex shrink-0 items-end gap-1.5 overflow-x-auto border-b border-amber-300/60 px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden dark:border-amber-200/12" role="tablist">
+    <div className="flex shrink-0 items-end gap-1.5 overflow-x-auto border-b border-border px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist">
       {sections.map((s, i) => {
         const isActive = !searching && s.id === activeId;
         return renaming === s.id ? (
@@ -193,8 +193,8 @@ export function SectionTabs({
                   dragId && over?.id === s.id && dragId !== s.id && over.side === "right" &&
                     "after:absolute after:-right-1 after:top-1 after:bottom-1 after:w-0.5 after:rounded-full after:bg-ring",
                   isActive
-                    ? "z-20 border-amber-300/70 bg-amber-50/90 text-foreground shadow-[-1px_-1px_2px_rgba(120,80,20,0.06)] dark:border-amber-200/15 dark:bg-amber-100/[0.06]"
-                    : "z-0 border-amber-300/45 bg-amber-50/40 text-muted-foreground shadow-[-1px_-1px_2px_rgba(120,80,20,0.04)] hover:z-10 hover:bg-amber-50/70 hover:text-foreground dark:border-amber-200/10 dark:bg-amber-100/[0.02]",
+                    ? "z-20 border-border bg-muted/70 text-foreground shadow-[-1px_-1px_2px_rgba(0,0,0,0.04)] dark:bg-muted/40"
+                    : "z-0 border-border/60 bg-muted/25 text-muted-foreground shadow-[-1px_-1px_2px_rgba(0,0,0,0.03)] hover:z-10 hover:bg-muted/45 hover:text-foreground dark:bg-muted/15",
                 )}
               >
                 {s.name}
@@ -251,7 +251,7 @@ export function SectionTabs({
           title="New folder  ⇧⌘N"
           className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground"
         >
-          <Plus className="size-[22px]" />
+          <Plus className="size-5" />
         </button>
       )}
     </div>

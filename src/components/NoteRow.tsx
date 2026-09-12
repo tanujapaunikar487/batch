@@ -247,11 +247,10 @@ export function NoteRow({
           }}
           className={cn(
             "group relative flex items-start gap-2.5 px-2 py-2.5 outline-none",
-            // Ledger row: full-width rule beneath, red margin rule at the left edge.
-            !heading &&
-              "border-b border-l-2 border-amber-300/60 border-l-rose-400/60 dark:border-amber-200/12 dark:border-l-rose-400/40",
+            // Ledger row: full-width rule beneath, a slightly darker margin rule at the left edge.
+            !heading && "border-b border-l-2 border-border border-l-foreground/15",
             heading && "mt-3 first:mt-0 rounded-lg hover:bg-foreground/[0.04] dark:hover:bg-foreground/[0.06]",
-            !heading && "hover:bg-amber-50/50 dark:hover:bg-amber-100/[0.025]",
+            !heading && "hover:bg-foreground/[0.03]",
             (isSelected || menuOpen) && "!bg-foreground/[0.07] dark:!bg-foreground/[0.1]",
             isCursor && "ring-1 ring-ring/40",
             note.done && !isSelected && "opacity-60",
@@ -272,7 +271,7 @@ export function NoteRow({
               />
               {cardNumber !== undefined && (
                 <span
-                  className="font-mono text-[9px] font-medium tabular-nums leading-none text-rose-700/60 dark:text-rose-300/45"
+                  className="font-mono text-[9px] font-medium tabular-nums leading-none text-muted-foreground/60"
                   aria-hidden
                 >
                   {String(cardNumber).padStart(3, "0")}
@@ -359,7 +358,7 @@ export function NoteRow({
               </div>
             )}
             {(note.outcome || editingOutcome) && (
-              <div className="mt-2 border-t border-amber-300/50 pt-1.5 dark:border-amber-200/12">
+              <div className="mt-2 border-t border-border pt-1.5">
                 <div className="mb-0.5 flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
                   <MessageSquare className="size-3" />
                   {note.outcome ? `Outcome${note.outcome.by === "agent" ? " · agent" : ""}` : "Outcome"}
@@ -398,14 +397,14 @@ export function NoteRow({
           {!heading && (
             <div className="mt-0.5 flex h-6 shrink-0 items-center justify-end gap-0.5">
               {/* Ledger divider separating the entry from its action column. */}
-              <span className="mr-1.5 h-5 w-px self-center bg-amber-800/20 dark:bg-amber-200/15" aria-hidden />
+              <span className="mr-1.5 h-5 w-px self-center bg-border" aria-hidden />
               {!note.done && !note.handedOff && (
                 <IconAction
                   label="Hand to your agent"
                   className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
                   onClick={() => onCopyForAgent(targetsFor(note.id))}
                 >
-                  <Bot className="size-[18px]" />
+                  <Bot className="size-5" />
                 </IconAction>
               )}
               {!note.done && note.handedOff && !note.outcome && (
@@ -414,7 +413,7 @@ export function NoteRow({
                   className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
                   onClick={() => setEditingOutcome(true)}
                 >
-                  <MessageSquarePlus className="size-[18px]" />
+                  <MessageSquarePlus className="size-5" />
                 </IconAction>
               )}
               <IconAction
@@ -425,9 +424,9 @@ export function NoteRow({
               >
                 <span
                   className={cn(
-                    "block size-3.5 rounded-full ring-1 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.55),0_1px_1px_rgba(0,0,0,0.15)]",
+                    "block size-5 rounded-full ring-1 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.55),0_1px_1px_rgba(0,0,0,0.15)]",
                     note.priority === "high"
-                      ? "bg-amber-400 ring-amber-600/50"
+                      ? "bg-foreground ring-foreground/60"
                       : "bg-transparent ring-muted-foreground/40",
                   )}
                 />
@@ -444,7 +443,7 @@ export function NoteRow({
                   openMenuAt(r.left, r.bottom);
                 }}
               >
-                <MoreHorizontal className="size-[18px]" />
+                <MoreHorizontal className="size-5" />
               </IconAction>
             </div>
           )}
@@ -462,7 +461,7 @@ export function NoteRow({
                   openMenuAt(r.left, r.bottom);
                 }}
               >
-                <MoreHorizontal className="size-[18px]" />
+                <MoreHorizontal className="size-5" />
               </IconAction>
             </div>
           )}
