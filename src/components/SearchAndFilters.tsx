@@ -12,7 +12,7 @@ interface Props {
 export function SearchAndFilters({ filtersOpen, filter, onFilter }: Props) {
   if (!filtersOpen) return null;
   return (
-    <div className="flex shrink-0 flex-col gap-2 px-5 pb-3 pt-1">
+    <div className="flex shrink-0 flex-col gap-2 px-5 pb-3 pt-3">
       {filtersOpen && (
         <div className="flex flex-wrap items-center gap-1.5">
           <FilterSelect

@@ -426,7 +426,7 @@ export function NoteRow({
                   className={cn(
                     "block size-5 rounded-full ring-1 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.55),0_1px_1px_rgba(0,0,0,0.15)]",
                     note.priority === "high"
-                      ? "bg-foreground ring-foreground/60"
+                      ? "bg-amber-400 ring-amber-600/50"
                       : "bg-transparent ring-muted-foreground/40",
                   )}
                 />
