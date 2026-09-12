@@ -25,6 +25,8 @@ export interface Settings {
   screenshotShortcut: string;
   /** "Copy as List" marks the copied notes done. */
   copyListMarksDone: boolean;
+  /** One-time "set up MCP" nudge, shown after the first hand-off — dismissed or acted on. */
+  sawAgentNudge: boolean;
   theme: ThemePref;
   keymap: Partial<Record<ActionId, string>>;
   /** Remembered popover size (logical px); applied by Rust on launch. */
@@ -39,6 +41,7 @@ export const DEFAULT_SETTINGS: Settings = {
   captureSource: true,
   screenshotShortcut: DEFAULT_SCREENSHOT_SHORTCUT,
   copyListMarksDone: true,
+  sawAgentNudge: false,
   theme: "system",
   keymap: {},
 };
@@ -57,6 +60,7 @@ function normalizeSettings(raw: unknown): Settings {
     s.screenshotShortcut = normalizeBinding(r.screenshotShortcut)!;
   }
   if (typeof r.copyListMarksDone === "boolean") s.copyListMarksDone = r.copyListMarksDone;
+  if (typeof r.sawAgentNudge === "boolean") s.sawAgentNudge = r.sawAgentNudge;
   if (r.theme === "light" || r.theme === "dark" || r.theme === "system") s.theme = r.theme;
   const w = r.window as { width?: unknown; height?: unknown } | undefined;
   if (w && typeof w.width === "number" && typeof w.height === "number" && w.width >= 320 && w.height >= 360) {
@@ -145,6 +149,7 @@ export function useSettings(store?: KeyValueStore) {
     [update],
   );
   const setCopyListMarksDone = useCallback((v: boolean) => update({ copyListMarksDone: v }), [update]);
+  const dismissAgentNudge = useCallback(() => update({ sawAgentNudge: true }), [update]);
   const setWindowSize = useCallback((width: number, height: number) => update({ window: { width, height } }), [update]);
   const setCaptureSource = useCallback(
     (enabled: boolean) => {
@@ -176,6 +181,7 @@ export function useSettings(store?: KeyValueStore) {
     setWindowSize,
     setCaptureSelection,
     setCopyListMarksDone,
+    dismissAgentNudge,
     setCaptureSource,
     setScreenshotShortcut,
   };

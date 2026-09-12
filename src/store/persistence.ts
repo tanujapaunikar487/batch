@@ -137,11 +137,12 @@ function tutorialState(): NotesState {
     sections: emptyState().sections,
     notes: [
       mk(1, "Welcome to Batch 👋 — check things off as you go. Your notes are saved locally, in one file on this Mac.", "high"),
-      mk(2, "Tap **Shift twice** in any app to open Batch. Select some text first and it comes along."),
-      mk(3, "Type or paste below and press ↩. Markdown works: **bold**, `code`, lists, links."),
-      mk(4, "Drag a screenshot or image onto this window to attach it — up to 10 per note."),
-      mk(5, "Select two notes (⇧↓), then ⌘M merges them, ⇧⌘C copies them as a numbered list.", "low"),
-      mk(6, "⌘/ shows every shortcut · ⌘, opens settings · click a folder name to rename it.", "low"),
+      mk(2, "Hover this note and click 🤖 (or right-click → **Copy for agent**) to hand it to Claude, ChatGPT, or Cursor. Paste the answer back when it's done."),
+      mk(3, "Tap **Shift twice** in any app to open Batch. Select some text first and it comes along."),
+      mk(4, "Type or paste below and press ↩. Markdown works: **bold**, `code`, lists, links."),
+      mk(5, "Drag a screenshot or image onto this window to attach it — up to 10 per note."),
+      mk(6, "Select two notes (⇧↓), then ⌘M merges them, ⇧⌘C copies them as a numbered list.", "low"),
+      mk(7, "⌘/ shows every shortcut · ⌘, opens settings · click a folder name to rename it.", "low"),
     ],
   };
 }

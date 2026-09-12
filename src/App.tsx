@@ -13,6 +13,7 @@ import { Footer } from "@/components/Footer";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { HelpSheet } from "@/components/HelpSheet";
 import { AccessibilityBanner } from "@/components/AccessibilityBanner";
+import { AgentNudgeBanner } from "@/components/AgentNudgeBanner";
 import { useNotes } from "@/store/useNotes";
 import { useSettings } from "@/store/useSettings";
 import { isTauri } from "@/store/persistence";
@@ -903,6 +904,15 @@ export default function App() {
                 onGrant={() => void native.requestAccessibility()}
                 onRelaunch={() => void notes.flush().then(() => native.relaunch())}
                 onDismiss={() => setBannerDismissed(true)}
+              />
+            )}
+            {inTauri && !settings.settings.sawAgentNudge && state.notes.some((n) => n.handedOff) && (
+              <AgentNudgeBanner
+                onOpenSettings={() => {
+                  settings.dismissAgentNudge();
+                  setView("settings");
+                }}
+                onDismiss={() => settings.dismissAgentNudge()}
               />
             )}
             <SectionTabs
