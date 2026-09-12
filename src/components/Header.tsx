@@ -22,6 +22,7 @@ interface Props {
   onTogglePin: () => void;
   isTauri: boolean;
   keymap: Record<ActionId, string>;
+  settingsOpen: boolean;
   onOpenSettings: () => void;
 }
 
@@ -125,7 +126,7 @@ export function Header(p: Props) {
           )}
         {iconBtn(
           `Settings  ${formatBinding(p.keymap.settings)}`,
-          false,
+          p.settingsOpen,
           p.onOpenSettings,
           <Settings className="size-4 text-muted-foreground" />,
         )}

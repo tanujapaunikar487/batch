@@ -217,6 +217,7 @@ export function SettingsPanel({
 
         <div ref={scrollRef} onScroll={onScroll} className="min-h-0 min-w-0 flex-1 overflow-y-auto py-2 pl-2 pr-5">
           <div className="mx-auto w-full max-w-[500px]">
+          <h1 className="mb-3 px-1 text-base font-semibold">Settings</h1>
           {qx && !anyHit && (
             <p className="px-1 py-6 text-center text-xs text-muted-foreground">Nothing in Settings matches “{q}”.</p>
           )}

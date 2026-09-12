@@ -823,6 +823,7 @@ export default function App() {
           onTogglePin={togglePin}
           isTauri={inTauri}
           keymap={keymap}
+          settingsOpen={view === "settings"}
           onOpenSettings={() => setView("settings")}
         />
 
