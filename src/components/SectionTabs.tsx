@@ -124,7 +124,7 @@ export function SectionTabs({
   );
 
   return (
-    <div className="flex shrink-0 items-end gap-0 overflow-x-auto border-b border-amber-300/60 px-5 pl-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden dark:border-amber-200/12" role="tablist">
+    <div className="flex shrink-0 items-end gap-1.5 overflow-x-auto border-b border-amber-300/60 px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden dark:border-amber-200/12" role="tablist">
       {sections.map((s, i) => {
         const isActive = !searching && s.id === activeId;
         return renaming === s.id ? (
@@ -187,8 +187,7 @@ export function SectionTabs({
                   }
                 }}
                 className={cn(
-                  // Layered folder tabs: each card overlaps the one before it; the active card lifts to the front.
-                  "relative -mb-px -ml-3 flex h-8 shrink-0 items-center gap-1.5 rounded-t-md border border-b-0 pl-4 pr-3.5 text-[13px] transition-colors select-none first:ml-0",
+                  "relative -mb-px flex h-8 shrink-0 items-center gap-1.5 rounded-t-md border border-b-0 pl-4 pr-3.5 text-[13px] transition-colors select-none",
                   dragId && over?.id === s.id && dragId !== s.id && over.side === "left" &&
                     "before:absolute before:-left-1 before:top-1 before:bottom-1 before:w-0.5 before:rounded-full before:bg-ring",
                   dragId && over?.id === s.id && dragId !== s.id && over.side === "right" &&
