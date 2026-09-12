@@ -432,7 +432,7 @@ export function NoteRow({
                 />
               </IconAction>
               <IconAction
-                label="Note actions"
+                label="More options"
                 pressed={menuOpen}
                 className={cn(
                   "opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
