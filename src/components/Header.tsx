@@ -1,18 +1,7 @@
-import { Filter, MoreHorizontal, Pin, Search, X } from "lucide-react";
+import { Filter, Pin, Search, Settings, X } from "lucide-react";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { type ActionId, formatBinding } from "@/lib/shortcuts";
@@ -24,7 +13,6 @@ interface Props {
   onCloseSearch: () => void;
   onArrowDownOut: () => void;
   searchRef: React.Ref<HTMLInputElement>;
-  expanded: boolean;
   onToggleExpand: () => void;
   onToggleSearch: () => void;
   filtersOpen: boolean;
@@ -34,16 +22,7 @@ interface Props {
   onTogglePin: () => void;
   isTauri: boolean;
   keymap: Record<ActionId, string>;
-  onRevealFile: () => void;
-  onResetPosition: () => void;
-  onExport: (what: "folder-md" | "all-md" | "json" | "folder-bundle" | "all-bundle") => void;
-  onImport: () => void;
-  backups: { name: string; path: string; bytes: number; date: string }[];
-  onOpenBackups: () => void;
-  onRestoreBackup: (b: { path: string; date: string }) => void;
   onOpenSettings: () => void;
-  onOpenHelp: () => void;
-  onQuit: () => void;
 }
 
 export function Header(p: Props) {
@@ -144,71 +123,12 @@ export function Header(p: Props) {
             p.onTogglePin,
             <Pin className={cn("size-4", p.pinned ? "fill-current" : "text-muted-foreground")} />,
           )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label="More">
-              <MoreHorizontal className="size-4 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-52">
-            {p.isTauri && (
-              <>
-                <DropdownMenuItem onSelect={p.onToggleExpand}>
-                  {p.expanded ? "Restore size" : "Expand (side panel)"}
-                  <DropdownMenuShortcut>{formatBinding(p.keymap.expand)}</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={p.onResetPosition}>Snap under menu-bar icon</DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            )}
-            {p.isTauri && (
-              <>
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>Export</DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuItem onSelect={() => p.onExport("folder-md")}>This folder as Markdown…</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => p.onExport("folder-bundle")}>This folder as Markdown + images…</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => p.onExport("all-md")}>Everything as Markdown…</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => p.onExport("all-bundle")}>Everything as Markdown + images…</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => p.onExport("json")}>Everything as JSON (backup)…</DropdownMenuItem>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-                <DropdownMenuItem onSelect={p.onImport}>Import JSON…</DropdownMenuItem>
-                <DropdownMenuSub onOpenChange={(o) => o && p.onOpenBackups()}>
-                  <DropdownMenuSubTrigger>Restore backup</DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="min-w-48">
-                    {p.backups.length === 0 ? (
-                      <DropdownMenuItem disabled>No backups yet (one is kept per day)</DropdownMenuItem>
-                    ) : (
-                      p.backups.map((b) => (
-                        <DropdownMenuItem key={b.name} onSelect={() => p.onRestoreBackup(b)}>
-                          {b.date}
-                          <DropdownMenuShortcut>{Math.max(1, Math.round(b.bytes / 1024))} KB</DropdownMenuShortcut>
-                        </DropdownMenuItem>
-                      ))
-                    )}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-                <DropdownMenuItem onSelect={p.onRevealFile}>Reveal notes file in Finder</DropdownMenuItem>
-              </>
-            )}
-            <DropdownMenuItem onSelect={p.onOpenSettings}>
-              Settings <DropdownMenuShortcut>{formatBinding(p.keymap.settings)}</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={p.onOpenHelp}>
-              Keyboard shortcuts <DropdownMenuShortcut>{formatBinding(p.keymap.help)}</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            {p.isTauri && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={p.onQuit} variant="destructive">
-                  Quit Batch <DropdownMenuShortcut>⌘Q</DropdownMenuShortcut>
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {iconBtn(
+          `Settings  ${formatBinding(p.keymap.settings)}`,
+          false,
+          p.onOpenSettings,
+          <Settings className="size-4 text-muted-foreground" />,
+        )}
       </div>
     </header>
   );

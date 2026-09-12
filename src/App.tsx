@@ -814,7 +814,6 @@ export default function App() {
           onCloseSearch={closeSearch}
           onArrowDownOut={() => focusList("top")}
           searchRef={searchRef}
-          expanded={expanded}
           onToggleExpand={() => void toggleExpand()}
           onToggleSearch={() => (searchOpen ? closeSearch() : openSearch())}
           filtersOpen={filtersOpen}
@@ -824,16 +823,7 @@ export default function App() {
           onTogglePin={togglePin}
           isTauri={inTauri}
           keymap={keymap}
-          onRevealFile={() => void native.revealNotesFile()}
-          onResetPosition={() => void native.resetPosition()}
-          onExport={exportAs}
-          onImport={importJson}
-          backups={backups}
-          onOpenBackups={refreshBackups}
-          onRestoreBackup={(b) => void restoreBackup(b)}
           onOpenSettings={() => setView("settings")}
-          onOpenHelp={() => setView("help")}
-          onQuit={quit}
         />
 
         <input
@@ -864,6 +854,13 @@ export default function App() {
               setView("list");
               focusCapture();
             }}
+            onOpenHelp={() => setView("help")}
+            onResetPosition={() => void native.resetPosition()}
+            onExport={exportAs}
+            onImport={importJson}
+            backups={backups}
+            onOpenBackups={refreshBackups}
+            onRestoreBackup={(b) => void restoreBackup(b)}
           />
         ) : view === "help" ? (
           <HelpSheet

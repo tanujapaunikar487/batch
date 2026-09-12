@@ -3,8 +3,16 @@ import { ArrowLeft, Check, Copy, ExternalLink, Monitor, Moon, Search, Sun } from
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { type ActionId, ACTIONS, CUSTOMIZABLE_ACTIONS, DEFAULT_KEYMAP, DEFAULT_SCREENSHOT_SHORTCUT, DEFAULT_TOGGLE_SHORTCUT } from "@/lib/shortcuts";
+import { type ActionId, ACTIONS, CUSTOMIZABLE_ACTIONS, DEFAULT_KEYMAP, DEFAULT_SCREENSHOT_SHORTCUT, DEFAULT_TOGGLE_SHORTCUT, formatBinding } from "@/lib/shortcuts";
 import { type SettingsApi, type ThemePref } from "@/store/useSettings";
 import { native } from "@/lib/native";
 import { isTauri } from "@/store/persistence";
@@ -15,6 +23,13 @@ interface Props {
   noteCount: number;
   sectionCount: number;
   onBack: () => void;
+  onOpenHelp: () => void;
+  onResetPosition: () => void;
+  onExport: (what: "folder-md" | "all-md" | "json" | "folder-bundle" | "all-bundle") => void;
+  onImport: () => void;
+  backups: { name: string; path: string; bytes: number; date: string }[];
+  onOpenBackups: () => void;
+  onRestoreBackup: (b: { path: string; date: string }) => void;
 }
 
 const NAV = [
@@ -26,7 +41,19 @@ const NAV = [
 ] as const;
 type SectionId = (typeof NAV)[number][0];
 
-export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Props) {
+export function SettingsPanel({
+  settings,
+  noteCount,
+  sectionCount,
+  onBack,
+  onOpenHelp,
+  onResetPosition,
+  onExport,
+  onImport,
+  backups,
+  onOpenBackups,
+  onRestoreBackup,
+}: Props) {
   const inTauri = isTauri();
   const [ds, setDs] = useState<{ active: boolean; granted: boolean } | null>(null);
   const [axTrusted, setAxTrusted] = useState<boolean | null>(null);
@@ -87,20 +114,22 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
     autostart: m("launch at login", "autostart"),
     copyList: m("copy as list marks notes done", "handed off"),
     toggleHotkey: m("toggle hotkey", "system-wide", "show hide"),
+    windowPosition: m("window position", "snap under menu-bar icon", "off-screen"),
     doubleShift: m("double-shift to open", "input monitoring"),
     captureSel: m("capture selected text", "accessibility"),
     captureSrc: m("remember where a capture came from", "source app window"),
     regionHotkey: m("screen-region hotkey", "screenshot", "drag a box"),
-    fixed: m("fixed shortcuts", "browse", "star"),
+    allShortcuts: m("keyboard shortcuts", "full list"),
     agents: m("agents", "mcp", "claude cursor codex", "connect", "server"),
     data: m("your data", "notes folder", "local file", "reveal", "sync"),
+    backup: m("export", "import", "backup", "restore", "json", "markdown"),
   };
   const showSection: Record<SectionId, boolean> = {
-    general: m("general") || rows.appearance || rows.autostart || rows.copyList || rows.toggleHotkey,
+    general: m("general") || rows.appearance || rows.autostart || rows.copyList || rows.toggleHotkey || rows.windowPosition,
     capture: m("capture") || rows.doubleShift || rows.captureSel || rows.captureSrc || rows.regionHotkey,
-    shortcuts: m("shortcuts") || shortcutHits.length > 0,
+    shortcuts: m("shortcuts") || shortcutHits.length > 0 || rows.allShortcuts,
     agents: rows.agents,
-    data: rows.data,
+    data: rows.data || rows.backup,
   };
   const anyHit = (Object.keys(showSection) as SectionId[]).some((k) => showSection[k]);
 
@@ -250,6 +279,13 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
                 />
               </Row>
               )}
+              {rows.windowPosition && inTauri && (
+              <Row label="Window position" hint="If it's off-screen or dragged away">
+                <Button size="xs" variant="outline" onClick={onResetPosition}>
+                  Snap under menu-bar icon
+                </Button>
+              </Row>
+              )}
             </>,
           )}
 
@@ -370,10 +406,12 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
                   />
                 </Row>
               ))}
-              {rows.fixed && (
-              <p className="py-2.5 text-xs leading-5 text-muted-foreground">
-                Fixed: ⌘1–9 sections · ↑↓ browse · Space done · ↩ edit · ⌫ delete · 1 star · ⌘A · ⌘C · ⌘Z · ⌘, · ⌘/
-              </p>
+              {rows.allShortcuts && (
+              <Row label="All shortcuts" hint="Fixed ones too — browse, star, sections, edit, delete…">
+                <Button size="xs" variant="outline" onClick={onOpenHelp}>
+                  View  {formatBinding(keymap.help)}
+                </Button>
+              </Row>
               )}
             </>,
           )}
@@ -436,6 +474,41 @@ export function SettingsPanel({ settings, noteCount, sectionCount, onBack }: Pro
                   <Button size="xs" variant="outline" onClick={() => void native.revealNotesFile()}>
                     <ExternalLink className="size-3" /> Reveal
                   </Button>
+                </div>
+              )}
+              {rows.backup && inTauri && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="xs" variant="outline">Export…</Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem onSelect={() => onExport("folder-md")}>This folder as Markdown…</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => onExport("folder-bundle")}>This folder as Markdown + images…</DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onSelect={() => onExport("all-md")}>Everything as Markdown…</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => onExport("all-bundle")}>Everything as Markdown + images…</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => onExport("json")}>Everything as JSON (backup)…</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button size="xs" variant="outline" onClick={onImport}>Import JSON…</Button>
+                  <DropdownMenu onOpenChange={(o) => o && onOpenBackups()}>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="xs" variant="outline">Restore backup…</Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="min-w-48">
+                      {backups.length === 0 ? (
+                        <DropdownMenuItem disabled>No backups yet (one is kept per day)</DropdownMenuItem>
+                      ) : (
+                        backups.map((b) => (
+                          <DropdownMenuItem key={b.name} onSelect={() => onRestoreBackup(b)}>
+                            {b.date}
+                            <DropdownMenuShortcut>{Math.max(1, Math.round(b.bytes / 1024))} KB</DropdownMenuShortcut>
+                          </DropdownMenuItem>
+                        ))
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               )}
             </div>,
