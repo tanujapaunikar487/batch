@@ -28,3 +28,4 @@ dist-mac
 
 # generated sidecar
 src-tauri/binaries/
+.rivet/
