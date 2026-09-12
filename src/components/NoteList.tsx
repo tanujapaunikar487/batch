@@ -107,10 +107,18 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
     } else if (currentHeading) headingCounts.set(currentHeading, (headingCounts.get(currentHeading) ?? 0) + 1);
   }
 
+  // Archival catalog numbers — sequential across open then done, skipping headings.
+  const cardNumbers = new Map<string, number>();
+  let cardSeq = 0;
+  for (const n of [...open, ...done]) {
+    if (!isHeading(n)) cardNumbers.set(n.id, ++cardSeq);
+  }
+
   const row = (n: Note, canDrag: boolean) => (
     <NoteRow
       key={n.id}
       note={n}
+      cardNumber={cardNumbers.get(n.id)}
       sectionCount={isHeading(n) ? headingCounts.get(n.id) : undefined}
       sections={sections}
       showSection={showSection}
@@ -145,12 +153,12 @@ export const NoteList = forwardRef<HTMLDivElement, Props>(function NoteList(
       ) : (
         <>
           {visible.length > 0 && (
-            <ul role="listbox" aria-multiselectable aria-label="Notes" className="flex flex-col gap-1">
+            <ul role="listbox" aria-multiselectable aria-label="Notes" className="flex flex-col">
               {visible.map((n) => row(n, !!reorderable))}
             </ul>
           )}
           {done.length > 0 && (
-            <ul role="listbox" aria-multiselectable aria-label="Search results — done" className="flex flex-col gap-1">
+            <ul role="listbox" aria-multiselectable aria-label="Search results — done" className="mt-2 flex flex-col">
               {done.map((n) => row(n, false))}
             </ul>
           )}

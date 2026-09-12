@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Bot, Check, CheckSquare, ChevronDown, ChevronRight, Copy, CornerDownRight, FolderInput, Heading, ImagePlus, ListOrdered, Merge, MessageSquare, MessageSquarePlus, MoreHorizontal, Pencil, Square, Star, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Bot, Check, CheckSquare, ChevronDown, ChevronRight, Copy, CornerDownRight, FolderInput, Heading, ImagePlus, ListOrdered, Merge, MessageSquare, MessageSquarePlus, MoreHorizontal, Pencil, Square, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -48,7 +48,7 @@ function IconAction({
           aria-expanded={pressed}
           onClick={onClick}
           className={cn(
-            "grid size-6 shrink-0 place-items-center rounded-md transition-colors hover:bg-foreground/[0.06]",
+            "grid size-7 shrink-0 place-items-center rounded-md transition-colors hover:bg-foreground/[0.06]",
             className,
           )}
         >
@@ -107,6 +107,8 @@ export interface NoteRowProps {
   onAddSectionAbove?: (id: string) => void;
   /** For heading rows: open notes under this heading. */
   sectionCount?: number;
+  /** Archival catalog number stamped on the card. */
+  cardNumber?: number;
   /** Manual reordering (disabled in search results). */
   reorderable?: boolean;
   dropEdge?: "top" | "bottom" | null;
@@ -153,6 +155,7 @@ export function NoteRow({
   dragGroup,
   onAddSectionAbove,
   sectionCount,
+  cardNumber,
   reorderable,
   dropEdge,
   onRowDragStart,
@@ -243,26 +246,39 @@ export function NoteRow({
             if (!note.done) onStartEdit(note.id);
           }}
           className={cn(
-            "group relative flex items-start gap-2.5 rounded-lg p-2 outline-none",
-            heading && "mt-3 first:mt-0",
-            "hover:bg-foreground/[0.04] dark:hover:bg-foreground/[0.06]",
-            (isSelected || menuOpen) && "bg-foreground/[0.07] dark:bg-foreground/[0.1] hover:bg-foreground/[0.08]",
+            "group relative flex items-start gap-2.5 px-2 py-2.5 outline-none",
+            // Ledger row: full-width rule beneath, red margin rule at the left edge.
+            !heading &&
+              "border-b border-l-2 border-amber-300/60 border-l-rose-400/60 dark:border-amber-200/12 dark:border-l-rose-400/40",
+            heading && "mt-3 first:mt-0 rounded-lg hover:bg-foreground/[0.04] dark:hover:bg-foreground/[0.06]",
+            !heading && "hover:bg-amber-50/50 dark:hover:bg-amber-100/[0.025]",
+            (isSelected || menuOpen) && "!bg-foreground/[0.07] dark:!bg-foreground/[0.1]",
             isCursor && "ring-1 ring-ring/40",
             note.done && !isSelected && "opacity-60",
-            dropTargetRow && "ring-2 ring-ring/50 bg-foreground/[0.05]",
+            dropTargetRow && "ring-2 ring-ring/50 !bg-foreground/[0.05]",
             // Drop indicator line while reordering.
             dropEdge === "top" && "before:absolute before:inset-x-2 before:-top-0.5 before:h-0.5 before:rounded-full before:bg-ring",
             dropEdge === "bottom" && "after:absolute after:inset-x-2 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-ring",
           )}
         >
           {!heading && (
-            <Checkbox
-              checked={note.done}
-              onCheckedChange={() => onToggle(note.id)}
-              aria-label={note.done ? "Mark as not done" : "Mark as done"}
-              className="mt-1 shrink-0 border-muted-foreground/60 dark:border-muted-foreground/70"
-              tabIndex={-1}
-            />
+            <div className="flex shrink-0 flex-col items-center gap-1 pt-1">
+              <Checkbox
+                checked={note.done}
+                onCheckedChange={() => onToggle(note.id)}
+                aria-label={note.done ? "Mark as not done" : "Mark as done"}
+                className="border-muted-foreground/60 dark:border-muted-foreground/70"
+                tabIndex={-1}
+              />
+              {cardNumber !== undefined && (
+                <span
+                  className="font-mono text-[9px] font-medium tabular-nums leading-none text-rose-700/60 dark:text-rose-300/45"
+                  aria-hidden
+                >
+                  {String(cardNumber).padStart(3, "0")}
+                </span>
+              )}
+            </div>
           )}
 
           <div className={cn("min-w-0 flex-1", heading && "pt-0.5")}>
@@ -343,8 +359,8 @@ export function NoteRow({
               </div>
             )}
             {(note.outcome || editingOutcome) && (
-              <div className="mt-1.5 rounded-md border-l-2 border-foreground/15 bg-foreground/[0.03] px-2 py-1">
-                <div className="mb-0.5 flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+              <div className="mt-2 border-t border-amber-300/50 pt-1.5 dark:border-amber-200/12">
+                <div className="mb-0.5 flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
                   <MessageSquare className="size-3" />
                   {note.outcome ? `Outcome${note.outcome.by === "agent" ? " · agent" : ""}` : "Outcome"}
                 </div>
@@ -380,14 +396,16 @@ export function NoteRow({
           {/* One reserved action zone, right-aligned: contextual primary action (hover) ·
               star (always) · ⋯ (hover) — same cluster and order as the Focus card's action row. */}
           {!heading && (
-            <div className="mt-0.5 flex h-5 shrink-0 items-center justify-end gap-0.5">
+            <div className="mt-0.5 flex h-6 shrink-0 items-center justify-end gap-0.5">
+              {/* Ledger divider separating the entry from its action column. */}
+              <span className="mr-1.5 h-5 w-px self-center bg-amber-800/20 dark:bg-amber-200/15" aria-hidden />
               {!note.done && !note.handedOff && (
                 <IconAction
                   label="Hand to your agent"
                   className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
                   onClick={() => onCopyForAgent(targetsFor(note.id))}
                 >
-                  <Bot className="size-3.5" />
+                  <Bot className="size-[18px]" />
                 </IconAction>
               )}
               {!note.done && note.handedOff && !note.outcome && (
@@ -396,19 +414,23 @@ export function NoteRow({
                   className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
                   onClick={() => setEditingOutcome(true)}
                 >
-                  <MessageSquarePlus className="size-3.5" />
+                  <MessageSquarePlus className="size-[18px]" />
                 </IconAction>
               )}
               <IconAction
-                label={note.priority === "high" ? "Unstar" : "Star — this one matters"}
+                label={note.priority === "high" ? "High priority — clear" : "Flag high priority"}
                 pressed={note.priority === "high"}
                 onClick={() => onSetPriority([note.id], note.priority === "high" ? "medium" : "high")}
-                className={cn(
-                  note.priority === "high" ? "text-amber-500" : "text-muted-foreground/50 hover:!text-amber-500",
-                  note.done && "opacity-40",
-                )}
+                className={cn(note.done && "opacity-40")}
               >
-                <Star className="size-3.5" fill={note.priority === "high" ? "currentColor" : "none"} />
+                <span
+                  className={cn(
+                    "block size-3.5 rounded-full ring-1 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.55),0_1px_1px_rgba(0,0,0,0.15)]",
+                    note.priority === "high"
+                      ? "bg-amber-400 ring-amber-600/50"
+                      : "bg-transparent ring-muted-foreground/40",
+                  )}
+                />
               </IconAction>
               <IconAction
                 label="Note actions"
@@ -422,12 +444,12 @@ export function NoteRow({
                   openMenuAt(r.left, r.bottom);
                 }}
               >
-                <MoreHorizontal className="size-3.5" />
+                <MoreHorizontal className="size-[18px]" />
               </IconAction>
             </div>
           )}
           {heading && (
-            <div className="mt-0.5 flex h-5 shrink-0 items-center justify-end">
+            <div className="mt-0.5 flex h-6 shrink-0 items-center justify-end">
               <IconAction
                 label="Section actions"
                 pressed={menuOpen}
@@ -440,7 +462,7 @@ export function NoteRow({
                   openMenuAt(r.left, r.bottom);
                 }}
               >
-                <MoreHorizontal className="size-3.5" />
+                <MoreHorizontal className="size-[18px]" />
               </IconAction>
             </div>
           )}

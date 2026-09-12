@@ -124,7 +124,7 @@ export function SectionTabs({
   );
 
   return (
-    <div className="flex shrink-0 items-center gap-1 overflow-x-auto px-5 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist">
+    <div className="flex shrink-0 items-end gap-0 overflow-x-auto border-b border-amber-300/60 px-5 pl-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden dark:border-amber-200/12" role="tablist">
       {sections.map((s, i) => {
         const isActive = !searching && s.id === activeId;
         return renaming === s.id ? (
@@ -187,14 +187,15 @@ export function SectionTabs({
                   }
                 }}
                 className={cn(
-                  "relative flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[13px] transition-colors select-none",
+                  // Layered folder tabs: each card overlaps the one before it; the active card lifts to the front.
+                  "relative -mb-px -ml-3 flex h-8 shrink-0 items-center gap-1.5 rounded-t-md border border-b-0 pl-4 pr-3.5 text-[13px] transition-colors select-none first:ml-0",
                   dragId && over?.id === s.id && dragId !== s.id && over.side === "left" &&
                     "before:absolute before:-left-1 before:top-1 before:bottom-1 before:w-0.5 before:rounded-full before:bg-ring",
                   dragId && over?.id === s.id && dragId !== s.id && over.side === "right" &&
                     "after:absolute after:-right-1 after:top-1 after:bottom-1 after:w-0.5 after:rounded-full after:bg-ring",
                   isActive
-                    ? "bg-foreground/[0.08] text-foreground dark:bg-foreground/[0.12]"
-                    : "text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground",
+                    ? "z-20 border-amber-300/70 bg-amber-50/90 text-foreground shadow-[-1px_-1px_2px_rgba(120,80,20,0.06)] dark:border-amber-200/15 dark:bg-amber-100/[0.06]"
+                    : "z-0 border-amber-300/45 bg-amber-50/40 text-muted-foreground shadow-[-1px_-1px_2px_rgba(120,80,20,0.04)] hover:z-10 hover:bg-amber-50/70 hover:text-foreground dark:border-amber-200/10 dark:bg-amber-100/[0.02]",
                 )}
               >
                 {s.name}
@@ -249,9 +250,9 @@ export function SectionTabs({
           }}
           aria-label="New folder (⇧⌘N)"
           title="New folder  ⇧⌘N"
-          className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground"
+          className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground"
         >
-          <Plus className="size-4" />
+          <Plus className="size-[22px]" />
         </button>
       )}
     </div>
