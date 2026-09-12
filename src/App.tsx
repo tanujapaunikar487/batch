@@ -823,10 +823,6 @@ export default function App() {
           onTogglePin={togglePin}
           isTauri={inTauri}
           keymap={keymap}
-          canUndo={notes.canUndo}
-          canRedo={notes.canRedo}
-          onUndo={notes.undo}
-          onRedo={notes.redo}
           onRevealFile={() => void native.revealNotesFile()}
           onResetPosition={() => void native.resetPosition()}
           onExport={exportAs}

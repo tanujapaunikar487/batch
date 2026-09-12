@@ -35,11 +35,6 @@ interface Props {
   onTogglePin: () => void;
   isTauri: boolean;
   keymap: Record<ActionId, string>;
-  canUndo: boolean;
-  canRedo: boolean;
-  onUndo: () => void;
-  onRedo: () => void;
-
   onRevealFile: () => void;
   onResetPosition: () => void;
   onExport: (what: "folder-md" | "all-md" | "json" | "folder-bundle" | "all-bundle") => void;
@@ -159,13 +154,6 @@ export function Header(p: Props) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-52">
-            <DropdownMenuItem onSelect={p.onUndo} disabled={!p.canUndo}>
-              Undo <DropdownMenuShortcut>{formatBinding(p.keymap.undo)}</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={p.onRedo} disabled={!p.canRedo}>
-              Redo <DropdownMenuShortcut>{formatBinding(p.keymap.redo)}</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             {p.isTauri && (
               <>
                 <DropdownMenuItem onSelect={p.onToggleExpand}>
@@ -173,9 +161,9 @@ export function Header(p: Props) {
                   <DropdownMenuShortcut>{formatBinding(p.keymap.expand)}</DropdownMenuShortcut>
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={p.onResetPosition}>Snap under menu-bar icon</DropdownMenuItem>
+                <DropdownMenuSeparator />
               </>
             )}
-            <DropdownMenuSeparator />
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>Appearance</DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
