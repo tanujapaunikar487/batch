@@ -830,8 +830,6 @@ export default function App() {
           backups={backups}
           onOpenBackups={refreshBackups}
           onRestoreBackup={(b) => void restoreBackup(b)}
-          theme={settings.settings.theme}
-          onTheme={settings.setTheme}
           onOpenSettings={() => setView("settings")}
           onOpenHelp={() => setView("help")}
           onQuit={quit}

@@ -1,4 +1,4 @@
-import { Check, Filter, Monitor, Moon, MoreHorizontal, Pin, Search, Sun, X } from "lucide-react";
+import { Filter, MoreHorizontal, Pin, Search, X } from "lucide-react";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { type ThemePref } from "@/store/useSettings";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { type ActionId, formatBinding } from "@/lib/shortcuts";
@@ -42,8 +41,6 @@ interface Props {
   backups: { name: string; path: string; bytes: number; date: string }[];
   onOpenBackups: () => void;
   onRestoreBackup: (b: { path: string; date: string }) => void;
-  theme: ThemePref;
-  onTheme: (t: ThemePref) => void;
   onOpenSettings: () => void;
   onOpenHelp: () => void;
   onQuit: () => void;
@@ -164,23 +161,6 @@ export function Header(p: Props) {
                 <DropdownMenuSeparator />
               </>
             )}
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>Appearance</DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                {(
-                  [
-                    ["system", "System", <Monitor key="s" />],
-                    ["light", "Light", <Sun key="l" />],
-                    ["dark", "Dark", <Moon key="d" />],
-                  ] as [ThemePref, string, React.ReactNode][]
-                ).map(([v, label, icon]) => (
-                  <DropdownMenuItem key={v} onSelect={() => p.onTheme(v)}>
-                    {icon} {label}
-                    {p.theme === v && <Check className="ml-auto size-3.5" />}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
             {p.isTauri && (
               <>
                 <DropdownMenuSub>
