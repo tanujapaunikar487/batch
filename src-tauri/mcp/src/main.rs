@@ -36,6 +36,25 @@ fn empty_state() -> Value {
     json!({ "version": 2, "sections": [{ "id": "inbox", "name": "Untitled", "createdAt": 0 }], "notes": [] })
 }
 
+/// Default cap on notes returned per list_notes call when the agent doesn't ask
+/// for a specific number itself — set in Batch's General settings. None = no cap.
+/// Mirrors the frontend's `agentNoteLimit` (default 10, 0 = no limit); falls back
+/// to 10 if settings.json is missing or unreadable.
+fn default_agent_limit() -> Option<usize> {
+    let parsed = std::fs::read_to_string(data_dir().join("settings.json"))
+        .ok()
+        .and_then(|text| serde_json::from_str::<Value>(&text).ok());
+    let limit = parsed
+        .as_ref()
+        .and_then(|v| v.get("state").unwrap_or(v).get("agentNoteLimit"))
+        .and_then(Value::as_u64);
+    match limit {
+        Some(0) => None,  // explicit "no limit"
+        Some(n) => Some(n as usize),
+        None => Some(10), // settings.json missing/unreadable, or field absent
+    }
+}
+
 fn now_ms() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -141,10 +160,11 @@ fn tool_defs() -> Value {
     json!([
         { "name": "list_folders", "description": "List Batch folders (name + open/total note counts).",
           "inputSchema": { "type": "object", "properties": {} } },
-        { "name": "list_notes", "description": "List notes, optionally filtered by folder and status.",
+        { "name": "list_notes", "description": "List notes, optionally filtered by folder and status. Returned highest-priority first, then most recent — so with a lot of notes, ask for a specific slice: a folder (one project), a limit (e.g. \"top 5\"), or both.",
           "inputSchema": { "type": "object", "properties": {
             "folder": { "type": "string", "description": "Folder id or name (default: all folders)" },
-            "status": { "type": "string", "enum": ["all","open","done"], "description": "default open" } } } },
+            "status": { "type": "string", "enum": ["all","open","done"], "description": "default open" },
+            "limit": { "type": "integer", "description": "Max notes to return, taken from the priority/recency order above. Omit to use the user's configured default (Settings → General); 0 means no limit." } } } },
         { "name": "get_note", "description": "Get one note by id: full text, source app/window, and its attached images — returned as actual images, with any numbered pins or area markers (x/y as % of the image, left/top; areas add w/h).",
           "inputSchema": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] } },
         { "name": "add_note", "description": "Add a note to a folder.",
@@ -200,8 +220,8 @@ fn call_tool(name: &str, args: &Value) -> Result<Value, String> {
             let status = args["status"].as_str().unwrap_or("open");
             let fid = folder.and_then(|f| resolve_folder(&state, Some(f)));
             let notes = state["notes"].as_array().cloned().unwrap_or_default();
-            let out: Vec<Value> = notes
-                .iter()
+            let mut matched: Vec<Value> = notes
+                .into_iter()
                 .filter(|n| {
                     if n["kind"] == "heading" {
                         return false;
@@ -218,8 +238,32 @@ fn call_tool(name: &str, args: &Value) -> Result<Value, String> {
                         _ => true,
                     }
                 })
-                .map(|n| note_summary(&state, n))
                 .collect();
+            // Highest priority first, then most recently created — so a limit
+            // below takes the notes actually worth looking at first.
+            matched.sort_by(|a, b| {
+                let rank = |n: &Value| match n["priority"].as_str() {
+                    Some("high") => 0,
+                    Some("low") => 2,
+                    _ => 1,
+                };
+                rank(a).cmp(&rank(b)).then_with(|| {
+                    let ca = a["createdAt"].as_i64().unwrap_or(0);
+                    let cb = b["createdAt"].as_i64().unwrap_or(0);
+                    cb.cmp(&ca)
+                })
+            });
+            // An explicit limit from the agent wins; 0 means "no limit" either
+            // way. Otherwise fall back to the General-settings default.
+            let limit = match args["limit"].as_u64() {
+                Some(0) => None,
+                Some(n) => Some(n as usize),
+                None => default_agent_limit(),
+            };
+            if let Some(n) = limit {
+                matched.truncate(n);
+            }
+            let out: Vec<Value> = matched.iter().map(|n| note_summary(&state, n)).collect();
             Ok(text_result(
                 serde_json::to_string_pretty(&out).unwrap_or_default(),
             ))

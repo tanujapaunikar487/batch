@@ -3,6 +3,7 @@ import { ArrowLeft, Check, Copy, ExternalLink, Monitor, Moon, Search, Sun } from
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -114,6 +115,7 @@ export function SettingsPanel({
     autostart: m("launch at login", "autostart"),
     copyList: m("copy as list marks notes done", "handed off"),
     showOutcomes: m("show agent answers", "outcome", "output"),
+    agentLimit: m("notes an agent works on", "limit", "top 5", "agent batch size"),
     toggleHotkey: m("toggle hotkey", "system-wide", "show hide"),
     windowPosition: m("window position", "snap under menu-bar icon", "off-screen"),
     doubleShift: m("double-shift to open", "input monitoring"),
@@ -126,7 +128,7 @@ export function SettingsPanel({
     backup: m("export", "import", "backup", "restore", "json", "markdown"),
   };
   const showSection: Record<SectionId, boolean> = {
-    general: m("general") || rows.appearance || rows.autostart || rows.copyList || rows.showOutcomes || rows.toggleHotkey || rows.windowPosition,
+    general: m("general") || rows.appearance || rows.autostart || rows.copyList || rows.showOutcomes || rows.agentLimit || rows.toggleHotkey || rows.windowPosition,
     capture: m("capture") || rows.doubleShift || rows.captureSel || rows.captureSrc || rows.regionHotkey,
     shortcuts: m("shortcuts") || shortcutHits.length > 0 || rows.allShortcuts,
     agents: rows.agents,
@@ -269,6 +271,25 @@ export function SettingsPanel({
               {rows.showOutcomes && (
               <Row label="Show agent answers under notes" hint="Off hides the text, not that it's out with an agent">
                 <Switch checked={settings.settings.showOutcomes} onCheckedChange={settings.setShowOutcomes} />
+              </Row>
+              )}
+              {rows.agentLimit && (
+              <Row label="Notes an agent works on at once" hint='Used when you don’t give a number yourself — e.g. "work on the top 5"'>
+                <Select
+                  value={String(settings.settings.agentNoteLimit)}
+                  onValueChange={(v) => settings.setAgentNoteLimit(Number(v))}
+                >
+                  <SelectTrigger size="sm" className="h-7 w-auto gap-1 bg-background/60 px-2 text-xs dark:bg-input/40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    {[5, 10, 20, 50, 0].map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n === 0 ? "No limit" : n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Row>
               )}
               {rows.toggleHotkey && (

@@ -29,6 +29,9 @@ export interface Settings {
   sawAgentNudge: boolean;
   /** Show an agent's answer under its note. Off hides the text but not the "with your agent" status. */
   showOutcomes: boolean;
+  /** Default cap on notes an agent gets from list_notes when it doesn't ask for a specific
+   * number itself (e.g. "work on the top 5" overrides this). 0 = no limit. */
+  agentNoteLimit: number;
   theme: ThemePref;
   keymap: Partial<Record<ActionId, string>>;
   /** Remembered popover size (logical px); applied by Rust on launch. */
@@ -45,6 +48,7 @@ export const DEFAULT_SETTINGS: Settings = {
   copyListMarksDone: true,
   sawAgentNudge: false,
   showOutcomes: true,
+  agentNoteLimit: 10,
   theme: "system",
   keymap: {},
 };
@@ -65,6 +69,9 @@ function normalizeSettings(raw: unknown): Settings {
   if (typeof r.copyListMarksDone === "boolean") s.copyListMarksDone = r.copyListMarksDone;
   if (typeof r.sawAgentNudge === "boolean") s.sawAgentNudge = r.sawAgentNudge;
   if (typeof r.showOutcomes === "boolean") s.showOutcomes = r.showOutcomes;
+  if (typeof r.agentNoteLimit === "number" && Number.isInteger(r.agentNoteLimit) && r.agentNoteLimit >= 0) {
+    s.agentNoteLimit = r.agentNoteLimit;
+  }
   if (r.theme === "light" || r.theme === "dark" || r.theme === "system") s.theme = r.theme;
   const w = r.window as { width?: unknown; height?: unknown } | undefined;
   if (w && typeof w.width === "number" && typeof w.height === "number" && w.width >= 320 && w.height >= 360) {
@@ -154,6 +161,7 @@ export function useSettings(store?: KeyValueStore) {
   );
   const setCopyListMarksDone = useCallback((v: boolean) => update({ copyListMarksDone: v }), [update]);
   const setShowOutcomes = useCallback((v: boolean) => update({ showOutcomes: v }), [update]);
+  const setAgentNoteLimit = useCallback((v: number) => update({ agentNoteLimit: v }), [update]);
   const dismissAgentNudge = useCallback(() => update({ sawAgentNudge: true }), [update]);
   const setWindowSize = useCallback((width: number, height: number) => update({ window: { width, height } }), [update]);
   const setCaptureSource = useCallback(
@@ -187,6 +195,7 @@ export function useSettings(store?: KeyValueStore) {
     setCaptureSelection,
     setCopyListMarksDone,
     setShowOutcomes,
+    setAgentNoteLimit,
     dismissAgentNudge,
     setCaptureSource,
     setScreenshotShortcut,
