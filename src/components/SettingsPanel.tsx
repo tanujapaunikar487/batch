@@ -34,9 +34,9 @@ interface Props {
 
 const NAV = [
   ["general", "General"],
+  ["agents", "Agents (MCP)"],
   ["capture", "Capture"],
   ["shortcuts", "Shortcuts"],
-  ["agents", "Agents (MCP)"],
   ["data", "Your data"],
 ] as const;
 type SectionId = (typeof NAV)[number][0];
@@ -290,6 +290,47 @@ export function SettingsPanel({
             </>,
           )}
 
+          {inTauri &&
+            showSection.agents &&
+            group(
+              "agents",
+              "Agents (MCP)",
+              null,
+              <div className="py-3">
+                <p className="text-xs leading-5 text-muted-foreground">
+                  Connect Claude Code, Cursor or Codex once and it reads your notes itself, writes
+                  each answer under its note, and ticks it off — live in the app, no pasting.
+                  A local server edits the same file; nothing leaves your Mac.
+                </p>
+                {mcpPath ? (
+                  <div className="mt-2 flex items-center gap-2">
+                    <code className="min-w-0 flex-1 truncate rounded bg-foreground/[0.05] px-1.5 py-1 text-[10px]" title={`claude mcp add batch -- ${mcpPath}`}>
+                      claude mcp add batch -- {mcpPath}
+                    </code>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(`claude mcp add batch -- ${mcpPath}`);
+                          setCopiedMcp(true);
+                          window.setTimeout(() => setCopiedMcp(false), 1200);
+                        } catch {
+                          /* ignore */
+                        }
+                      }}
+                    >
+                      {copiedMcp ? <Check className="size-3" /> : <Copy className="size-3" />} Copy
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    The bundled <code>batch-mcp</code> server wasn’t found (dev build?). It ships inside the released app.
+                  </p>
+                )}
+              </div>,
+            )}
+
           {showSection.capture && group(
             "capture",
             "Capture",
@@ -416,47 +457,6 @@ export function SettingsPanel({
               )}
             </>,
           )}
-
-          {inTauri &&
-            showSection.agents &&
-            group(
-              "agents",
-              "Agents (MCP)",
-              null,
-              <div className="py-3">
-                <p className="text-xs leading-5 text-muted-foreground">
-                  Connect Claude Code, Cursor or Codex once and it reads your notes itself, writes
-                  each answer under its note, and ticks it off — live in the app, no pasting.
-                  A local server edits the same file; nothing leaves your Mac.
-                </p>
-                {mcpPath ? (
-                  <div className="mt-2 flex items-center gap-2">
-                    <code className="min-w-0 flex-1 truncate rounded bg-foreground/[0.05] px-1.5 py-1 text-[10px]" title={`claude mcp add batch -- ${mcpPath}`}>
-                      claude mcp add batch -- {mcpPath}
-                    </code>
-                    <Button
-                      size="xs"
-                      variant="outline"
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(`claude mcp add batch -- ${mcpPath}`);
-                          setCopiedMcp(true);
-                          window.setTimeout(() => setCopiedMcp(false), 1200);
-                        } catch {
-                          /* ignore */
-                        }
-                      }}
-                    >
-                      {copiedMcp ? <Check className="size-3" /> : <Copy className="size-3" />} Copy
-                    </Button>
-                  </div>
-                ) : (
-                  <p className="mt-2 text-[11px] text-muted-foreground">
-                    The bundled <code>batch-mcp</code> server wasn’t found (dev build?). It ships inside the released app.
-                  </p>
-                )}
-              </div>,
-            )}
 
           {showSection.data && group(
             "data",
