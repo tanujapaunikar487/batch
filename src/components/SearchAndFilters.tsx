@@ -25,12 +25,14 @@ export function SearchAndFilters({ filtersOpen, filter, onFilter }: Props) {
             onChange={(v) => onFilter({ ...filter, status: v as Filter["status"] })}
           />
           <FilterSelect
-            value={filter.priority === "high" ? "high" : "any"}
+            value={filter.priority ?? "any"}
             options={[
-              ["any", "Any"],
-              ["high", "★ Starred"],
+              ["any", "Any Priority"],
+              ["high", "High"],
+              ["medium", "Medium"],
+              ["low", "Low"],
             ]}
-            onChange={(v) => onFilter({ ...filter, priority: v === "high" ? "high" : undefined })}
+            onChange={(v) => onFilter({ ...filter, priority: v === "any" ? undefined : (v as Filter["priority"]) })}
           />
           <FilterSelect
             value={filter.kind ?? "any"}
