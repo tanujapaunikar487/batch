@@ -420,7 +420,6 @@ export function NoteRow({
                 label={note.priority === "high" ? "High priority — clear" : "Flag high priority"}
                 pressed={note.priority === "high"}
                 onClick={() => onSetPriority([note.id], note.priority === "high" ? "medium" : "high")}
-                className={cn(note.done && "opacity-40")}
               >
                 <span
                   className={cn(
