@@ -438,7 +438,7 @@ fn main() {
                 json!({
                     "protocolVersion": PROTOCOL,
                     "capabilities": { "tools": {} },
-                    "serverInfo": { "name": "batch", "version": "1.1.0" }
+                    "serverInfo": { "name": "batch", "version": "1.2.0" }
                 }),
             )),
             "notifications/initialized" => None,

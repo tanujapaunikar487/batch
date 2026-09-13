@@ -31,6 +31,9 @@ interface Props {
   backups: { name: string; path: string; bytes: number; date: string }[];
   onOpenBackups: () => void;
   onRestoreBackup: (b: { path: string; date: string }) => void;
+  appVersion?: string;
+  checkingUpdate: boolean;
+  onCheckForUpdate: () => void;
 }
 
 const NAV = [
@@ -54,6 +57,9 @@ export function SettingsPanel({
   backups,
   onOpenBackups,
   onRestoreBackup,
+  appVersion,
+  checkingUpdate,
+  onCheckForUpdate,
 }: Props) {
   const inTauri = isTauri();
   const [ds, setDs] = useState<{ active: boolean; granted: boolean } | null>(null);
@@ -118,6 +124,7 @@ export function SettingsPanel({
     agentLimit: m("notes an agent works on", "limit", "top 5", "agent batch size"),
     toggleHotkey: m("toggle hotkey", "system-wide", "show hide"),
     windowPosition: m("window position", "snap under menu-bar icon", "off-screen"),
+    updates: m("software updates", "check for updates", "version"),
     doubleShift: m("double-shift to open", "input monitoring"),
     captureSel: m("capture selected text", "accessibility"),
     captureSrc: m("remember where a capture came from", "source app window"),
@@ -128,7 +135,7 @@ export function SettingsPanel({
     backup: m("export", "import", "backup", "restore", "json", "markdown"),
   };
   const showSection: Record<SectionId, boolean> = {
-    general: m("general") || rows.appearance || rows.autostart || rows.copyList || rows.showOutcomes || rows.agentLimit || rows.toggleHotkey || rows.windowPosition,
+    general: m("general") || rows.appearance || rows.autostart || rows.copyList || rows.showOutcomes || rows.agentLimit || rows.toggleHotkey || rows.windowPosition || rows.updates,
     capture: m("capture") || rows.doubleShift || rows.captureSel || rows.captureSrc || rows.regionHotkey,
     shortcuts: m("shortcuts") || shortcutHits.length > 0 || rows.allShortcuts,
     agents: rows.agents,
@@ -311,6 +318,13 @@ export function SettingsPanel({
               <Row label="Window position" hint="If it's off-screen or dragged away">
                 <Button size="xs" variant="outline" onClick={onResetPosition}>
                   Snap under menu-bar icon
+                </Button>
+              </Row>
+              )}
+              {rows.updates && inTauri && (
+              <Row label="Software updates" hint={appVersion ? `Batch ${appVersion}` : undefined}>
+                <Button size="xs" variant="outline" onClick={onCheckForUpdate} disabled={checkingUpdate}>
+                  {checkingUpdate ? "Checking…" : "Check for Updates"}
                 </Button>
               </Row>
               )}

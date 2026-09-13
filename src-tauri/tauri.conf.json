@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Batch",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "identifier": "dev.tanuja.batch",
   "build": {
     "beforeDevCommand": "bun run dev",
@@ -64,6 +64,15 @@
     "longDescription": "A small menu-bar notepad for prompts, answers, links and ideas you want to keep while working with AI tools. Notes are stored locally in a single file.",
     "externalBin": [
       "binaries/batch-mcp"
-    ]
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE5RDdCMEMxNTQyNDIzMTAKUldRUUl5UlV3YkRYcVVvYlZPanZPakgzcEp0akZTdXV2eDhCN1VhZ1RvbnQ5ZFpSRkpyOUw2Sy8K",
+      "endpoints": [
+        "https://github.com/tanujapaunikar487/batch/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

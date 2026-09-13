@@ -1,7 +1,7 @@
 {
   "name": "batch",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,7 +15,8 @@
     "app:build": "bash scripts/build.sh",
     "icons": "swift scripts/render-icons.swift src-tauri/icons/src && PATH=\"$HOME/.cargo/bin:$PATH\" tauri icon src-tauri/icons/src/app-icon.png && cp src-tauri/icons/src/tray.png src-tauri/icons/tray.png && rm -rf src-tauri/icons/android src-tauri/icons/ios",
     "sign:setup": "bash scripts/make-signing-cert.sh",
-    "dist:mac": "bash scripts/release.sh"
+    "dist:mac": "bash scripts/release.sh",
+    "publish:release": "bash scripts/publish-release.sh"
   },
   "dependencies": {
     "@crabnebula/tauri-plugin-drag": "^2.1.0",
@@ -24,6 +25,7 @@
     "@tauri-apps/plugin-autostart": "^2.5.1",
     "@tauri-apps/plugin-dialog": "^2.7.2",
     "@tauri-apps/plugin-store": "^2.4.4",
+    "@tauri-apps/plugin-updater": "^2.11.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.31.0",

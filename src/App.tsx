@@ -14,6 +14,7 @@ import { SettingsPanel } from "@/components/SettingsPanel";
 import { HelpSheet } from "@/components/HelpSheet";
 import { AccessibilityBanner } from "@/components/AccessibilityBanner";
 import { AgentNudgeBanner } from "@/components/AgentNudgeBanner";
+import { UpdateBanner } from "@/components/UpdateBanner";
 import { useNotes } from "@/store/useNotes";
 import { useSettings } from "@/store/useSettings";
 import { isTauri } from "@/store/persistence";
@@ -71,6 +72,8 @@ export default function App() {
   const attachTargetId = useRef<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<{ version: string; notes?: string } | null>(null);
+  const [installingUpdate, setInstallingUpdate] = useState(false);
 
   const captureRef = useRef<CaptureBoxHandle>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -533,6 +536,43 @@ export default function App() {
   const refreshBackups = useCallback(() => {
     if (inTauri) void native.listBackups().then((b) => setBackups(b ?? []));
   }, []);
+
+  // ── auto-update ──
+  const [appVersion, setAppVersion] = useState<string | undefined>(undefined);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const checkForUpdates = useCallback(async (): Promise<boolean> => {
+    setCheckingUpdate(true);
+    try {
+      const u = await native.checkForUpdate();
+      if (u) setUpdateInfo(u);
+      return !!u;
+    } finally {
+      setCheckingUpdate(false);
+    }
+  }, []);
+  useEffect(() => {
+    if (!inTauri) return;
+    void native.currentVersion().then(setAppVersion);
+    const first = window.setTimeout(() => void checkForUpdates(), 4000);
+    const CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
+    const interval = window.setInterval(() => void checkForUpdates(), CHECK_EVERY_MS);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const installUpdate = useCallback(async () => {
+    setInstallingUpdate(true);
+    const ok = await native.installUpdate();
+    if (ok) {
+      await notes.flush();
+      void native.relaunch();
+    } else {
+      setInstallingUpdate(false);
+      showToast("Update failed — try again from Settings");
+    }
+  }, [notes, showToast]);
   const restoreBackup = useCallback(
     async (b: { path: string; date: string }) => {
       const { ask } = await import("@tauri-apps/plugin-dialog");
@@ -861,6 +901,13 @@ export default function App() {
             onImport={importJson}
             backups={backups}
             onOpenBackups={refreshBackups}
+            appVersion={appVersion}
+            checkingUpdate={checkingUpdate}
+            onCheckForUpdate={() => {
+              void checkForUpdates().then((found) => {
+                if (!found) showToast("You're up to date");
+              });
+            }}
             onRestoreBackup={(b) => void restoreBackup(b)}
           />
         ) : view === "help" ? (
@@ -902,6 +949,14 @@ export default function App() {
                 onGrant={() => void native.requestAccessibility()}
                 onRelaunch={() => void notes.flush().then(() => native.relaunch())}
                 onDismiss={() => setBannerDismissed(true)}
+              />
+            )}
+            {inTauri && updateInfo && settings.settings.dismissedUpdateVersion !== updateInfo.version && (
+              <UpdateBanner
+                version={updateInfo.version}
+                installing={installingUpdate}
+                onInstall={() => void installUpdate()}
+                onDismiss={() => settings.dismissUpdate(updateInfo.version)}
               />
             )}
             {inTauri && !settings.settings.sawAgentNudge && state.notes.some((n) => n.handedOff) && (

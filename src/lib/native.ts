@@ -21,6 +21,10 @@ async function call<T = void>(cmd: string, args?: Record<string, unknown>): Prom
   }
 }
 
+/** Stashed between checkForUpdate() and installUpdate() — the plugin's own Update
+ * object carries the actual download, not just a version string. */
+let pendingUpdate: import("@tauri-apps/plugin-updater").Update | null = null;
+
 export const native = {
   /** Hide the popover window (it stays resident in the menu bar). */
   hide: () => call("hide_window"),
@@ -84,6 +88,46 @@ export const native = {
   copyRich: (text: string, ids: string[]) => call("copy_rich", { text, ids }),
   /** Dev builds only: echo to the `tauri dev` terminal. No-op in production. */
   devLog: (msg: string) => (import.meta.env.DEV ? call("dev_log", { msg }) : Promise.resolve()),
+  /** The running app's version, e.g. "1.1.0". */
+  currentVersion: async (): Promise<string | undefined> => {
+    if (!isTauri()) return undefined;
+    try {
+      const { getVersion } = await import("@tauri-apps/api/app");
+      return await getVersion();
+    } catch (err) {
+      console.error("[batch] currentVersion failed:", err);
+      return undefined;
+    }
+  },
+  /** Check the GitHub release feed for a newer build. Null if already current
+   * (or outside Tauri, or the check itself failed — network hiccups shouldn't surface as errors). */
+  checkForUpdate: async (): Promise<{ version: string; notes?: string } | null> => {
+    if (!isTauri()) return null;
+    try {
+      const { check } = await import("@tauri-apps/plugin-updater");
+      const u = await check();
+      pendingUpdate = u;
+      return u ? { version: u.version, notes: u.body || undefined } : null;
+    } catch (err) {
+      console.error("[batch] checkForUpdate failed:", err);
+      return null;
+    }
+  },
+  /** Download and install the update checkForUpdate found, then relaunch into it.
+   * False if there's nothing pending or the install itself failed. */
+  installUpdate: async (): Promise<boolean> => {
+    if (!pendingUpdate) return false;
+    try {
+      await pendingUpdate.downloadAndInstall();
+      await pendingUpdate.close();
+      return true;
+    } catch (err) {
+      console.error("[batch] installUpdate failed:", err);
+      return false;
+    } finally {
+      pendingUpdate = null;
+    }
+  },
 };
 
 export interface CapturePayload {
