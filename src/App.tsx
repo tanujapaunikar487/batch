@@ -1015,6 +1015,7 @@ export default function App() {
               onCopyAsList={(ids) => void copyAsList(ids)}
               onCopyForAgent={(ids) => void copyForAgent(ids)}
               onSetOutcome={(id, text) => notes.setOutcome(id, text, "me")}
+              showOutcomes={settings.settings.showOutcomes}
               onMerge={(ids) => {
                 if (ids.length < 2) return;
                 notes.merge(ids);

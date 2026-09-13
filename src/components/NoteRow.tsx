@@ -102,6 +102,8 @@ export interface NoteRowProps {
   onCopyAsList: (ids: string[]) => void;
   onCopyForAgent: (ids: string[]) => void;
   onSetOutcome: (id: string, text: string | null) => void;
+  /** Show an agent's answer text under its note. Off still shows "with your agent". */
+  showOutcomes: boolean;
   onMerge: (ids: string[]) => void;
   onNudge?: (id: string, delta: -1 | 1) => void;
   onOpenAttachment: (noteId: string, a: Attachment) => void;
@@ -157,6 +159,7 @@ export function NoteRow({
   onCopyAsList,
   onCopyForAgent,
   onSetOutcome,
+  showOutcomes,
   onMerge,
   onNudge,
   onOpenAttachment,
@@ -371,7 +374,7 @@ export function NoteRow({
                 {note.source.title ? ` · ${note.source.title}` : ""}
               </div>
             )}
-            {(note.outcome || editingOutcome) && (
+            {((note.outcome && showOutcomes) || editingOutcome) && (
               <div className="mt-2 border-t border-border pt-1.5">
                 <div className="mb-0.5 flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
                   <MessageSquare className="size-3" />

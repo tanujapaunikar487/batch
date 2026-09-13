@@ -113,6 +113,7 @@ export function SettingsPanel({
     appearance: m("appearance", "theme", "system light dark"),
     autostart: m("launch at login", "autostart"),
     copyList: m("copy as list marks notes done", "handed off"),
+    showOutcomes: m("show agent answers", "outcome", "output"),
     toggleHotkey: m("toggle hotkey", "system-wide", "show hide"),
     windowPosition: m("window position", "snap under menu-bar icon", "off-screen"),
     doubleShift: m("double-shift to open", "input monitoring"),
@@ -125,7 +126,7 @@ export function SettingsPanel({
     backup: m("export", "import", "backup", "restore", "json", "markdown"),
   };
   const showSection: Record<SectionId, boolean> = {
-    general: m("general") || rows.appearance || rows.autostart || rows.copyList || rows.toggleHotkey || rows.windowPosition,
+    general: m("general") || rows.appearance || rows.autostart || rows.copyList || rows.showOutcomes || rows.toggleHotkey || rows.windowPosition,
     capture: m("capture") || rows.doubleShift || rows.captureSel || rows.captureSrc || rows.regionHotkey,
     shortcuts: m("shortcuts") || shortcutHits.length > 0 || rows.allShortcuts,
     agents: rows.agents,
@@ -263,6 +264,11 @@ export function SettingsPanel({
               {rows.copyList && (
               <Row label="Copy as List marks notes done" hint="They've been handed off; ⌘Z brings them back">
                 <Switch checked={settings.settings.copyListMarksDone} onCheckedChange={settings.setCopyListMarksDone} />
+              </Row>
+              )}
+              {rows.showOutcomes && (
+              <Row label="Show agent answers under notes" hint="Off hides the text, not that it's out with an agent">
+                <Switch checked={settings.settings.showOutcomes} onCheckedChange={settings.setShowOutcomes} />
               </Row>
               )}
               {rows.toggleHotkey && (
