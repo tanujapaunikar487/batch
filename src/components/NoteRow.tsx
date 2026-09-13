@@ -407,12 +407,13 @@ export function NoteRow({
           </div>
 
           {/* One reserved action zone, right-aligned: contextual primary action (hover) ·
-              star (always) · ⋯ (hover) — same cluster and order as the Focus card's action row. */}
-          {!heading && (
+              star (always) · ⋯ (hover) — same cluster and order as the Focus card's action row.
+              Done notes have nothing left to act on, so the whole zone drops away. */}
+          {!heading && !note.done && (
             <div className="mt-0.5 flex h-6 shrink-0 items-center justify-end gap-0.5">
               {/* Ledger divider separating the entry from its action column. */}
               <span className="mr-1.5 h-5 w-px self-center bg-border" aria-hidden />
-              {!note.done && !note.handedOff && (
+              {!note.handedOff && (
                 <IconAction
                   label="Hand to your agent"
                   className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
@@ -421,7 +422,7 @@ export function NoteRow({
                   <Bot className="size-5" />
                 </IconAction>
               )}
-              {!note.done && note.handedOff && !note.outcome && (
+              {note.handedOff && !note.outcome && (
                 <IconAction
                   label="Add the answer"
                   className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"

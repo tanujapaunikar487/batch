@@ -304,7 +304,7 @@ export function SettingsPanel({
                 </p>
                 {mcpPath ? (
                   <div className="mt-2 flex items-center gap-2">
-                    <code className="min-w-0 flex-1 truncate rounded bg-foreground/[0.05] px-1.5 py-1 text-[10px]" title={`claude mcp add batch -- ${mcpPath}`}>
+                    <code className="min-w-0 flex-1 truncate rounded bg-foreground/[0.05] px-1.5 py-1 text-xs" title={`claude mcp add batch -- ${mcpPath}`}>
                       claude mcp add batch -- {mcpPath}
                     </code>
                     <Button
@@ -469,7 +469,7 @@ export function SettingsPanel({
               </p>
               {inTauri && (
                 <div className="mt-2 flex items-center gap-2">
-                  <code className="min-w-0 flex-1 truncate rounded bg-foreground/[0.05] px-1.5 py-0.5 text-[10px]" title={notesPath}>
+                  <code className="min-w-0 flex-1 truncate rounded bg-foreground/[0.05] px-1.5 py-0.5 text-xs" title={notesPath}>
                     {notesPath || "…"}
                   </code>
                   <Button size="xs" variant="outline" onClick={() => void native.revealNotesFile()}>
