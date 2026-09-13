@@ -33,6 +33,21 @@ APP="src-tauri/target/universal-apple-darwin/release/bundle/macos/Batch.app"
 cp -R "$APP" "$OUT/Batch.app"
 bash scripts/apply-icon.sh "$OUT/Batch.app" "${APPLE_SIGNING_IDENTITY:-}"
 
+# apply-icon.sh re-signs after adding the icon; that's sometimes landed ad-hoc
+# even with a real identity available (transient keychain access hiccup on a
+# long-running script, as far as we've been able to tell — codesign itself
+# always works when re-run). Verify and correct rather than silently ship an
+# ad-hoc build when a real identity was on hand.
+if [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
+  GOT_TEAM=$(codesign -dv "$OUT/Batch.app" 2>&1 | sed -n 's/^TeamIdentifier=//p')
+  if [ -z "$GOT_TEAM" ] || [ "$GOT_TEAM" = "not set" ]; then
+    echo "▸ apply-icon.sh left an ad-hoc signature — re-signing with $APPLE_SIGNING_IDENTITY"
+    codesign --force --deep --timestamp --options runtime --sign "$APPLE_SIGNING_IDENTITY" "$OUT/Batch.app"
+    GOT_TEAM=$(codesign -dv "$OUT/Batch.app" 2>&1 | sed -n 's/^TeamIdentifier=//p')
+    [ -n "$GOT_TEAM" ] && [ "$GOT_TEAM" != "not set" ] || { echo "still not properly signed — aborting"; exit 1; }
+  fi
+fi
+
 # Notarize + staple if we're signed and have credentials (env vars or keychain profile).
 HAVE_PROFILE=0
 xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1 && HAVE_PROFILE=1
