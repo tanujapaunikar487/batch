@@ -23,38 +23,52 @@ import { formatBinding } from "@/lib/shortcuts";
 import { Markdown } from "./Markdown";
 import { AttachmentStrip } from "./AttachmentStrip";
 
-/** Icon-only button + shadcn tooltip — every quick action in the row uses this. */
+/** Icon-only button + shadcn tooltip — every quick action in the row uses this.
+ * Pass `contextMenu` (a `<ContextMenuContent>`) to also give the button its own
+ * right-click menu, independent of the row's. */
 function IconAction({
   label,
   pressed,
   className,
   onClick,
   children,
+  contextMenu,
 }: {
   label: string;
   pressed?: boolean;
   className?: string;
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
   children: React.ReactNode;
+  contextMenu?: React.ReactNode;
 }) {
+  const button = (
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-label={label}
+      aria-pressed={pressed}
+      aria-expanded={pressed}
+      onClick={onClick}
+      className={cn(
+        "grid size-7 shrink-0 place-items-center rounded-md transition-colors hover:bg-foreground/[0.06]",
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-label={label}
-          aria-pressed={pressed}
-          aria-expanded={pressed}
-          onClick={onClick}
-          className={cn(
-            "grid size-7 shrink-0 place-items-center rounded-md transition-colors hover:bg-foreground/[0.06]",
-            className,
-          )}
-        >
-          {children}
-        </button>
-      </TooltipTrigger>
+      {contextMenu ? (
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            <TooltipTrigger asChild>{button}</TooltipTrigger>
+          </ContextMenuTrigger>
+          {contextMenu}
+        </ContextMenu>
+      ) : (
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+      )}
       <TooltipContent side="bottom">{label}</TooltipContent>
     </Tooltip>
   );
@@ -417,9 +431,19 @@ export function NoteRow({
                 </IconAction>
               )}
               <IconAction
-                label={note.priority === "high" ? "High priority — clear" : "Flag high priority"}
+                label={note.priority === "high" ? "High priority — click to clear, right-click for more" : "Flag high priority — right-click for more"}
                 pressed={note.priority === "high"}
                 onClick={() => onSetPriority([note.id], note.priority === "high" ? "medium" : "high")}
+                contextMenu={
+                  <ContextMenuContent className="min-w-28">
+                    {(["high", "medium", "low"] as Priority[]).map((p) => (
+                      <ContextMenuItem key={p} onSelect={() => onSetPriority([note.id], p)}>
+                        {p === "high" ? "High" : p === "medium" ? "Medium" : "Low"}
+                        {note.priority === p && <Check className="ml-auto size-3.5" />}
+                      </ContextMenuItem>
+                    ))}
+                  </ContextMenuContent>
+                }
               >
                 <span
                   className={cn(
